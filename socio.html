@@ -10,291 +10,208 @@
 <script src="supabasedb.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
-
-
-/* ── RESET ──────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════
+   CONTENDER CLUB · SOCIO — Design System unificado
+   Mismo lenguaje visual que admin/entrenador
+   Bebas Neue (display) + DM Sans (cuerpo) · Dark · Lima #C8F135
+   ═══════════════════════════════════════════════════════════════ */
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;background:#080808;color:#F0EDE8;font-family:"DM Sans",sans-serif;max-width:430px;margin:0 auto;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-:root{--bg:#080808;--bg2:#111;--bg3:#1A1A1A;--border:#2A2A2A;--muted:#666;--text:#F0EDE8;--lime:#C8F135;--green:#30D158;--orange:#FF9F0A;--red:#FF3B30;}
+:root{
+  --bg:#080808;--bg2:#121212;--bg3:#1C1C1E;--border:#2A2A2C;--muted:#7A7A7E;--text:#F0EDE8;
+  --lime:#C8F135;--lime-dim:rgba(200,241,53,.14);--lime-line:rgba(200,241,53,.28);
+  --green:#30D158;--orange:#FF9F0A;--red:#FF3B30;--wa:#25D366;--teal:#4ECDC4;
+  --r-lg:16px;--r-md:13px;--r-sm:9px;
+  --shadow:0 6px 20px rgba(0,0,0,.35);--shadow-lime:0 4px 18px rgba(200,241,53,.18);
+}
+::selection{background:var(--lime);color:#080808}
 
 /* ── SCREENS ─────────────────────────────────────────────── */
-.screen{display:none;flex-direction:column;min-height:100vh;padding-bottom:72px;animation:fadeIn .2s ease;}
-.screen.active{display:flex;}
-@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.screen{display:none;flex-direction:column;min-height:100vh;padding-bottom:82px;animation:fadeIn .22s ease}
+.screen.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 /* ── NAV ─────────────────────────────────────────────────── */
-.nav-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(8,8,8,.96);border-top:1px solid var(--border);display:flex;z-index:200;padding:8px 0 20px;backdrop-filter:blur(16px);}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border:none;background:none;color:#444;font-size:9px;font-family:"DM Sans",sans-serif;font-weight:500;transition:color .15s;padding:4px 0;}
-.nav-item.active{color:var(--lime);}
-.nav-icon{font-size:20px;line-height:1;}
+.nav-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(10,10,10,.82);border-top:1px solid var(--border);display:flex;z-index:200;padding:8px 0 22px;backdrop-filter:blur(20px) saturate(1.4);-webkit-backdrop-filter:blur(20px) saturate(1.4)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;border:none;background:none;color:#5A5A5E;font-size:9px;font-family:"DM Sans",sans-serif;font-weight:600;letter-spacing:.3px;transition:color .18s,transform .18s;padding:4px 0}
+.nav-item:active{transform:scale(.92)}
+.nav-item.active{color:var(--lime)}
+.nav-icon{font-size:20px;line-height:1;transition:transform .18s}
+.nav-item.active .nav-icon{transform:translateY(-1px) scale(1.08)}
 
 /* ── PANTALLA DE PERFILES ────────────────────────────────── */
-.perfil-screen{
-  min-height:100vh;background:var(--bg);
-  background-image:radial-gradient(ellipse 80% 50% at 50% 100%,rgba(200,241,53,.1),transparent 65%);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:32px 24px;
-}
-.perfil-titulo{font-family:"Bebas Neue",sans-serif;font-size:32px;letter-spacing:.5px;margin-bottom:4px;text-align:center;}
-.perfil-sub{font-size:13px;color:var(--muted);margin-bottom:36px;text-align:center;}
-.perfil-lista{width:100%;display:flex;flex-direction:column;gap:10px;}
-.perfil-btn{
-  width:100%;padding:16px 18px;background:var(--bg2);
-  border:1px solid var(--border);border-radius:16px;
-  display:flex;align-items:center;gap:14px;cursor:pointer;
-  transition:border-color .15s,background .15s;text-align:left;
-}
-.perfil-btn:active{transform:scale(.98);}
-.perfil-btn:hover{border-color:var(--lime);background:rgba(200,241,53,.04);}
-.perfil-av{
-  width:46px;height:46px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:15px;font-weight:700;color:#080808;flex-shrink:0;
-}
-.perfil-info{flex:1;min-width:0;}
-.perfil-nombre{font-size:15px;font-weight:700;color:var(--text);}
-.perfil-detalle{font-size:12px;color:var(--muted);margin-top:3px;}
+.perfil-screen{min-height:100vh;background:var(--bg);background-image:radial-gradient(ellipse 90% 55% at 50% 105%,rgba(200,241,53,.13),transparent 68%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px}
+.perfil-titulo{font-family:"Bebas Neue",sans-serif;font-size:42px;line-height:.9;letter-spacing:-.5px;margin-bottom:6px;text-align:center;background:linear-gradient(155deg,#fff 25%,var(--lime) 95%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.perfil-sub{font-size:13px;color:var(--muted);margin-bottom:40px;text-align:center;font-weight:500}
+.perfil-lista{width:100%;display:flex;flex-direction:column;gap:11px}
+.perfil-btn{width:100%;padding:16px 18px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r-lg);display:flex;align-items:center;gap:14px;cursor:pointer;transition:border-color .18s,background .18s,transform .14s;text-align:left}
+.perfil-btn:active{transform:scale(.98);border-color:var(--lime-line)}
+.perfil-btn:hover{border-color:var(--lime-line);background:var(--lime-dim)}
+.perfil-av{width:48px;height:48px;border-radius:15px;display:flex;align-items:center;justify-content:center;font-family:"Bebas Neue",sans-serif;font-size:19px;letter-spacing:.5px;color:#080808;flex-shrink:0;box-shadow:0 3px 10px rgba(0,0,0,.3)}
+.perfil-info{flex:1;min-width:0}
+.perfil-nombre{font-size:15px;font-weight:700;color:var(--text);letter-spacing:-.1px}
+.perfil-detalle{font-size:12px;color:var(--muted);margin-top:3px;font-weight:500}
 
-/* ── ABONOS ──────────────────────────────────────────────── */
-.abono-fila{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
-.abono-fila:last-child{border-bottom:none;}
-.abono-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
-.abono-num.ok{background:rgba(48,209,88,.15);color:var(--green);}
-.abono-num.pend{background:rgba(255,159,10,.15);color:var(--orange);}
-.abono-info{flex:1;min-width:0;}
-.abono-label{font-size:13px;font-weight:600;}
-.abono-fecha{font-size:11px;color:var(--muted);margin-top:2px;}
-.abono-monto{font-family:"Bebas Neue",sans-serif;font-size:18px;flex-shrink:0;}
-
-/* ── MODAL OVERLAY ───────────────────────────────────────── */
-.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px);}
-.modal-ov.open{display:flex;}
-.modal{background:var(--bg2);border-radius:22px 22px 0 0;padding:24px 16px 36px;width:100%;max-width:430px;border:1px solid var(--border);border-bottom:none;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;}
-@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
-.deuda-card{
-  background:rgba(255,159,10,.06);border:1px solid rgba(255,159,10,.3);
-  border-radius:12px;padding:11px 13px;margin-bottom:8px;
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
-}
-.deuda-prod{font-size:13px;font-weight:600;}
-.deuda-fecha{font-size:11px;color:var(--muted);margin-top:2px;}
-.deuda-monto{font-family:"Bebas Neue",sans-serif;font-size:20px;color:var(--orange);flex-shrink:0;}
-.hdr-nombre{font-family:"Bebas Neue",sans-serif;font-size:28px;letter-spacing:.5px;line-height:1;}
-.hdr-sub{font-size:12px;color:var(--muted);margin-top:3px;}
-.av{width:42px;height:42px;border-radius:50%;background:var(--lime);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#080808;flex-shrink:0;}
+/* ── HEADER ──────────────────────────────────────────────── */
+.hdr{padding:20px 16px 10px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.hdr h1{font-family:"Bebas Neue",sans-serif;font-size:34px;letter-spacing:.5px;line-height:.95}
+.hdr small{font-size:12px;color:var(--muted);display:block;margin-top:3px;font-weight:500}
+.hdr-r{display:flex;gap:8px;align-items:center}
+.hdr-nombre{font-family:"Bebas Neue",sans-serif;font-size:30px;letter-spacing:.5px;line-height:1}
+.hdr-sub{font-size:12px;color:var(--muted);margin-top:3px;font-weight:500}
+.av{width:44px;height:44px;border-radius:14px;background:linear-gradient(140deg,var(--lime),#A9CC2A);display:flex;align-items:center;justify-content:center;font-family:"Bebas Neue",sans-serif;font-size:18px;letter-spacing:.5px;color:#080808;flex-shrink:0;box-shadow:0 3px 12px rgba(200,241,53,.25)}
 
 /* ── SECCIÓN ─────────────────────────────────────────────── */
-.sec{padding:0 16px;}
-.lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;margin-top:14px;display:block;}
+.sec{padding:0 16px}
+.lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.6px;margin-bottom:9px;margin-top:16px;display:block}
+.sec-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.6px;padding:0 16px;margin-bottom:9px;display:block}
 
-/* ── QR CARD ─────────────────────────────────────────────── */
-/* MODIFICAR: colores del recuadro QR */
-.qr-card{
-  background:rgba(200,241,53,.04);
-  border:1px solid rgba(200,241,53,.25);
-  border-radius:18px;
-  padding:24px 16px;
-  text-align:center;
-  margin-bottom:8px;
-}
-.qr-wrap{margin:0 auto 14px;width:fit-content;}
-.qr-code{
-  font-family:"Bebas Neue",sans-serif;
-  font-size:22px;
-  letter-spacing:4px;
-  color:var(--lime);
-  margin-bottom:4px;
-}
-.qr-hint{font-size:11px;color:var(--muted);}
+/* ── QR CARD (estrella de la vista) ──────────────────────── */
+.qr-card{background:radial-gradient(ellipse 120% 90% at 50% 0%,rgba(200,241,53,.1),rgba(200,241,53,.03));border:1px solid var(--lime-line);border-radius:22px;padding:28px 16px;text-align:center;margin-bottom:8px;box-shadow:var(--shadow-lime)}
+.qr-wrap{margin:0 auto 16px;width:fit-content;background:#fff;padding:12px;border-radius:16px;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.qr-code{font-family:"Bebas Neue",sans-serif;font-size:24px;letter-spacing:5px;color:var(--lime);margin-bottom:5px}
+.qr-hint{font-size:11px;color:var(--muted);font-weight:500}
 
 /* ── STATS ───────────────────────────────────────────────── */
-/* MODIFICAR: número de columnas, colores */
-.stats-3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;}
-.sbox{background:var(--bg2);border-radius:12px;padding:12px 8px;text-align:center;border:1px solid var(--border);}
-.snum{font-family:"Bebas Neue",sans-serif;font-size:26px;line-height:1;}
-.slbl{font-size:10px;color:var(--muted);margin-top:3px;}
+.stats-3{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-bottom:8px}
+.sbox{background:var(--bg2);border-radius:var(--r-md);padding:14px 8px;text-align:center;border:1px solid var(--border);transition:border-color .18s,transform .14s}
+.sbox:active{transform:scale(.97);border-color:var(--lime-line)}
+.snum{font-family:"Bebas Neue",sans-serif;font-size:30px;line-height:1;letter-spacing:.5px}
+.slbl{font-size:9.5px;color:var(--muted);margin-top:5px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
 
 /* ── MEMBRESÍA CARD ──────────────────────────────────────── */
-/* MODIFICAR: colores según status */
-.memb-card{
-  background:var(--bg2);border-radius:14px;
-  padding:14px;margin-bottom:8px;
-  border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;gap:12px;
-}
-.memb-card.aldia   {border-left:3px solid var(--green);}
-.memb-card.vencehoy{border-left:3px solid var(--orange);}
-.memb-card.vencido {border-left:3px solid var(--red);}
-.memb-nombre{font-family:"Bebas Neue",sans-serif;font-size:20px;line-height:1;}
-.memb-vence{font-size:12px;color:var(--muted);margin-top:4px;}
+.memb-card{background:var(--bg2);border-radius:var(--r-lg);padding:15px;margin-bottom:8px;border:1px solid var(--border);position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.memb-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--border)}
+.memb-card.aldia::before{background:var(--green)}
+.memb-card.vencehoy::before{background:var(--orange)}
+.memb-card.vencido::before{background:var(--red)}
+.memb-card.aldia{background:linear-gradient(180deg,rgba(48,209,88,.05),transparent)}
+.memb-card.vencehoy{background:linear-gradient(180deg,rgba(255,159,10,.05),transparent)}
+.memb-card.vencido{background:linear-gradient(180deg,rgba(255,59,48,.05),transparent)}
+.memb-nombre{font-family:"Bebas Neue",sans-serif;font-size:22px;line-height:1;letter-spacing:.3px}
+.memb-vence{font-size:12px;color:var(--muted);margin-top:5px;font-weight:500}
 
-/* ── PILL ────────────────────────────────────────────────── */
-.pill{border-radius:20px;padding:4px 11px;font-size:12px;font-weight:600;display:inline-block;white-space:nowrap;}
-.pg{background:rgba(48,209,88,.15);color:var(--green);}
-.po{background:rgba(255,159,10,.15);color:var(--orange);}
-.pr{background:rgba(255,59,48,.15);color:var(--red);}
+/* ── PILLS ───────────────────────────────────────────────── */
+.pill{border-radius:20px;padding:4px 11px;font-size:11.5px;font-weight:700;display:inline-block;white-space:nowrap;letter-spacing:.2px}
+.pg{background:rgba(48,209,88,.16);color:var(--green)}
+.po{background:rgba(255,159,10,.16);color:var(--orange)}
+.pr{background:rgba(255,59,48,.16);color:var(--red)}
+.pm{background:var(--bg3);color:var(--muted)}
 
-/* ── PRÓXIMA CLASE ───────────────────────────────────────── */
-.clase-row{
-  background:var(--bg2);border-radius:14px;
-  padding:12px 14px;margin-bottom:8px;
-  border:1px solid var(--border);
-  display:flex;align-items:center;gap:12px;
-}
-.clase-color{width:4px;height:44px;border-radius:4px;flex-shrink:0;}
-.clase-info{flex:1;min-width:0;}
-.clase-nombre{font-weight:700;font-size:14px;}
-.clase-meta{font-size:12px;color:var(--muted);margin-top:3px;}
+/* ── PRÓXIMA CLASE (resumen inicio) ──────────────────────── */
+.clase-row{background:var(--bg2);border-radius:var(--r-lg);padding:13px 14px;margin-bottom:8px;border:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.clase-color{width:4px;height:46px;border-radius:4px;flex-shrink:0}
+.clase-info{flex:1;min-width:0}
+.clase-nombre{font-weight:700;font-size:14px;letter-spacing:-.1px}
+.clase-meta{font-size:12px;color:var(--muted);margin-top:3px;font-weight:500}
 
 /* ── PROGRESS BAR ────────────────────────────────────────── */
-/* MODIFICAR: altura, colores */
-.prog-wrap{background:var(--bg3);border-radius:4px;height:5px;overflow:hidden;margin-top:8px;}
-.prog-fill{height:100%;border-radius:4px;background:var(--lime);transition:width .7s;}
+.prog-wrap{background:var(--bg3);border-radius:5px;height:6px;overflow:hidden;margin-top:8px}
+.prog-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--lime),#A9CC2A);transition:width .7s cubic-bezier(.16,1,.3,1)}
 
-.nav-ph{height:84px;}
-/* ── HEADER ─────────────────────────────────────────────── */
-.hdr{padding:20px 16px 10px;display:flex;align-items:flex-start;justify-content:space-between;}
-.hdr h1{font-family:"Bebas Neue",sans-serif;font-size:30px;letter-spacing:.5px;line-height:1;}
-.hdr small{font-size:12px;color:var(--muted);display:block;margin-top:3px;}
+/* ── ABONOS ──────────────────────────────────────────────── */
+.abono-fila{display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border)}
+.abono-fila:last-child{border-bottom:none}
+.abono-num{width:27px;height:27px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.abono-num.ok{background:rgba(48,209,88,.16);color:var(--green)}
+.abono-num.pend{background:rgba(255,159,10,.16);color:var(--orange)}
+.abono-info{flex:1;min-width:0}
+.abono-label{font-size:13px;font-weight:600}
+.abono-fecha{font-size:11px;color:var(--muted);margin-top:2px}
+.abono-monto{font-family:"Bebas Neue",sans-serif;font-size:19px;flex-shrink:0}
 
-/* ── CLASE CARD ──────────────────────────────────────────── */
-/* MODIFICAR: padding, sombra */
-.clase-card{
-  display:flex;align-items:stretch;
-  margin-bottom:10px;
-  background:var(--bg2);border-radius:16px;
-  overflow:hidden;border:1px solid var(--border);
-}
-.clase-barra{width:5px;flex-shrink:0;}
-.clase-body{flex:1;padding:13px 14px;}
-.clase-nombre{font-family:"Bebas Neue",sans-serif;font-size:20px;line-height:1.1;}
-.clase-meta{font-size:12px;color:var(--muted);margin-top:4px;}
-.clase-cupo{font-size:11px;margin-top:6px;}
-.clase-act{padding:0 12px;display:flex;align-items:center;}
+/* ── DEUDA CARD ──────────────────────────────────────────── */
+.deuda-card{background:linear-gradient(180deg,rgba(255,159,10,.07),transparent);border:1px solid rgba(255,159,10,.32);border-radius:var(--r-md);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.deuda-prod{font-size:13px;font-weight:600}
+.deuda-fecha{font-size:11px;color:var(--muted);margin-top:2px}
+.deuda-monto{font-family:"Bebas Neue",sans-serif;font-size:21px;color:var(--orange);flex-shrink:0}
 
-/* ── BOTONES ─────────────────────────────────────────────── */
-.btn{border:none;border-radius:10px;padding:9px 14px;font-family:"DM Sans",sans-serif;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:transform .1s;white-space:nowrap;}
-.btn:active{transform:scale(.96);}
-.btn-lime  {background:var(--lime);color:#080808;}
-.btn-outline{background:transparent;color:var(--lime);border:1.5px solid var(--lime);}
-.btn-gray  {background:var(--bg3);color:var(--muted);border:1px solid var(--border);}
-.btn-sm    {padding:7px 13px;font-size:12px;border-radius:9px;}
-
-/* ── PILL ────────────────────────────────────────────────── */
-.pill{border-radius:20px;padding:3px 9px;font-size:11px;font-weight:600;display:inline-block;}
-.pg{background:rgba(48,209,88,.15);color:var(--green);}
-.pr{background:rgba(255,59,48,.15);color:var(--red);}
-.pm{background:var(--bg3);color:var(--muted);}
-
-/* ── MIS CLASES RESUMEN ──────────────────────────────────── */
-/* MODIFICAR: colores de la sección de inscritas */
-.mis-clases{
-  margin:0 16px 16px;
-  background:var(--bg2);border-radius:14px;
-  border:1px solid var(--border);overflow:hidden;
-}
-.mc-titulo{
-  font-size:10px;font-weight:700;color:var(--muted);
-  text-transform:uppercase;letter-spacing:1.5px;
-  padding:12px 14px 8px;border-bottom:1px solid var(--border);
-}
-.mc-fila{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);}
-.mc-fila:last-child{border-bottom:none;}
-.mc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.mc-info{flex:1;min-width:0;}
-.mc-nombre{font-size:13px;font-weight:600;}
-.mc-sub{font-size:11px;color:var(--muted);margin-top:2px;}
-
-/* ── EMPTY ───────────────────────────────────────────────── */
-.empty{text-align:center;padding:36px 20px;color:var(--muted);}
-.empty .ico{font-size:36px;margin-bottom:10px;}
-.empty p{font-size:13px;}
-
-/* ── SECCIÓN LABEL ───────────────────────────────────────── */
-.sec-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;padding:0 16px;margin-bottom:8px;display:block;}
-
-.sec{padding:0 16px;}
-.nav-ph{height:84px;}
-/* ── HEADER ─────────────────────────────────────────────── */
-.hdr{padding:20px 16px 10px;display:flex;align-items:flex-start;justify-content:space-between;}
-.hdr h1{font-family:"Bebas Neue",sans-serif;font-size:30px;letter-spacing:.5px;}
-.hdr-r{display:flex;gap:8px;align-items:center;}
-
-/* ── BARRA DE DÍAS ───────────────────────────────────────── */
-/* MODIFICAR: tamaño, colores */
-.day-bar{display:flex;gap:6px;overflow-x:auto;padding:0 16px 4px;margin-bottom:14px;scrollbar-width:none;}
-.day-bar::-webkit-scrollbar{display:none;}
-.dbtn{
-  flex-shrink:0;min-width:48px;padding:8px 10px;
-  border-radius:12px;border:1px solid var(--border);
-  background:var(--bg2);color:var(--muted);
-  font-family:"DM Sans",sans-serif;font-weight:600;
-  font-size:11px;cursor:pointer;text-align:center;transition:all .15s;
-}
-.dbtn.active{background:var(--lime);color:#080808;border-color:var(--lime);}
-.dbtn .d-nom{font-size:9px;display:block;margin-top:2px;}
+/* ── DÍA BAR (agenda clases) ─────────────────────────────── */
+.day-bar{display:flex;gap:7px;overflow-x:auto;padding:0 16px 4px;margin-bottom:14px;scrollbar-width:none}
+.day-bar::-webkit-scrollbar{display:none}
+.dbtn{flex-shrink:0;min-width:50px;padding:9px 11px;border-radius:13px;border:1px solid var(--border);background:var(--bg2);color:var(--muted);font-family:"Bebas Neue",sans-serif;font-size:18px;letter-spacing:.5px;cursor:pointer;text-align:center;transition:all .16s;line-height:1}
+.dbtn.active{background:var(--lime);color:#080808;border-color:var(--lime);box-shadow:var(--shadow-lime)}
+.dbtn:active{transform:scale(.94)}
+.dbtn .d-nom{font-family:"DM Sans",sans-serif;font-size:9px;font-weight:600;display:block;margin-top:3px;text-transform:uppercase;letter-spacing:.5px}
 
 /* ── HEADER DEL DÍA ──────────────────────────────────────── */
-.dia-hdr{
-  display:flex;align-items:center;gap:12px;
-  padding:0 16px;margin-bottom:14px;
-}
-.dia-icono{font-size:32px;}
-.dia-titulo{font-family:"Bebas Neue",sans-serif;font-size:26px;line-height:1;}
-.dia-sub{font-size:12px;color:var(--muted);margin-top:2px;}
+.dia-hdr{display:flex;align-items:center;gap:12px;padding:0 16px;margin-bottom:14px}
+.dia-icono{font-size:34px}
+.dia-titulo{font-family:"Bebas Neue",sans-serif;font-size:28px;line-height:1;letter-spacing:.3px}
+.dia-sub{font-size:12px;color:var(--muted);margin-top:2px;font-weight:500}
 
-/* ── LISTA DE EJERCICIOS ─────────────────────────────────── */
-.ejercicios{padding:0 16px;}
-.ex-card{
-  background:var(--bg2);border-radius:14px;
-  padding:13px 14px;margin-bottom:8px;
-  border:1px solid var(--border);
-  display:flex;align-items:center;gap:12px;
-}
-/* MODIFICAR: color del número */
-.ex-num{
-  width:28px;height:28px;border-radius:8px;
-  background:rgba(200,241,53,.1);
-  display:flex;align-items:center;justify-content:center;
-  font-size:12px;font-weight:700;color:var(--lime);
-  flex-shrink:0;
-}
-.ex-info{flex:1;min-width:0;}
-.ex-nombre{font-size:14px;font-weight:600;}
-.ex-detalle{font-size:12px;color:var(--muted);margin-top:3px;}
-.ex-del{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;}
-.ex-del:active{color:var(--red);}
+/* ── CLASE CARD (agenda) ─────────────────────────────────── */
+.clase-card{display:flex;align-items:stretch;margin-bottom:10px;background:var(--bg2);border-radius:var(--r-lg);overflow:hidden;border:1px solid var(--border);transition:border-color .18s,transform .14s}
+.clase-card:active{transform:scale(.99)}
+.clase-barra{width:5px;flex-shrink:0}
+.clase-body{flex:1;padding:14px 15px}
+.clase-nombre{font-family:"Bebas Neue",sans-serif;font-size:21px;line-height:1.05;letter-spacing:.3px}
+.clase-meta{font-size:12px;color:var(--muted);margin-top:5px;font-weight:500}
+.clase-cupo{font-size:11px;margin-top:7px;font-weight:600}
+.clase-act{padding:0 13px;display:flex;align-items:center}
+
+/* ── BOTONES (unificados con admin: lima/outline/gray/dark) ── */
+.btn{border:none;border-radius:11px;padding:9px 15px;font-family:"DM Sans",sans-serif;font-weight:700;font-size:12.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:transform .12s,filter .18s,box-shadow .18s;white-space:nowrap;letter-spacing:.2px}
+.btn:active{transform:scale(.95)}
+.btn-lime{background:var(--lime);color:#080808;box-shadow:var(--shadow-lime)}
+.btn-lime:active{filter:brightness(1.05)}
+.btn-outline{background:transparent;color:var(--lime);border:1.5px solid var(--lime)}
+.btn-gray{background:var(--bg3);color:var(--muted);border:1px solid var(--border)}
+.btn-dark{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
+.btn-sm{padding:7px 12px;font-size:11.5px;border-radius:9px}
+
+/* ── MIS CLASES RESUMEN ──────────────────────────────────── */
+.mis-clases{margin:0 16px 16px;background:var(--bg2);border-radius:var(--r-lg);border:1px solid var(--border);overflow:hidden}
+.mc-titulo{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.6px;padding:13px 14px 9px;border-bottom:1px solid var(--border)}
+.mc-fila{display:flex;align-items:center;gap:11px;padding:11px 14px;border-bottom:1px solid var(--border)}
+.mc-fila:last-child{border-bottom:none}
+.mc-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.mc-info{flex:1;min-width:0}
+.mc-nombre{font-size:13px;font-weight:600}
+.mc-sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* ── LISTA DE EJERCICIOS (rutina) ────────────────────────── */
+.ejercicios{padding:0 16px}
+.ex-card{background:var(--bg2);border-radius:var(--r-lg);padding:14px 15px;margin-bottom:9px;border:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.ex-num{width:30px;height:30px;border-radius:10px;background:var(--lime-dim);display:flex;align-items:center;justify-content:center;font-family:"Bebas Neue",sans-serif;font-size:15px;color:var(--lime);flex-shrink:0}
+.ex-info{flex:1;min-width:0}
+.ex-nombre{font-size:14px;font-weight:600}
+.ex-detalle{font-size:12px;color:var(--muted);margin-top:3px;font-weight:500}
+.ex-del{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;transition:color .15s}
+.ex-del:active{color:var(--red)}
 
 /* ── DESCANSO ────────────────────────────────────────────── */
-.descanso{
-  text-align:center;padding:40px 20px;
-  color:var(--muted);
-}
-.descanso .ico{font-size:48px;margin-bottom:12px;}
-.descanso p{font-size:14px;}
+.descanso{text-align:center;padding:44px 20px;color:var(--muted)}
+.descanso .ico{font-size:52px;margin-bottom:14px;opacity:.8}
+.descanso p{font-size:14px;font-weight:500}
 
-/* ── BOTONES ─────────────────────────────────────────────── */
-.btn{border:none;border-radius:10px;padding:9px 14px;font-family:"DM Sans",sans-serif;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:transform .1s;white-space:nowrap;}
-.btn:active{transform:scale(.96);}
-.btn-lime{background:var(--lime);color:#080808;}
-.btn-dark{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
-.btn-sm{padding:6px 11px;font-size:12px;border-radius:8px;}
+/* ── EMPTY ───────────────────────────────────────────────── */
+.empty{text-align:center;padding:44px 20px;color:var(--muted)}
+.empty .ico{font-size:40px;margin-bottom:12px;opacity:.7}
+.empty p{font-size:13px;font-weight:500}
 
 /* ── MODAL ───────────────────────────────────────────────── */
-.modal-ov.open{display:flex;}
-.modal{background:var(--bg2);border-radius:22px 22px 0 0;padding:24px 16px 36px;width:100%;max-width:430px;border:1px solid var(--border);border-bottom:none;animation:slideUp .25s ease;}
-@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
-.mhandle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px;}
-.modal h2{font-family:"Bebas Neue",sans-serif;font-size:24px;margin-bottom:16px;}
-.mbtns{display:flex;gap:8px;margin-top:16px;}
-.fr{margin-bottom:12px;}
-.fr label{font-size:11px;color:var(--muted);display:block;margin-bottom:5px;font-weight:500;text-transform:uppercase;letter-spacing:.8px;}
-input,select{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:14px;font-family:"DM Sans",sans-serif;width:100%;outline:none;appearance:none;-webkit-appearance:none;transition:border-color .15s;}
-input:focus,select:focus{border-color:var(--lime);}
-::placeholder{color:#444;}
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:300;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.modal-ov.open{display:flex;animation:ovIn .2s ease}
+@keyframes ovIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--bg2);border-radius:24px 24px 0 0;padding:24px 16px 36px;width:100%;max-width:430px;border:1px solid var(--border);border-bottom:none;animation:slideUp .28s cubic-bezier(.16,1,.3,1);max-height:90vh;overflow-y:auto}
+@keyframes slideUp{from{transform:translateY(48px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mhandle{width:38px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}
+.modal h2{font-family:"Bebas Neue",sans-serif;font-size:26px;margin-bottom:18px;letter-spacing:.3px}
+.mbtns{display:flex;gap:9px;margin-top:18px}
 
-.nav-ph{height:84px;}
+/* ── FORM ────────────────────────────────────────────────── */
+.fr{margin-bottom:13px}
+.fr label{font-size:11px;color:var(--muted);display:block;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.9px}
+input,select,textarea{background:var(--bg3);border:1px solid var(--border);border-radius:11px;padding:11px 14px;color:var(--text);font-size:14px;font-family:"DM Sans",sans-serif;width:100%;outline:none;appearance:none;-webkit-appearance:none;transition:border-color .18s,box-shadow .18s}
+input:focus,select:focus,textarea:focus{border-color:var(--lime);box-shadow:0 0 0 3px var(--lime-dim)}
+::placeholder{color:#4A4A4E}
 
+.nav-ph{height:82px}
+
+/* ── CARD genérica + grid 2col (form seguimiento) ────────── */
+.card{background:var(--bg2);border-radius:var(--r-lg);padding:14px 15px;margin-bottom:9px;border:1px solid var(--border)}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:11px}
 </style>
 </head>
 <body>
