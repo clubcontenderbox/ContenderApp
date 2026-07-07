@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#080808">
+<title>Contender · Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="supabasedb.js"></script>
+<script src="shared.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#080808;color:#F0EDE8;font-family:"DM Sans",sans-serif;max-width:430px;margin:0 auto;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+:root{--bg:#080808;--bg2:#111;--bg3:#1A1A1A;--border:#2A2A2A;--muted:#666;--text:#F0EDE8;--lime:#C8F135;--green:#30D158;--orange:#FF9F0A;--red:#FF3B30;--wa:#25D366}
+.screen{display:none;flex-direction:column;min-height:100vh;padding-bottom:76px;animation:fadeIn .2s ease}
+.screen.active{display:flex}
+.screen-full{display:none;flex-direction:column;min-height:100vh}
+.screen-full.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.nav-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(8,8,8,.96);border-top:1px solid var(--border);display:flex;z-index:200;padding:6px 0 18px;backdrop-filter:blur(16px)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border:none;background:none;color:#444;font-size:8px;font-family:"DM Sans",sans-serif;font-weight:500;transition:color .15s;padding:4px 0}
+.nav-item.active{color:var(--lime)}
+.nav-icon{font-size:18px;line-height:1}
+.login-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;background:radial-gradient(ellipse 80% 50% at 50% 105%,rgba(200,241,53,.1),transparent 68%)}
+.login-marca{font-family:"Bebas Neue",sans-serif;font-size:56px;line-height:.9;letter-spacing:-2px;background:linear-gradient(160deg,#fff 25%,var(--lime));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:4px}
+.login-rol{font-size:11px;color:var(--lime);letter-spacing:4px;text-transform:uppercase;margin-bottom:32px}
+.hdr{padding:18px 16px 8px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.hdr h1{font-family:"Bebas Neue",sans-serif;font-size:30px;letter-spacing:.5px;line-height:1}
+.hdr small{font-size:12px;color:var(--muted);display:block;margin-top:2px}
+.hdr-r{display:flex;gap:7px;align-items:center;flex-shrink:0}
+.tabs{display:flex;overflow-x:auto;scrollbar-width:none;padding:0 16px;gap:4px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:8px 13px 10px;font-size:12px;font-weight:500;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s}
+.tab.active{color:var(--lime);border-bottom-color:var(--lime)}
+.card{background:var(--bg2);border-radius:14px;padding:13px 14px;margin-bottom:8px;border:1px solid var(--border)}
+.card.verde{border-color:rgba(48,209,88,.3);background:rgba(48,209,88,.04)}
+.card.naranja{border-color:rgba(255,159,10,.35);background:rgba(255,159,10,.04)}
+.card.roja{border-color:rgba(255,59,48,.35);background:rgba(255,59,48,.04)}
+.soc-card{background:var(--bg2);border-radius:14px;padding:13px 14px;margin-bottom:8px;border:1px solid var(--border)}
+.soc-card.aldia{border-left:3px solid var(--green)}
+.soc-card.vencehoy{border-left:3px solid var(--orange)}
+.soc-card.vencido{border-left:3px solid var(--red)}
+.soc-fila{display:flex;align-items:center;gap:10px}
+.soc-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#080808;flex-shrink:0}
+.soc-info{flex:1;min-width:0}
+.soc-nombre{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.soc-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.ci-row{background:var(--bg2);border-radius:12px;padding:10px 12px;margin-bottom:6px;border:1px solid var(--border);display:flex;align-items:center;gap:10px;cursor:pointer}
+.ci-av{width:32px;height:32px;border-radius:50%;background:var(--lime);color:#080808;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.abono-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.abono-row:last-child{border-bottom:none}
+.abono-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.aok{background:rgba(48,209,88,.15);color:var(--green)}
+.apend{background:rgba(255,159,10,.15);color:var(--orange)}
+.avenc{background:rgba(255,59,48,.15);color:var(--red)}
+.pill{border-radius:20px;padding:3px 9px;font-size:11px;font-weight:600;display:inline-block;white-space:nowrap}
+.pg{background:rgba(48,209,88,.15);color:var(--green)}
+.po{background:rgba(255,159,10,.15);color:var(--orange)}
+.pr{background:rgba(255,59,48,.15);color:var(--red)}
+.pm{background:var(--bg3);color:var(--muted)}
+.btn{border:none;border-radius:10px;padding:8px 13px;font-family:"DM Sans",sans-serif;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:transform .1s;white-space:nowrap}
+.btn:active{transform:scale(.96)}
+.bl{background:var(--lime);color:#080808}
+.bd{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
+.bwa{background:var(--wa);color:#fff}
+.br{background:rgba(255,59,48,.12);color:var(--red);border:1px solid rgba(255,59,48,.3)}
+.bsm{padding:6px 10px;font-size:11px;border-radius:8px}
+.bfull{width:100%;padding:13px;font-size:14px;justify-content:center;border-radius:12px}
+.sec{padding:0 16px}
+.fr{margin-bottom:12px}
+.fr label{font-size:11px;color:var(--muted);display:block;margin-bottom:5px;font-weight:500;text-transform:uppercase;letter-spacing:.8px}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input,select,textarea{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 13px;color:var(--text);font-size:14px;font-family:"DM Sans",sans-serif;width:100%;outline:none;appearance:none;-webkit-appearance:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--lime)}
+::placeholder{color:#444}
+textarea{resize:vertical;min-height:70px}
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(5px)}
+.modal-ov.open{display:flex}
+.modal{background:var(--bg2);border-radius:22px 22px 0 0;padding:24px 16px 36px;width:100%;max-width:430px;border:1px solid var(--border);border-bottom:none;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mhandle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.modal h2{font-family:"Bebas Neue",sans-serif;font-size:24px;margin-bottom:16px}
+.mbtns{display:flex;gap:8px;margin-top:16px}
+.prog-wrap{background:var(--bg3);border-radius:4px;height:5px;overflow:hidden;margin-top:6px}
+.prog-fill{height:100%;border-radius:4px;background:var(--lime);transition:width .6s}
+.sbox{background:var(--bg2);border-radius:12px;padding:10px 6px;text-align:center;border:1px solid var(--border)}
+.snum{font-family:"Bebas Neue",sans-serif;font-size:28px;line-height:1}
+.slbl{font-size:10px;color:var(--muted);margin-top:3px}
+.empty{text-align:center;padding:36px 20px;color:var(--muted)}
+.empty .ico{font-size:36px;margin-bottom:10px}
+.empty p{font-size:13px}
+.nav-ph{height:76px}
+.lbl-sec{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:4px 0 8px}
+.lbl-campo{font-size:11px;color:var(--muted)}
+.val-campo{font-size:14px;margin-top:3px}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="ov-loading" style="position:fixed;inset:0;background:#080808;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;gap:12px">
+  <div style="font-family:'Bebas Neue',cursive;font-size:40px;color:#C8F135;letter-spacing:3px">CONTENDER</div>
+  <div style="font-size:13px;color:#555">Conectando…</div>
+  <div id="ov-err" style="font-size:11px;color:#FF3B30;display:none;max-width:280px;text-align:center"></div>
+</div>
+
+<!-- LOGIN -->
+<div class="screen-full active" id="screen-login">
+  <div class="login-wrap">
+    <div class="login-marca">CONTENDER<br>CLUB</div>
+    <div class="login-rol">🏋 Entrenador</div>
+    <div class="fr" style="width:100%;max-width:320px">
+      <label>Número de celular</label>
+      <input type="tel" id="login-tel" placeholder="5512345678" inputmode="numeric">
+    </div>
+    <div class="fr" style="width:100%;max-width:320px">
+      <label>Código de entrenador</label>
+      <input type="text" id="login-code" placeholder="TRAINER01">
+    </div>
+    <div style="font-size:12px;color:var(--red);min-height:16px;margin-bottom:12px;text-align:center" id="login-err"></div>
+    <button style="width:100%;max-width:320px;padding:16px;background:var(--lime);border:none;border-radius:14px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:16px;color:#080808;cursor:pointer" id="btn-login">Entrar</button>
+  </div>
+</div>
+
+<!-- INICIO -->
+<div class="screen" id="screen-inicio">
+  <div class="hdr">
+    <div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:2px;color:var(--lime)">CONTENDER CLUB</div>
+      <div id="hdr-trainer-nombre" style="font-size:13px;font-weight:700"></div>
+      <small id="hdr-fecha"></small>
+    </div>
+    <div class="hdr-r">
+      <button class="btn bd bsm" id="btn-sync-inicio">↻</button>
+      <button class="btn bl bsm" id="btn-checkin">✓ Check-in</button>
+    </div>
+  </div>
+  <div style="padding:0 16px;margin-bottom:12px">
+    <div class="sbox" style="display:inline-flex;align-items:center;gap:10px;padding:10px 16px;border-radius:12px">
+      <div class="snum" id="st-ci" style="color:var(--lime)">0</div>
+      <div class="slbl" style="text-align:left">Check-ins<br>hoy</div>
+    </div>
+  </div>
+  <div style="padding:0 16px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">Hoy</div>
+  <div style="padding:0 16px" id="lista-ci"></div>
+  <div class="nav-ph"></div>
+</div>
+
+<!-- SOCIOS -->
+<div class="screen" id="screen-socios">
+  <div class="hdr">
+    <div><h1>Socios</h1></div>
+    <div class="hdr-r">
+      <button class="btn bd bsm" id="btn-sync-socios">↻</button>
+      <button class="btn bl bsm" id="btn-nuevo-soc">+ Agregar</button>
+    </div>
+  </div>
+  <div style="padding:0 16px;margin-bottom:8px">
+    <input style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;width:100%;outline:none" type="text" id="soc-buscar" placeholder="🔍 Buscar…">
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;padding:0 16px;margin-bottom:10px">
+    <select id="sort-sel" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;outline:none;appearance:none">
+      <option value="id">Por código</option>
+      <option value="nombre">Por nombre</option>
+      <option value="vencimiento">Por vencimiento</option>
+      <option value="plan">Por plan</option>
+      <option value="visitas">Por visitas</option>
+    </select>
+    <button id="btn-orden-dir" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--lime);font-size:16px;cursor:pointer;flex-shrink:0">↑</button>
+  </div>
+  <div style="padding:0 16px" id="lista-socios"></div>
+  <div class="nav-ph"></div>
+</div>
+
+<!-- DETALLE SOCIO — idéntico a admin, renderizado por shared.js -->
+<div class="screen" id="screen-detalle">
+  <div class="hdr">
+    <div><h1 id="det-nombre">—</h1><small id="det-sub"></small></div>
+    <div class="hdr-r">
+      <button class="btn bd bsm" id="btn-sync-det">↻</button>
+      <button class="btn bd bsm" id="btn-det-back">← Volver</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-det="membresia">Membresía</button>
+    <button class="tab" data-det="deudas">Deudas</button>
+    <button class="tab" data-det="info">Información</button>
+    <button class="tab" data-det="seguimiento">Seguimiento</button>
+  </div>
+  <div id="det-content"></div>
+  <div class="nav-ph"></div>
+</div>
+
+<!-- FORMULARIO SOCIO -->
+<div class="screen" id="screen-form">
+  <div class="hdr">
+    <div><h1 id="form-titulo">Nuevo Socio</h1></div>
+    <div class="hdr-r"><button class="btn bd bsm" id="btn-form-cancel">Cancelar</button></div>
+  </div>
+  <div class="sec" style="padding-bottom:20px">
+    <div class="f2">
+      <div class="fr"><label>Núm. Socio</label><input type="text" id="f-id" placeholder="007" inputmode="numeric"></div>
+      <div class="fr"><label>Nombre</label><input type="text" id="f-nombre" placeholder="Nombre"></div>
+    </div>
+    <div class="f2">
+      <div class="fr"><label>Ap. Paterno</label><input type="text" id="f-ap" placeholder="Ap. P."></div>
+      <div class="fr"><label>Ap. Materno</label><input type="text" id="f-am" placeholder="Ap. M."></div>
+    </div>
+    <div class="f2">
+      <div class="fr"><label>Teléfono</label><input type="tel" id="f-tel" placeholder="55 1234 5678" inputmode="numeric"></div>
+      <div class="fr"><label>Emergencia</label><input type="tel" id="f-emerg" placeholder="55 0000 0000" inputmode="numeric"></div>
+    </div>
+    <div class="fr"><label>Correo</label><input type="email" id="f-correo" placeholder="correo@mail.com"></div>
+    <div class="f2">
+      <div class="fr"><label>Plan</label><select id="f-plan"><option value="">— Selecciona —</option></select></div>
+      <div class="fr"><label>Vencimiento</label><input type="date" id="f-vence"></div>
+    </div>
+    <div class="fr"><label>Fecha de alta</label><input type="date" id="f-inicio"></div>
+    <div class="f2">
+      <div class="fr"><label>Nacimiento</label><input type="date" id="f-nac"></div>
+      <div class="fr"><label>Sexo</label>
+        <select id="f-sexo"><option value="">—</option><option value="M">Masculino</option><option value="F">Femenino</option><option value="O">Otro</option></select>
+      </div>
+    </div>
+    <div class="fr"><label>Notas</label><textarea id="f-notas" placeholder="Lesiones, observaciones…"></textarea></div>
+    <button class="btn bl bfull" id="btn-guardar-soc">Guardar</button>
+  </div>
+  <div class="nav-ph"></div>
+</div>
+
+<!-- VENTAS -->
+<div class="screen" id="screen-ventas">
+  <div class="hdr">
+    <div><h1>Mis Ventas</h1></div>
+    <div class="hdr-r"><button class="btn bd bsm" id="btn-sync-ventas">↻</button></div>
+  </div>
+  <div class="sec" style="padding-bottom:20px">
+    <div id="ventas-resumen" style="margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+      <input type="date" id="v-desde" style="flex:1;font-size:12px;padding:8px 10px">
+      <span style="color:var(--muted);font-size:12px">—</span>
+      <input type="date" id="v-hasta" style="flex:1;font-size:12px;padding:8px 10px">
+    </div>
+    <div class="lbl-sec">Historial</div>
+    <div id="ventas-lista"></div>
+  </div>
+  <div class="nav-ph"></div>
+</div>
+
+<!-- NAV -->
+<nav class="nav-bar" id="nav-trainer" style="display:none">
+  <button class="nav-item active" data-screen="inicio"><span class="nav-icon">✓</span>Inicio</button>
+  <button class="nav-item" data-screen="socios"><span class="nav-icon">👥</span>Socios</button>
+  <button class="nav-item" data-screen="ventas"><span class="nav-icon">💰</span>Ventas</button>
+</nav>
+
+<!-- MODAL: CHECK-IN -->
+<div class="modal-ov" id="modal-checkin">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <h2>Check-in</h2>
+    <div class="fr"><label>Código o número de socio</label>
+      <input type="text" id="ci-input" placeholder="001 o GM-001-..." autocomplete="off">
+    </div>
+    <div id="ci-preview" style="background:var(--bg3);border-radius:10px;padding:10px 12px;min-height:48px;margin-bottom:8px;border:1px solid var(--border)">
+      <span style="font-size:12px;color:var(--muted)">Ingresa el código…</span>
+    </div>
+    <div id="ci-err" style="font-size:12px;color:var(--red);min-height:16px;margin-bottom:8px"></div>
+    <div class="mbtns">
+      <button class="btn bd" style="flex:1;padding:13px" data-close="modal-checkin">Cancelar</button>
+      <button class="btn bl" style="flex:1;padding:13px" id="ci-confirmar">✓ Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: RENOVAR MEMBRESÍA -->
+<div class="modal-ov" id="modal-pago">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <h2 id="pago-titulo">Renovar membresía</h2>
+    <div class="fr"><label>Plan</label><select id="pago-plan"><option value="">— Selecciona —</option></select></div>
+    <div class="fr"><label>Fecha de pago</label><input type="date" id="pago-inicio"></div>
+    <div class="fr"><label>Tipo de pago</label>
+      <select id="pago-tipo">
+        <option value="completo">Pago único</option>
+        <option value="parcial">Parcialidades</option>
+      </select>
+    </div>
+    <div style="background:var(--bg3);border-radius:12px;padding:12px;border:1px solid var(--border);font-size:12px;color:var(--muted);line-height:1.8;margin-top:4px" id="pago-resumen"></div>
+    <div class="mbtns">
+      <button class="btn bd" style="flex:1;padding:13px" data-close="modal-pago">Cancelar</button>
+      <button class="btn bl" style="flex:1;padding:13px" id="pago-guardar">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: WA -->
+<div class="modal-ov" id="modal-wa">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <h2>WhatsApp</h2>
+    <div id="wa-para" style="font-size:13px;font-weight:600;color:var(--lime);margin-bottom:14px"></div>
+    <div class="fr"><label>Mensaje</label><select id="wa-tipo"><option value="">— Selecciona —</option></select></div>
+    <div style="background:var(--bg3);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--muted);min-height:48px;line-height:1.6;border:1px solid var(--border)" id="wa-preview">Selecciona un tipo…</div>
+    <div class="mbtns">
+      <button class="btn bd" style="flex:1;padding:13px" data-close="modal-wa">Cancelar</button>
+      <button class="btn bwa" style="flex:1;padding:13px" id="wa-enviar">📱 Enviar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: COBRAR DEUDA (código del trainer) -->
+<div class="modal-ov" id="modal-cobrar-deuda">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <h2>Cobrar producto</h2>
+    <div id="cobrar-info" style="font-size:13px;color:var(--muted);margin-bottom:14px"></div>
+    <div class="fr"><label>Tu código de validación</label>
+      <input type="text" id="cobrar-codigo" placeholder="Tu código" maxlength="20">
+    </div>
+    <div id="cobrar-error" style="font-size:12px;color:var(--red);min-height:16px;margin:8px 0"></div>
+    <div class="mbtns">
+      <button class="btn bd" style="flex:1;padding:14px" data-close="modal-cobrar-deuda">Cancelar</button>
+      <button id="cobrar-ok" class="btn bl" style="flex:1;padding:14px">Confirmar cobro</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// TRAINER — solo lógica específica del entrenador
+// Las funciones compartidas viven en shared.js
+// ══════════════════════════════════════════════════════════════
+
+var TRAINER_ACTIVO = null;
+
+// Datos globales (accesibles desde shared.js)
+var SOCIOS=[], DEUDAS={}, CHECKINS=[], MEMBRESIAS=[], CLASES=[];
+var PRODUCTOS=[], MENSAJES_CAT=[], VENTAS=[];
+
+var _gymdbReady = GymDB.init();
+
+// ── DATOS ─────────────────────────────────────────────────────
+function recargarDatos() {
+  SOCIOS      = GymDB.getSocios();
+  DEUDAS      = GymDB.getAllDeudas();
+  CHECKINS    = GymDB.getTodayCheckins();
+  MEMBRESIAS  = GymDB.getMembresias();
+  CLASES      = GymDB.getClases();
+  PRODUCTOS   = GymDB.getProductos();
+  MENSAJES_CAT= GymDB.getMensajes();
+  VENTAS      = GymDB.getVentas();
+  poblarSelectPlanes();
+}
+
+// ── HOOKS de shared.js ────────────────────────────────────────
+// onGuardarPago: trainer registra el cobro de membresía a su nombre
+function onGuardarPago(s, plan, fi) {
+  if (!TRAINER_ACTIVO) return;
+  GymDB.registrarCobro({
+    tipo:"membresia", socio_id:s.id, socio_nombre:s.nombre+" "+s.apellido_paterno,
+    producto:plan, monto:PLAN_PRECIO[plan]||0,
+    vendedor_id:String(TRAINER_ACTIVO.id), vendedor_nombre:TRAINER_ACTIVO.nombre
+  });
+}
+// onRegistrarVenta: trainer registra la venta de producto a su nombre
+function onRegistrarVenta(prod, venta) {
+  if (!TRAINER_ACTIVO) return;
+  GymDB.registrarCobro({
+    tipo:"venta", socio_id:venta.socio_id, socio_nombre:venta.socio_nombre,
+    producto:prod.nombre, monto:venta.total,
+    vendedor_id:String(TRAINER_ACTIVO.id), vendedor_nombre:TRAINER_ACTIVO.nombre
+  });
+}
+// onToggleActivo: NO definido — el trainer no puede activar/desactivar socios
+// (shared.js solo muestra el botón si la función existe)
+
+// ── COBRO DE DEUDA (trainer usa su propio código) ─────────────
+function confirmarCobro() {
+  if (!_cobroPendiente) return;
+  var codigo=ge("cobrar-codigo").value.trim();
+  if (!codigo){ge("cobrar-error").textContent="Ingresa tu código";return;}
+  if (!TRAINER_ACTIVO||codigo!==TRAINER_ACTIVO.codigo){ge("cobrar-error").textContent="Código incorrecto";return;}
+  DEUDAS[_cobroPendiente.socioId]=(DEUDAS[_cobroPendiente.socioId]||[]).filter(function(d){
+    return String(d.id)!==String(_cobroPendiente.deudaId);
+  });
+  GymDB.saveAllDeudas(DEUDAS);
+  DEUDAS=GymDB.getAllDeudas();
+  GymDB.registrarCobro({tipo:"deuda",socio_id:_cobroPendiente.socioId,
+    socio_nombre:_cobroPendiente.socioNombre,producto:_cobroPendiente.producto,
+    monto:_cobroPendiente.monto,
+    vendedor_id:String(TRAINER_ACTIVO.id),vendedor_nombre:TRAINER_ACTIVO.nombre});
+  ge("modal-cobrar-deuda").classList.remove("open");
+  _cobroPendiente=null;
+  mostrarToast("✓ Cobro registrado");
+  renderDetalle();
+}
+
+// ── NAVEGACIÓN ────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll(".screen,.screen-full").forEach(function(s){s.classList.remove("active");});
+  ge("screen-"+id).classList.add("active");
+  document.querySelectorAll(".nav-item[data-screen]").forEach(function(b){
+    b.classList.toggle("active",b.dataset.screen===id);
+  });
+  if (id==="inicio")  renderInicio();
+  if (id==="socios")  renderSocios();
+  if (id==="ventas")  renderVentas();
+  if (id==="detalle") { recargarDatos(); setTimeout(renderDetalle,0); }
+}
+
+// ── LOGIN ─────────────────────────────────────────────────────
+function intentarLogin() {
+  var tel=ge("login-tel").value.trim(), cod=ge("login-code").value.trim();
+  if (!tel||!cod){ge("login-err").textContent="Completa los campos";return;}
+  var t=GymDB.getTrainers().find(function(x){return x.telefono===tel&&x.codigo===cod;});
+  if (!t){ge("login-err").textContent="Credenciales incorrectas";return;}
+  TRAINER_ACTIVO=t;
+  ge("screen-login").classList.remove("active");
+  ge("nav-trainer").style.display="flex";
+  ge("hdr-trainer-nombre").textContent=t.nombre;
+  var str=new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
+  ge("hdr-fecha").textContent=str.charAt(0).toUpperCase()+str.slice(1);
+  showScreen("inicio");
+}
+
+// ── INICIO ────────────────────────────────────────────────────
+function renderInicio() {
+  ge("st-ci").textContent=CHECKINS.length;
+  var html="";
+  if (!CHECKINS.length) {
+    html="<div class='empty'><div class='ico'>💪</div><p>Sin check-ins hoy</p></div>";
+  } else {
+    CHECKINS.forEach(function(ci){
+      var s=SOCIOS.find(function(x){return x.id===ci.socio_id;}); if (!s) return;
+      var st=calcStatus(s);
+      var deudas=DEUDAS[s.id]||[], totalD=deudas.reduce(function(a,d){return a+d.total;},0);
+      var abonoV=(s.abonos||[]).find(function(a){
+        var lim=new Date(a.fecha_limite+"T00:00:00"),h=new Date();h.setHours(0,0,0,0);
+        return !a.pagado&&lim<h;
+      });
+      html+="<div class='ci-row' data-ver='"+s.id+"'>";
+      html+="<div class='ci-av'>"+ini(s)+"</div>";
+      html+="<div style='flex:1;min-width:0'>";
+      html+="<div style='font-size:13px;font-weight:700'>#"+s.id+" · "+s.nombre+" "+s.apellido_paterno+"</div>";
+      html+="<div style='font-size:10px;color:var(--muted);margin-top:2px'>"+ci.hora+" · "+(s.plan||"")+"</div>";
+      html+="<div style='margin-top:4px;display:flex;gap:5px;flex-wrap:wrap'>"+pillSt(st);
+      if (totalD>0) html+="<span class='pill po'>Debe: "+fm(totalD)+"</span>";
+      if (abonoV)   html+="<span class='pill pr'>Abono vencido</span>";
+      html+="</div></div><span style='color:var(--muted);font-size:18px'>›</span></div>";
+    });
+  }
+  ge("lista-ci").innerHTML=html;
+  ge("lista-ci").querySelectorAll("[data-ver]").forEach(function(el){
+    el.addEventListener("click",function(){
+      socioActual=SOCIOS.find(function(s){return s.id===this.dataset.ver;},this);
+      detTab="membresia"; showScreen("detalle");
+    });
+  });
+}
+
+// ── CHECK-IN ──────────────────────────────────────────────────
+function buscarSocioCI(val) {
+  val=val.trim(); var m=val.match(/^GM-(\d+)-/i);
+  return SOCIOS.find(function(s){return s.id===(m?m[1]:val);});
+}
+function abrirCheckin() {
+  ge("ci-input").value=""; ge("ci-err").textContent="";
+  ge("ci-preview").innerHTML="<span style='font-size:12px;color:var(--muted)'>Ingresa el código…</span>";
+  ge("modal-checkin").classList.add("open");
+  setTimeout(function(){ge("ci-input").focus();},300);
+}
+function previewCI() {
+  var s=buscarSocioCI(ge("ci-input").value);
+  if (!s){ge("ci-preview").innerHTML="<span style='font-size:12px;color:var(--muted)'>No encontrado</span>";return;}
+  var st=calcStatus(s), deudas=DEUDAS[s.id]||[], totalD=deudas.reduce(function(a,d){return a+d.total;},0);
+  var h="<div style='display:flex;align-items:center;gap:10px'>";
+  h+="<div style='width:34px;height:34px;border-radius:50%;background:"+avColor(st)+";display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#080808'>"+ini(s)+"</div>";
+  h+="<div><div style='font-weight:700;font-size:14px'>#"+s.id+" · "+s.nombre+" "+s.apellido_paterno+"</div>";
+  h+="<div style='font-size:11px;color:var(--muted);margin-top:2px'>"+(s.plan||"")+" · "+pillSt(st);
+  if (totalD>0) h+=" <span class='pill po'>Debe: "+fm(totalD)+"</span>";
+  h+="</div></div></div>";
+  ge("ci-preview").innerHTML=h;
+}
+function confirmarCI() {
+  var s=buscarSocioCI(ge("ci-input").value);
+  if (!s){ge("ci-err").textContent="Socio no encontrado";return;}
+  if (CHECKINS.find(function(c){return c.socio_id===s.id;})){ge("ci-err").textContent=s.nombre+" ya tiene check-in hoy";return;}
+  GymDB.addCheckin(s.id);
+  CHECKINS=GymDB.getTodayCheckins(); SOCIOS=GymDB.getSocios();
+  ge("modal-checkin").classList.remove("open");
+  mostrarToast("✓ Check-in: "+s.nombre);
+  renderInicio();
+}
+
+// ── VENTAS (exclusivo trainer) ────────────────────────────────
+function renderVentas() {
+  if (!TRAINER_ACTIVO) return;
+  ge("ventas-lista").innerHTML="<div style='font-size:12px;color:var(--muted)'>Cargando…</div>";
+  GymDB.getCobros(String(TRAINER_ACTIVO.id)).then(function(cobros){
+    cobros=cobros||[];
+    var hoy=new Date().toISOString().slice(0,10);
+    var mes=new Date().toISOString().slice(0,7);
+    var totalHoy=0, totalMes=0;
+    cobros.forEach(function(c){
+      if (c.fecha&&c.fecha.slice(0,10)===hoy) totalHoy+=+c.monto;
+      if (c.fecha&&c.fecha.slice(0,7)===mes)  totalMes+=+c.monto;
+    });
+    // Resumen — siempre Hoy/Mes globales
+    ge("ventas-resumen").innerHTML=
+      "<div style='display:grid;grid-template-columns:1fr 1fr;gap:8px'>"+
+      "<div class='card' style='text-align:center'><div style='font-size:10px;color:var(--muted);margin-bottom:4px'>HOY</div>"+
+      "<div style='font-family:\"Bebas Neue\",sans-serif;font-size:28px;color:var(--lime)'>"+fm(totalHoy)+"</div></div>"+
+      "<div class='card' style='text-align:center'><div style='font-size:10px;color:var(--muted);margin-bottom:4px'>ESTE MES</div>"+
+      "<div style='font-family:\"Bebas Neue\",sans-serif;font-size:28px;color:var(--lime)'>"+fm(totalMes)+"</div></div></div>";
+    // Filtro por rango de fecha
+    var desde=ge("v-desde").value, hasta=ge("v-hasta").value;
+    var filtrado=cobros.filter(function(c){
+      var f=c.fecha?c.fecha.slice(0,10):"";
+      if (desde&&f<desde) return false;
+      if (hasta&&f>hasta)  return false;
+      return true;
+    });
+    if (!filtrado.length){
+      ge("ventas-lista").innerHTML="<div style='font-size:13px;color:var(--muted);padding:8px 0'>Sin ventas en el período</div>";
+      return;
+    }
+    var html="";
+    filtrado.forEach(function(c){
+      var tipo=c.tipo==="membresia"?"💳":c.tipo==="deuda"?"📦":"🛒";
+      var fechaTxt=c.fecha?new Date(c.fecha.slice(0,10)+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"2-digit"}):"";
+      html+="<div class='card' style='display:flex;align-items:center;gap:10px;margin-bottom:8px'>";
+      html+="<div style='font-size:20px'>"+tipo+"</div>";
+      html+="<div style='flex:1'><div style='font-size:13px;font-weight:600'>"+c.producto+"</div>";
+      html+="<div style='font-size:11px;color:var(--muted)'>"+(c.socio_nombre||"")+(fechaTxt?" · "+fechaTxt:"")+"</div></div>";
+      html+="<div style='font-family:\"Bebas Neue\",sans-serif;font-size:20px;color:var(--lime)'>"+fm(+c.monto)+"</div></div>";
+    });
+    ge("ventas-lista").innerHTML=html;
+  });
+}
+
+// ── EVENTOS — DOMContentLoaded ────────────────────────────────
+document.addEventListener("DOMContentLoaded",function(){
+
+  // Login — registrado de inmediato (no espera a Supabase)
+  ge("btn-login").addEventListener("click",intentarLogin);
+  ge("login-code").addEventListener("keydown",function(e){if(e.key==="Enter") intentarLogin();});
+
+  _gymdbReady.then(function(){
+    ge("ov-loading").style.display="none";
+    recargarDatos();
+
+    // Nav
+    document.querySelectorAll(".nav-item[data-screen]").forEach(function(b){
+      b.addEventListener("click",function(){showScreen(this.dataset.screen);});
+    });
+
+    // Eventos compartidos del detalle (shared.js)
+    initDetalleEvents();
+
+    // Sync buttons
+    function syncBtn(btnId, renderFn) {
+      var b=ge(btnId); if (!b) return;
+      b.addEventListener("click",function(){
+        var btn=this; btn.textContent="…"; btn.disabled=true;
+        GymDB.init().then(function(){ recargarDatos(); renderFn(); btn.textContent="↻"; btn.disabled=false; mostrarToast("↻ Actualizado"); });
+      });
+    }
+    syncBtn("btn-sync-inicio", renderInicio);
+    syncBtn("btn-sync-socios", renderSocios);
+    syncBtn("btn-sync-ventas", renderVentas);
+
+    // Check-in
+    ge("btn-checkin").addEventListener("click",abrirCheckin);
+    ge("ci-input").addEventListener("input",previewCI);
+    ge("ci-input").addEventListener("keydown",function(e){if(e.key==="Enter") confirmarCI();});
+    ge("ci-confirmar").addEventListener("click",confirmarCI);
+
+    // Ventas — filtro fecha
+    ge("v-desde").addEventListener("change",renderVentas);
+    ge("v-hasta").addEventListener("change",renderVentas);
+
+  }).catch(function(err){
+    var errEl=ge("ov-err"); if(errEl){errEl.style.display="block";errEl.textContent="Error: "+err.message;}
+    console.error("[GymDB]",err);
+  });
+});
+</script>
+</body>
+</html>

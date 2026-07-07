@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#080808">
+<title>Contender · Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="supabasedb.js"></script>
+<script src="shared.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:#080808;color:#F0EDE8;font-family:"DM Sans",sans-serif;max-width:430px;margin:0 auto;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+:root{--bg:#080808;--bg2:#111;--bg3:#1A1A1A;--border:#2A2A2A;--muted:#666;--text:#F0EDE8;--lime:#C8F135;--green:#30D158;--orange:#FF9F0A;--red:#FF3B30;--wa:#25D366}
+.screen{display:none;flex-direction:column;min-height:100vh;padding-bottom:76px;animation:fadeIn .2s ease}
+.screen.active{display:flex}
+.screen-full{display:none;flex-direction:column;min-height:100vh}
+.screen-full.active{display:flex}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.nav-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(8,8,8,.96);border-top:1px solid var(--border);display:flex;z-index:200;padding:6px 0 18px;backdrop-filter:blur(16px)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border:none;background:none;color:#444;font-size:8px;font-family:"DM Sans",sans-serif;font-weight:500;transition:color .15s;padding:4px 0}
+.nav-item.active{color:var(--lime)}
+.nav-icon{font-size:18px;line-height:1}
+.login-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;background:radial-gradient(ellipse 80% 50% at 50% 105%,rgba(200,241,53,.1),transparent 68%)}
+.login-marca{font-family:"Bebas Neue",sans-serif;font-size:56px;line-height:.9;letter-spacing:-2px;background:linear-gradient(160deg,#fff 25%,var(--lime));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:4px}
+.login-rol{font-size:11px;color:var(--lime);letter-spacing:4px;text-transform:uppercase;margin-bottom:40px}
+.pin-dots{display:flex;gap:14px;margin:12px 0}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);transition:all .15s}
+.pin-dot.filled{background:var(--lime);border-color:var(--lime)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:260px}
+.pin-key{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:17px;font-size:22px;font-weight:700;color:var(--text);cursor:pointer;font-family:"DM Sans",sans-serif;transition:background .1s}
+.pin-key:active{background:var(--border)}
+.pin-key.sm{font-size:13px;color:var(--muted)}
+.hdr{padding:18px 16px 8px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.hdr h1{font-family:"Bebas Neue",sans-serif;font-size:30px;letter-spacing:.5px;line-height:1}
+.hdr small{font-size:12px;color:var(--muted);display:block;margin-top:2px}
+.hdr-r{display:flex;gap:7px;align-items:center;flex-shrink:0}
+.tabs{display:flex;overflow-x:auto;scrollbar-width:none;padding:0 16px;gap:4px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:8px 13px 10px;font-size:12px;font-weight:500;color:var(--muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s}
+.tab.active{color:var(--lime);border-bottom-color:var(--lime)}
+.card{background:var(--bg2);border-radius:14px;padding:13px 14px;margin-bottom:8px;border:1px solid var(--border)}
+.card.verde{border-color:rgba(48,209,88,.3);background:rgba(48,209,88,.04)}
+.card.naranja{border-color:rgba(255,159,10,.35);background:rgba(255,159,10,.04)}
+.card.roja{border-color:rgba(255,59,48,.35);background:rgba(255,59,48,.04)}
+.soc-card{background:var(--bg2);border-radius:14px;padding:13px 14px;margin-bottom:8px;border:1px solid var(--border)}
+.soc-card.aldia{border-left:3px solid var(--green)}
+.soc-card.vencehoy{border-left:3px solid var(--orange)}
+.soc-card.vencido{border-left:3px solid var(--red)}
+.soc-fila{display:flex;align-items:center;gap:10px}
+.soc-av{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#080808;flex-shrink:0}
+.soc-info{flex:1;min-width:0}
+.soc-nombre{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.soc-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.ci-row{background:var(--bg2);border-radius:12px;padding:10px 12px;margin-bottom:6px;border:1px solid var(--border);display:flex;align-items:center;gap:10px;cursor:pointer}
+.ci-av{width:32px;height:32px;border-radius:50%;background:var(--lime);color:#080808;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.abono-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}
+.abono-row:last-child{border-bottom:none}
+.abono-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.aok{background:rgba(48,209,88,.15);color:var(--green)}
+.apend{background:rgba(255,159,10,.15);color:var(--orange)}
+.avenc{background:rgba(255,59,48,.15);color:var(--red)}
+.pill{border-radius:20px;padding:3px 9px;font-size:11px;font-weight:600;display:inline-block;white-space:nowrap}
+.pg{background:rgba(48,209,88,.15);color:var(--green)}
+.po{background:rgba(255,159,10,.15);color:var(--orange)}
+.pr{background:rgba(255,59,48,.15);color:var(--red)}
+.pm{background:var(--bg3);color:var(--muted)}
+.btn{border:none;border-radius:10px;padding:8px 13px;font-family:"DM Sans",sans-serif;font-weight:700;font-size:12px;cursor:pointer;display:inline-flex;align-items:center;gap:5px;transition:transform .1s;white-space:nowrap}
+.btn:active{transform:scale(.96)}
+.bl{background:var(--lime);color:#080808}
+.bd{background:var(--bg3);color:var(--text);border:1px solid var(--border)}
+.bwa{background:var(--wa);color:#fff}
+.br{background:rgba(255,59,48,.12);color:var(--red);border:1px solid rgba(255,59,48,.3)}
+.bsm{padding:6px 10px;font-size:11px;border-radius:8px}
+.bfull{width:100%;padding:13px;font-size:14px;justify-content:center;border-radius:12px}
+.sec{padding:0 16px}
+.fr{margin-bottom:12px}
+.fr label{font-size:11px;color:var(--muted);display:block;margin-bottom:5px;font-weight:500;text-transform:uppercase;letter-spacing:.8px}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input,select,textarea{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 13px;color:var(--text);font-size:14px;font-family:"DM Sans",sans-serif;width:100%;outline:none;appearance:none;-webkit-appearance:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--lime)}
+::placeholder{color:#444}
+textarea{resize:vertical;min-height:70px}
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(5px)}
+.modal-ov.open{display:flex}
+.modal{background:var(--bg2);border-radius:22px 22px 0 0;padding:24px 16px 36px;width:100%;max-width:430px;border:1px solid var(--border);border-bottom:none;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+.mhandle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 16px}
+.modal h2{font-family:"Bebas Neue",sans-serif;font-size:24px;margin-bottom:16px}
+.mbtns{display:flex;gap:8px;margin-top:16px}
+.prog-wrap{background:var(--bg3);border-radius:4px;height:5px;overflow:hidden;margin-top:6px}
+.prog-fill{height:100%;border-radius:4px;background:var(--lime);transition:width .6s}
+.dias-sel{display:flex;gap:5px;flex-wrap:wrap;margin-top:4px}
+.dia-btn{padding:5px 10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer}
+.dia-btn.on{background:rgba(200,241,53,.15);color:var(--lime);border-color:var(--lime)}
+.periodo-wrap{display:flex;gap:8px;align-items:center;padding:0 16px;margin-bottom:10px}
+.periodo-wrap label{font-size:11px;color:var(--muted);white-space:nowrap}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:100px;padding-bottom:22px;position:relative;margin-top:8px}
+.bcol{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;position:relative}
+.bfill{width:100%;border-radius:4px 4px 0 0;min-height:4px}
+.blabel{position:absolute;bottom:-18px;font-size:9px;color:var(--muted)}
+.bval{position:absolute;top:-15px;font-size:9px;color:var(--lime);font-weight:700}
+.sbox{background:var(--bg2);border-radius:12px;padding:10px 6px;text-align:center;border:1px solid var(--border)}
+.snum{font-family:"Bebas Neue",sans-serif;font-size:22px;line-height:1}
+.slbl{font-size:9px;color:var(--muted);margin-top:3px}
+.empty{text-align:center;padding:36px 20px;color:var(--muted)}
+.empty .ico{font-size:36px;margin-bottom:10px}
+.empty p{font-size:13px}
+.nav-ph{height:76px}
+/* helpers compartidos */
+.lbl-sec{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:4px 0 8px}
+.lbl-campo{font-size:11px;color:var(--muted)}
+.val-campo{font-size:14px;margin-top:3px}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="ov-loading" style="position:fixed;inset:0;background:#080808;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;gap:12px">
+  <div style="font-family:'Bebas Neue',cursive;font-size:40px;color:#C8F135;letter-spacing:3px">CONTENDER</div>
+  <div style="font-size:13px;color:#555">Conectando…</div>
+  <div id="ov-err" style="font-size:11px;color:#FF3B30;display:none;max-width:280px;text-align:center"></div>
+</div>
+
+<!-- LOGIN PIN -->
+<div class="screen-full active" id="screen-login">
+  <div class="login-wrap">
+    <div class="login-marca">CONTENDER<br>CLUB</div>
+    <div class="login-rol">👑 Administrador</div>
+    <div style="font-size:14px;color:var(--muted);margin-bottom:16px">PIN de 4 dígitos</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="dot0"></div><div class="pin-dot" id="dot1"></div>
+      <div class="pin-dot" id="dot2"></div><div class="pin-dot" id="dot3"></div>
+    </div>
+    <div style="font-size:12px;color:var(--red);min-height:16px;margin-bottom:12px;text-align:center" id="login-err"></div>
+    <div class="pin-pad">
+      <button class="pin-key" data-n="1">1</button><button class="pin-key" data-n="2">2</button><button class="pin-key" data-n="3">3</button>
+      <button class="pin-key" data-n="4">4</button><button class="pin-key" data-n="5">5</button><button class="pin-key" data-n="6">6</button>
+      <button class="pin-key" data-n="7">7</button><button class="pin-key" data-n="8">8</button><button class="pin-key" data-n="9">9</button>
+      <button class="pin-key sm" id="login-clear">Borrar</button><button class="pin-key" data-n="0">0</button><button class="pin-key sm" id="login-del">⌫</button>
+    </div>
+  </div>
+</div>
+
+<!-- INICIO: CHECK-INS -->
+<div class="screen" id="screen-inicio">
+  <div class="hdr">
+    <div><h1>Inicio</h1><small id="hdr-fecha"></small></div>
+    <div class="hdr-r">
+      <button class="btn bd bsm" id="btn-sync-inicio">↻</button>
+      <button class="btn bl bsm" id="btn-checkin">✓ Check-in</button>
+    </div>
+  </div>
+  <div style="padding:0 16px;margin-bottom:12px">
+    <div class="sbox" style="display:inline-flex;align-items:center;gap:10px;padding:10px 16px;border-radius:12px">
+      <div class="snum" id="st-ci" style="color:var(--lime)">0</div>
+      <div class="slbl" style="text-align:left">Check-ins<br>hoy</div>
+    </div>
+  </div>
+  <div style="padding:0 16px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px">Hoy</div>
+  <div style="padding:0 16px" id="lista-ci"></div>
+  <div class="nav-ph"></div>
+</div>
+
+<!-- SOCIOS: LISTA -->
+<div class="screen" id="screen-socios">
+  <div class="hdr">
+    <div><h1>Socios</h1></div>
+    <div class="hdr-r">
+      <button class="btn bd bsm" id="btn-sync-socios">↻</button>
+      <button class="btn bl bsm" id="btn-nuevo-soc">+ Agregar</button>
+    </div>
+  </div>
+  <div style="padding:0 16px;margin-bottom:8px">
+    <input style="background:var(--bg3);border:1px solid var(--border);border-radius:12px;padding:10px 14px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;width:100%;outline:none" type="text" id="soc-buscar" placeholder="🔍 Buscar…">
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;padding:0 16px;margin-bottom:10px">
+    <select id="sort-sel" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;outline:none;appearance:none">
+      <option value="id">Por código</option>
+      <option value="nombre">Por nombre</option>
+      <option value="vencimiento">Por vencimiento</option>
+      <option value="plan">Por plan</option>
+      <option value="visitas">Por visitas</option>
+    </select>
+    <button id="btn-orden-dir" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:7px 10px;color:var(--lime);font-size:16px;cursor:pointer;flex-shrink:0">↑</button>
+  </div>
+  <div style="padding:0 16px" id="lista-socios"></div>
+  <div class="nav-ph"></div>
+</div>
+
+<!-- DETALLE SOCIO — misma estructura que trainer -->
+<div class="screen" id="screen-detalle">
+  <div class="hdr">
+    <div><h1 id="det-nombre">—</h1><small id="det-sub"></small></div>
+    <div class="hdr-r">
+      <button class="btn bd bsm" id="btn-sync-det">↻</button>
+      <button class="btn bd bsm" id="btn-det-back">← Volver</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-det="membresia">Membresía</button>
+    <button class="tab" data-det="deudas">Deudas</button>
+    <button class="tab" data-det="info">Información</button>
+    <button class="tab" data-det="seguimiento">Seguimiento</button>
+  </div>
+  <div id="det-content"></div>
+  <div class="nav-ph"></div>
+</div>
+
+<!-- FORMULARIO SOCIO -->
+<div class="screen" id="screen-form">
+  <div class="hdr">
+    <div><h1 id="form-titulo">Nuevo Socio</h1></div>
+    <div class="hdr-r"><button class="btn bd bsm" id="btn-form-cancel">Cancelar</button></div>
+  </div>
+  <div class="sec" style="padding-bottom:20px">
+    <div class="f2">
+      <div class="fr"><label>Núm. Socio</label><input type="text" id="f-id" placeholder="007" inputmode="numeric"></div>
+      <div class="fr"><label>Nombre</label><input type="text" id="f-nombre" placeholder="Nombre"></div>
+    </div>
+    <div class="f2">
+      <div class="fr"><label>Ap. Paterno</label><input type="text" id="f-ap" placeholder="Ap. P."></div>
+      <div class="fr"><label>Ap. Materno</label><input type="text" id="f-am" placeholder="Ap. M."></div>
+    </div>
+    <div class="f2">
+      <div class="fr"><label>Teléfono</label><input type="tel" id="f-tel" placeholder="55 1234 5678" inputmode="numeric"></div>
+      <div class="fr"><label>Emergencia</label><input type="tel" id="f-emerg" placeholder="55 0000 0000" inputmode="numeric"></div>
+    </div>
+    <div class="fr"><label>Correo</label><input type="email" id="f-correo" placeholder="correo@mail.com"></div>
+    <div class="f2">
+      <div class="fr"><label>Plan</label><select id="f-plan"><option value="">— Selecciona —</option></select></div>
+      <div class="fr"><label>Vencimiento</label><input type="date" id="f-vence"></div>
+    </div>
+    <div class="fr"><label>Fecha de alta</label><input type="date" id="f-inicio"></div>
+    <div class="f2">
+      <div class="fr"><label>Nacimiento</label><input type="date" id="f-nac"></div>
+      <div class="fr"><label>Sexo</label>
+        <select id="f-sexo"><option value="">—</option><option value="M">Masculino</option><option value="F">Femenino</option><option value="O">Otro</option></select>
+      </div>
+    </div>
+    <div class="fr"><label>Notas</label><textarea id="f-notas" placeholder="Lesiones, observaciones…"></textarea></div>
+    <button class="btn bl bfull" id="btn-guardar-soc">Guardar</button>
+  </div>
+  <div class="nav-ph"></div>
+</div>
+
+<!-- CATÁLOGO -->
+<div class="screen" id="screen-catalogo">
+  <div class="hdr">
+    <div><h1>Catálogo</h1></div>
+    <div class="hdr-r">
+      <button class="btn bd bsm" id="btn-sync-cat">↻</button>
+      <button class="btn bl bsm" id="btn-cat-nuevo">+ Nuevo</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" data-cat="membresias">Membresías</button>
+    <button class="tab" data-cat="clases">Clases</button>
+    <button class="tab" data-cat="productos">Productos</button>
+    <button class="tab" data-cat="mensajes">Mensajes WA</button>
+    <button class="tab" data-cat="trainers">Entrenadores</button>
+  </div>
+  <div style="padding:0 16px" id="cat-contenido"></div>
+  <div class="nav-ph"></div>
+</div>
+
+<!-- REPORTES -->
+<div class="screen" id="screen-reportes">
+  <div class="hdr"><div><h1>Reportes</h1></div></div>
+  <div style="padding:0 16px;margin-bottom:8px;display:flex;gap:8px;align-items:center">
+    <select id="rep-tipo-sel" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;appearance:none">
+      <option value="socios">Socios</option>
+      <option value="checkins">Check-ins</option>
+      <option value="pagos">Pagos</option>
+      <option value="ventas">Ventas</option>
+    </select>
+    <button id="btn-rep-sort" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--lime);font-size:16px;cursor:pointer;flex-shrink:0">↑↓</button>
+  </div>
+  <div class="periodo-wrap">
+    <label>De</label><input type="date" id="r-desde" style="flex:1">
+    <label style="margin-left:4px">—</label><input type="date" id="r-hasta" style="flex:1">
+  </div>
+  <button style="display:flex;align-items:center;gap:8px;margin:0 16px 12px;padding:10px 14px;background:rgba(200,241,53,.08);border:1px solid rgba(200,241,53,.25);border-radius:12px;color:var(--lime);font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;cursor:pointer;width:calc(100% - 32px)" id="btn-csv">⬇ Descargar CSV</button>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px;margin-bottom:12px" id="rep-metricas"></div>
+  <div style="background:var(--bg2);border-radius:14px;margin:0 16px;border:1px solid var(--border);overflow:hidden;margin-bottom:12px" id="rep-lista"></div>
+  <div class="nav-ph"></div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="screen" id="screen-dashboard">
+  <div class="hdr"><div><h1>Dashboard</h1></div></div>
+  <div style="padding:0 16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+      <span class="lbl-sec">Análisis</span>
+      <select id="dash-metrica" style="background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:5px 10px;color:var(--text);font-size:11px;font-family:'DM Sans',sans-serif;outline:none;appearance:none">
+        <option value="ventas">Ventas $</option>
+        <option value="checkins">Check-ins</option>
+        <option value="socios">Socios activos</option>
+      </select>
+    </div>
+    <div class="card"><div class="bar-chart" id="bar-chart"></div></div>
+  </div>
+  <div class="nav-ph"></div>
+</div>
+
+<!-- NAV -->
+<nav class="nav-bar" id="nav-admin" style="display:none">
+  <button class="nav-item active" data-screen="inicio"><span class="nav-icon">✓</span>Inicio</button>
+  <button class="nav-item" data-screen="socios"><span class="nav-icon">👥</span>Socios</button>
+  <button class="nav-item" data-screen="catalogo"><span class="nav-icon">📋</span>Catálogo</button>
+  <button class="nav-item" data-screen="reportes"><span class="nav-icon">📊</span>Reportes</button>
+  <button class="nav-item" data-screen="dashboard"><span class="nav-icon">📈</span>Dashboard</button>
+</nav>
+
+<!-- MODAL: CHECK-IN -->
+<div class="modal-ov" id="modal-checkin">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <h2>Check-in</h2>
+    <div class="fr"><label>Código o número de socio</label>
+      <input type="text" id="ci-input" placeholder="001 o GM-001-..." autocomplete="off">
+    </div>
+    <div id="ci-preview" style="background:var(--bg3);border-radius:10px;padding:10px 12px;min-height:48px;margin-bottom:8px;border:1px solid var(--border)">
+      <span style="font-size:12px;color:var(--muted)">Ingresa el código…</span>
+    </div>
+    <div id="ci-err" style="font-size:12px;color:var(--red);min-height:16px;margin-bottom:8px"></div>
+    <div class="mbtns">
+      <button class="btn bd" style="flex:1;padding:13px" data-close="modal-checkin">Cancelar</button>
+      <button class="btn bl" style="flex:1;padding:13px" id="ci-confirmar">✓ Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: RENOVAR MEMBRESÍA -->
+<div class="modal-ov" id="modal-pago">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <h2 id="pago-titulo">Renovar membresía</h2>
+    <div class="fr"><label>Plan</label><select id="pago-plan"><option value="">— Selecciona —</option></select></div>
+    <div class="fr"><label>Fecha de pago</label><input type="date" id="pago-inicio"></div>
+    <div class="fr"><label>Tipo de pago</label>
+      <select id="pago-tipo">
+        <option value="completo">Pago único</option>
+        <option value="parcial">Parcialidades</option>
+      </select>
+    </div>
+    <div style="background:var(--bg3);border-radius:12px;padding:12px;border:1px solid var(--border);font-size:12px;color:var(--muted);line-height:1.8;margin-top:4px" id="pago-resumen"></div>
+    <div class="mbtns">
+      <button class="btn bd" style="flex:1;padding:13px" data-close="modal-pago">Cancelar</button>
+      <button class="btn bl" style="flex:1;padding:13px" id="pago-guardar">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: AGREGAR PRODUCTO A SOCIO -->
+<div class="modal-ov" id="modal-prod-soc">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <h2>Agregar Producto</h2>
+    <div class="fr"><label>Producto</label><select id="ps-producto"><option value="">— Selecciona —</option></select></div>
+    <div class="f2">
+      <div class="fr"><label>Cantidad</label><input type="number" id="ps-cantidad" value="1" min="1" inputmode="numeric"></div>
+      <div class="fr"><label>Estado</label>
+        <select id="ps-status"><option value="debe">Por cobrar</option><option value="pagado">Pagado</option></select>
+      </div>
+    </div>
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--lime);text-align:center;margin:8px 0" id="ps-total">$0</div>
+    <div class="mbtns">
+      <button class="btn bd" style="flex:1;padding:13px" data-close="modal-prod-soc">Cancelar</button>
+      <button class="btn bl" style="flex:1;padding:13px" id="ps-guardar">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: WA -->
+<div class="modal-ov" id="modal-wa">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <h2>WhatsApp</h2>
+    <div id="wa-para" style="font-size:13px;font-weight:600;color:var(--lime);margin-bottom:14px"></div>
+    <div class="fr"><label>Mensaje</label><select id="wa-tipo"><option value="">— Selecciona —</option></select></div>
+    <div style="background:var(--bg3);border-radius:10px;padding:10px 12px;font-size:12px;color:var(--muted);min-height:48px;line-height:1.6;border:1px solid var(--border)" id="wa-preview">Selecciona un tipo…</div>
+    <div class="mbtns">
+      <button class="btn bd" style="flex:1;padding:13px" data-close="modal-wa">Cancelar</button>
+      <button class="btn bwa" style="flex:1;padding:13px" id="wa-enviar">📱 Enviar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CATÁLOGO (genérico) -->
+<div class="modal-ov" id="modal-cat">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <h2 id="cat-modal-titulo">Nuevo</h2>
+    <div id="cat-modal-body"></div>
+    <div class="mbtns">
+      <button class="btn bd" style="flex:1;padding:13px" data-close="modal-cat">Cancelar</button>
+      <button class="btn bl" style="flex:1;padding:13px" id="cat-guardar">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: COBRAR DEUDA -->
+<div class="modal-ov" id="modal-cobrar-deuda">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <h2>Cobrar producto</h2>
+    <div id="cobrar-info" style="font-size:13px;color:var(--muted);margin-bottom:14px"></div>
+    <div class="fr"><label>Código de validación admin</label>
+      <input type="text" id="cobrar-codigo" placeholder="Código admin" maxlength="20">
+    </div>
+    <div id="cobrar-error" style="font-size:12px;color:var(--red);min-height:16px;margin:8px 0"></div>
+    <div class="mbtns">
+      <button class="btn bd" style="flex:1;padding:14px" data-close="modal-cobrar-deuda">Cancelar</button>
+      <button id="cobrar-ok" class="btn bl" style="flex:1;padding:14px">Confirmar cobro</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// ADMIN — solo lógica específica de admin
+// Las funciones compartidas viven en shared.js
+// ══════════════════════════════════════════════════════════════
+
+var ADMIN_COD_COBRO = "ADMIN2026";
+var pinBuf = "";
+
+// Datos globales (accesibles desde shared.js)
+var SOCIOS=[], DEUDAS={}, CHECKINS=[], MEMBRESIAS=[], CLASES=[];
+var PRODUCTOS=[], MENSAJES_CAT=[], VENTAS=[], HISTORICO={ventas:[],checkins:[],socios:[]};
+var nextCatId = {memb:Date.now()+1,clase:Date.now()+2,prod:Date.now()+3,msg:Date.now()+4};
+
+// Estado exclusivo de admin
+var repTab     = "socios";
+var repSortAsc = true;
+var catTab     = "membresias";
+var catEditId  = null;
+
+var _gymdbReady = GymDB.init();
+
+// ── DATOS ─────────────────────────────────────────────────────
+function recargarDatos() {
+  SOCIOS      = GymDB.getSocios();
+  DEUDAS      = GymDB.getAllDeudas();
+  CHECKINS    = GymDB.getTodayCheckins();
+  MEMBRESIAS  = GymDB.getMembresias();
+  CLASES      = GymDB.getClases();
+  PRODUCTOS   = GymDB.getProductos();
+  MENSAJES_CAT= GymDB.getMensajes();
+  VENTAS      = GymDB.getVentas();
+  HISTORICO   = GymDB.getHistorico();
+  poblarSelectPlanes();
+}
+
+// ── HOOKS de shared.js ────────────────────────────────────────
+// onGuardarPago: admin no registra cobro (la membresía se paga directamente)
+function onGuardarPago(s, plan, fi) { /* admin no necesita registrar cobro de trainer */ }
+// onRegistrarVenta: admin tampoco genera cobro de trainer
+function onRegistrarVenta(prod, venta) { /* noop en admin */ }
+// onToggleActivo: solo admin puede activar/desactivar socios
+function onToggleActivo(s) {
+  if (!confirm((s.activo?"Desactivar":"Activar")+" a "+s.nombre+"?")) return;
+  s.activo=!s.activo; GymDB.setSocio(s); SOCIOS=GymDB.getSocios(); renderDetalle();
+}
+
+// ── COBRO DE DEUDA (admin usa su propio código) ───────────────
+function confirmarCobro() {
+  if (!_cobroPendiente) return;
+  var codigo=ge("cobrar-codigo").value.trim();
+  if (!codigo){ge("cobrar-error").textContent="Ingresa el código";return;}
+  if (codigo.toUpperCase()!==ADMIN_COD_COBRO){ge("cobrar-error").textContent="Código incorrecto";return;}
+  DEUDAS[_cobroPendiente.socioId]=(DEUDAS[_cobroPendiente.socioId]||[]).filter(function(d){
+    return String(d.id)!==String(_cobroPendiente.deudaId);
+  });
+  GymDB.saveAllDeudas(DEUDAS);
+  DEUDAS=GymDB.getAllDeudas();
+  GymDB.registrarCobro({tipo:"deuda",socio_id:_cobroPendiente.socioId,
+    socio_nombre:_cobroPendiente.socioNombre,producto:_cobroPendiente.producto,
+    monto:_cobroPendiente.monto,vendedor_id:"admin",vendedor_nombre:"Administrador"});
+  ge("modal-cobrar-deuda").classList.remove("open");
+  _cobroPendiente=null;
+  mostrarToast("✓ Cobro registrado");
+  renderDetalle();
+}
+
+// ── NAVEGACIÓN ────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll(".screen,.screen-full").forEach(function(s){s.classList.remove("active");});
+  ge("screen-"+id).classList.add("active");
+  document.querySelectorAll(".nav-item[data-screen]").forEach(function(b){
+    b.classList.toggle("active",b.dataset.screen===id);
+  });
+  if (id==="inicio")    renderInicio();
+  if (id==="socios")    renderSocios();
+  if (id==="catalogo")  renderCatalogo();
+  if (id==="reportes")  renderReporte();
+  if (id==="dashboard") renderGrafica();
+  if (id==="detalle")   { recargarDatos(); setTimeout(renderDetalle,0); }
+}
+
+// ── LOGIN PIN ─────────────────────────────────────────────────
+function actualizarDots() {
+  for (var i=0;i<4;i++) ge("dot"+i).classList.toggle("filled",i<pinBuf.length);
+}
+function verificarPin() {
+  if (pinBuf===PIN_ADMIN) {
+    ge("screen-login").classList.remove("active");
+    ge("nav-admin").style.display="flex";
+    var str=new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
+    ge("hdr-fecha").textContent=str.charAt(0).toUpperCase()+str.slice(1);
+    showScreen("inicio");
+  } else {
+    ge("login-err").textContent="PIN incorrecto";
+    pinBuf=""; actualizarDots();
+    setTimeout(function(){ge("login-err").textContent="";},2000);
+  }
+}
+
+// ── INICIO ────────────────────────────────────────────────────
+function renderInicio() {
+  ge("st-ci").textContent=CHECKINS.length;
+  var html="";
+  if (!CHECKINS.length) {
+    html="<div class='empty'><div class='ico'>💪</div><p>Sin check-ins hoy</p></div>";
+  } else {
+    CHECKINS.forEach(function(ci){
+      var s=SOCIOS.find(function(x){return x.id===ci.socio_id;}); if (!s) return;
+      var st=calcStatus(s);
+      var deudas=DEUDAS[s.id]||[], totalD=deudas.reduce(function(a,d){return a+d.total;},0);
+      var abonoV=(s.abonos||[]).find(function(a){
+        var lim=new Date(a.fecha_limite+"T00:00:00"),h=new Date();h.setHours(0,0,0,0);
+        return !a.pagado&&lim<h;
+      });
+      html+="<div class='ci-row' data-ver='"+s.id+"'>";
+      html+="<div class='ci-av'>"+ini(s)+"</div>";
+      html+="<div style='flex:1;min-width:0'>";
+      html+="<div style='font-size:13px;font-weight:700'>#"+s.id+" · "+s.nombre+" "+s.apellido_paterno+"</div>";
+      html+="<div style='font-size:10px;color:var(--muted);margin-top:2px'>"+ci.hora+" · "+(s.plan||"")+"</div>";
+      html+="<div style='margin-top:4px;display:flex;gap:5px;flex-wrap:wrap'>"+pillSt(st);
+      if (totalD>0) html+="<span class='pill po'>Debe: "+fm(totalD)+"</span>";
+      if (abonoV)   html+="<span class='pill pr'>Abono vencido</span>";
+      html+="</div></div><span style='color:var(--muted);font-size:18px'>›</span></div>";
+    });
+  }
+  ge("lista-ci").innerHTML=html;
+  ge("lista-ci").querySelectorAll("[data-ver]").forEach(function(el){
+    el.addEventListener("click",function(){
+      socioActual=SOCIOS.find(function(s){return s.id===this.dataset.ver;},this);
+      detTab="membresia"; showScreen("detalle");
+    });
+  });
+}
+
+// ── CHECK-IN ──────────────────────────────────────────────────
+function buscarSocioCI(val) {
+  val=val.trim(); var m=val.match(/^GM-(\d+)-/i);
+  return SOCIOS.find(function(s){return s.id===(m?m[1]:val);});
+}
+function abrirCheckin() {
+  ge("ci-input").value=""; ge("ci-err").textContent="";
+  ge("ci-preview").innerHTML="<span style='font-size:12px;color:var(--muted)'>Ingresa el código…</span>";
+  ge("modal-checkin").classList.add("open");
+  setTimeout(function(){ge("ci-input").focus();},300);
+}
+function previewCI() {
+  var s=buscarSocioCI(ge("ci-input").value);
+  if (!s){ge("ci-preview").innerHTML="<span style='font-size:12px;color:var(--muted)'>No encontrado</span>";return;}
+  var st=calcStatus(s), deudas=DEUDAS[s.id]||[], totalD=deudas.reduce(function(a,d){return a+d.total;},0);
+  var h="<div style='display:flex;align-items:center;gap:10px'>";
+  h+="<div style='width:34px;height:34px;border-radius:50%;background:"+avColor(st)+";display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#080808'>"+ini(s)+"</div>";
+  h+="<div><div style='font-weight:700;font-size:14px'>#"+s.id+" · "+s.nombre+" "+s.apellido_paterno+"</div>";
+  h+="<div style='font-size:11px;color:var(--muted);margin-top:2px'>"+(s.plan||"")+" · "+pillSt(st);
+  if (totalD>0) h+=" <span class='pill po'>Debe: "+fm(totalD)+"</span>";
+  h+="</div></div></div>";
+  ge("ci-preview").innerHTML=h;
+}
+function confirmarCI() {
+  var s=buscarSocioCI(ge("ci-input").value);
+  if (!s){ge("ci-err").textContent="Socio no encontrado";return;}
+  if (CHECKINS.find(function(c){return c.socio_id===s.id;})){ge("ci-err").textContent=s.nombre+" ya tiene check-in hoy";return;}
+  GymDB.addCheckin(s.id);
+  CHECKINS=GymDB.getTodayCheckins(); SOCIOS=GymDB.getSocios();
+  ge("modal-checkin").classList.remove("open");
+  renderInicio();
+}
+
+// ── MODAL PRODUCTO A SOCIO (admin usa modal) ──────────────────
+function abrirModalProdSoc(s) {
+  var sel=ge("ps-producto");
+  sel.innerHTML="<option value=''>— Selecciona —</option>";
+  PRODUCTOS.forEach(function(p){sel.innerHTML+="<option value='"+p.id+"'>"+p.nombre+" · "+fm(p.costo)+"</option>";});
+  ge("ps-cantidad").value=1; ge("ps-status").value="debe"; ge("ps-total").textContent="$0";
+  ge("modal-prod-soc").classList.add("open");
+  ge("ps-guardar").onclick=function(){guardarProdSocAdmin(s);};
+}
+function calcPSTot() {
+  var p=PRODUCTOS.find(function(x){return x.id===+ge("ps-producto").value;});
+  ge("ps-total").textContent=p?fm(p.costo*(+ge("ps-cantidad").value||1)):"$0";
+}
+function guardarProdSocAdmin(s) {
+  var p=PRODUCTOS.find(function(x){return x.id===+ge("ps-producto").value;});
+  if (!p){alert("Selecciona un producto");return;}
+  var cant=+ge("ps-cantidad").value||1, status=ge("ps-status").value;
+  var hoyStr=new Date().toISOString().slice(0,10);
+  if (status==="debe"){
+    if (!DEUDAS[s.id]) DEUDAS[s.id]=[];
+    DEUDAS[s.id].push({id:"d"+Date.now(),producto:p.nombre,total:p.costo*cant,fecha:hoyStr});
+    GymDB.saveAllDeudas(DEUDAS);
+  }
+  var venta={id:"v"+Date.now(),socio_id:s.id,socio_nombre:s.nombre+" "+s.apellido_paterno,
+    producto:p.nombre,cantidad:cant,total:p.costo*cant,fecha:hoyStr,status:status,tipo:"venta"};
+  VENTAS.unshift(venta); GymDB.saveVentas(VENTAS);
+  p.stock=Math.max(0,p.stock-cant); GymDB.saveProductos(PRODUCTOS);
+  ge("modal-prod-soc").classList.remove("open");
+  renderDetalle();
+}
+
+// Override: en admin el botón Deudas > Agregar abre el modal (no panel inline)
+var _origRenderTabDeudas = renderTabDeudas;
+// (renderTabDeudas en shared ya tiene panel inline; admin lo usa tal cual)
+
+// ── CATÁLOGO ──────────────────────────────────────────────────
+function renderCatalogo() {
+  var c=ge("cat-contenido"), h="";
+  if (catTab==="membresias") {
+    MEMBRESIAS.forEach(function(m){
+      h+="<div class='card' style='display:flex;align-items:center;gap:10px'>";
+      h+="<div style='flex:1'><div style='font-family:\"Bebas Neue\",sans-serif;font-size:18px'>"+m.nombre+"</div>";
+      h+="<div style='font-size:12px;color:var(--muted)'>"+m.dias+" días · "+(m.desc||"")+"</div>";
+      if (m.abonos&&m.abonos.length) h+="<div style='font-size:11px;color:var(--orange)'>"+m.abonos.length+" parcialidades</div>";
+      h+="</div><div style='font-family:\"Bebas Neue\",sans-serif;font-size:22px;color:var(--lime)'>"+fm(m.precio)+"</div>";
+      h+="<button class='btn bd bsm' data-edit-m='"+m.id+"'>✏️</button><button class='btn br bsm' data-del-m='"+m.id+"'>🗑</button></div>";
+    });
+    c.innerHTML=h||"<div class='empty'><div class='ico'>💳</div><p>Sin membresías</p></div>";
+    c.querySelectorAll("[data-edit-m]").forEach(function(b){b.addEventListener("click",function(){catAbrirMemb(this.dataset.editM);});});
+    c.querySelectorAll("[data-del-m]").forEach(function(b){b.addEventListener("click",function(){
+      if (!confirm("¿Eliminar?")) return;
+      MEMBRESIAS=MEMBRESIAS.filter(function(x){return String(x.id)!==String(b.dataset.delM);});
+      GymDB.saveMembresias(MEMBRESIAS); renderCatalogo();
+    });});
+  } else if (catTab==="clases") {
+    CLASES.forEach(function(cl){
+      h+="<div class='card' style='display:flex;align-items:center;gap:10px'>";
+      h+="<div style='width:4px;height:40px;border-radius:4px;background:"+cl.color+";flex-shrink:0'></div>";
+      h+="<div style='flex:1'><div style='font-family:\"Bebas Neue\",sans-serif;font-size:16px'>"+cl.nombre+"</div>";
+      h+="<div style='font-size:11px;color:var(--muted)'>"+cl.hora+" · "+cl.coach+" · Cupo: "+cl.cupo+"</div>";
+      h+="<div style='font-size:11px;color:var(--muted)'>"+cl.dias.join(", ")+"</div></div>";
+      h+="<button class='btn bd bsm' data-edit-cl='"+cl.id+"'>✏️</button><button class='btn br bsm' data-del-cl='"+cl.id+"'>🗑</button></div>";
+    });
+    c.innerHTML=h||"<div class='empty'><div class='ico'>📅</div><p>Sin clases</p></div>";
+    c.querySelectorAll("[data-edit-cl]").forEach(function(b){b.addEventListener("click",function(){catAbrirClase(this.dataset.editCl);});});
+    c.querySelectorAll("[data-del-cl]").forEach(function(b){b.addEventListener("click",function(){
+      if (!confirm("¿Eliminar?")) return;
+      CLASES=CLASES.filter(function(x){return String(x.id)!==String(b.dataset.delCl);});
+      GymDB.saveClases(CLASES); renderCatalogo();
+    });});
+  } else if (catTab==="productos") {
+    var bajos=PRODUCTOS.filter(function(p){return p.stock>0&&p.stock<=5;}).length;
+    var cero=PRODUCTOS.filter(function(p){return p.stock===0;}).length;
+    h="<div style='display:flex;gap:8px;margin-bottom:10px'><span class='pill pg'>"+PRODUCTOS.length+" productos</span>";
+    if (bajos) h+="<span class='pill po'>⚠ "+bajos+" bajo stock</span>";
+    if (cero)  h+="<span class='pill pr'>🚫 "+cero+" agotado"+(cero>1?"s":"")+"</span></div>";
+    PRODUCTOS.forEach(function(p){
+      var sc=p.stock===0?"var(--red)":p.stock<=5?"var(--orange)":"var(--muted)";
+      h+="<div class='card' style='display:flex;align-items:center;gap:10px'>";
+      h+="<div style='flex:1'><div style='font-weight:700;font-size:14px'>"+p.nombre+"</div>";
+      h+="<div style='font-size:11px;color:var(--muted)'>"+p.cat+"</div>";
+      h+="<div style='font-size:11px;color:"+sc+"'>Stock: "+p.stock+"</div></div>";
+      h+="<div style='font-family:\"Bebas Neue\",sans-serif;font-size:22px;color:var(--lime)'>"+fm(p.costo)+"</div>";
+      h+="<button class='btn bd bsm' data-edit-pr='"+p.id+"'>✏️</button><button class='btn br bsm' data-del-pr='"+p.id+"'>🗑</button></div>";
+    });
+    c.innerHTML=h;
+    c.querySelectorAll("[data-edit-pr]").forEach(function(b){b.addEventListener("click",function(){catAbrirProd(this.dataset.editPr);});});
+    c.querySelectorAll("[data-del-pr]").forEach(function(b){b.addEventListener("click",function(){
+      if (!confirm("¿Eliminar?")) return;
+      PRODUCTOS=PRODUCTOS.filter(function(x){return String(x.id)!==String(b.dataset.delPr);});
+      GymDB.saveProductos(PRODUCTOS); renderCatalogo();
+    });});
+  } else if (catTab==="trainers") {
+    GymDB.getTrainers().forEach(function(t){
+      h+="<div class='card' style='display:flex;align-items:center;gap:10px'>";
+      h+="<div style='flex:1'><div style='font-weight:700;font-size:14px'>"+t.nombre+"</div>";
+      h+="<div style='font-size:11px;color:var(--muted)'>Tel: "+t.telefono+" · Código: "+t.codigo+"</div></div>";
+      h+="<button class='btn bd bsm' data-edit-tr='"+t.id+"'>✏️</button><button class='btn br bsm' data-del-tr='"+t.id+"'>🗑</button></div>";
+    });
+    c.innerHTML=h||"<div class='empty'><div class='ico'>👤</div><p>Sin entrenadores</p></div>";
+    c.querySelectorAll("[data-edit-tr]").forEach(function(b){b.addEventListener("click",function(){catAbrirTrainer(this.dataset.editTr);});});
+    c.querySelectorAll("[data-del-tr]").forEach(function(b){b.addEventListener("click",function(){
+      if (!confirm("¿Eliminar entrenador?")) return;
+      var arr=GymDB.getTrainers().filter(function(x){return String(x.id)!==String(b.dataset.delTr);});
+      GymDB.saveTrainers(arr); renderCatalogo();
+    });});
+  } else { // mensajes
+    MENSAJES_CAT.forEach(function(m){
+      h+="<div class='card'><div style='font-weight:700;font-size:14px;margin-bottom:6px'>"+m.nombre+"</div>";
+      h+="<div style='font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:8px'>"+m.cuerpo+"</div>";
+      h+="<div style='display:flex;gap:6px'><button class='btn bd bsm' data-edit-msg='"+m.id+"'>✏️</button><button class='btn br bsm' data-del-msg='"+m.id+"'>🗑</button></div></div>";
+    });
+    c.innerHTML=h||"<div class='empty'><div class='ico'>📱</div><p>Sin mensajes</p></div>";
+    c.querySelectorAll("[data-edit-msg]").forEach(function(b){b.addEventListener("click",function(){catAbrirMsg(this.dataset.editMsg);});});
+    c.querySelectorAll("[data-del-msg]").forEach(function(b){b.addEventListener("click",function(){
+      if (!confirm("¿Eliminar?")) return;
+      MENSAJES_CAT=MENSAJES_CAT.filter(function(x){return String(x.id)!==String(b.dataset.delMsg);});
+      GymDB.saveMensajes(MENSAJES_CAT); renderCatalogo();
+    });});
+  }
+}
+
+// helpers de catálogo de membresías (parcialidades)
+function _buildAbonosUI(m) {
+  var abonos=m&&m.abonos?m.abonos:[];
+  var h="<div id='cm-abonos-wrap'>";
+  if (!abonos.length) h+="<div style='font-size:12px;color:var(--muted)'>Sin parcialidades</div>";
+  abonos.forEach(function(a,i){
+    h+="<div class='f2' style='gap:6px;margin-bottom:6px' data-ab-row='"+i+"'>";
+    h+="<div class='fr'><label style='font-size:10px'>Monto</label><input type='number' class='cm-ab-monto' value='"+a.monto+"' inputmode='numeric'></div>";
+    h+="<div class='fr'><label style='font-size:10px'>Semanas límite</label><input type='number' class='cm-ab-sem' value='"+a.semanas+"' min='1' inputmode='numeric'></div></div>";
+  });
+  h+="<div style='display:flex;gap:6px;margin-top:8px'>";
+  h+="<button type='button' id='cm-add-ab' class='btn bd bsm' style='flex:1;justify-content:center'>+ Parcialidad</button>";
+  h+="<button type='button' id='cm-del-ab' class='btn br bsm' style='flex:1;justify-content:center'>- Última</button></div></div>";
+  return h;
+}
+function _bindAbonosUI() {
+  ge("cm-add-ab").addEventListener("click",function(){
+    var wrap=ge("cm-abonos-wrap"), rows=wrap.querySelectorAll("[data-ab-row]"), i=rows.length;
+    var div=document.createElement("div"); div.className="f2"; div.style.cssText="gap:6px;margin-bottom:6px"; div.setAttribute("data-ab-row",i);
+    div.innerHTML="<div class='fr'><label style='font-size:10px'>Monto</label><input type='number' class='cm-ab-monto' value='' inputmode='numeric'></div>"+
+      "<div class='fr'><label style='font-size:10px'>Semanas límite</label><input type='number' class='cm-ab-sem' value='' min='1' inputmode='numeric'></div>";
+    wrap.insertBefore(div, wrap.querySelector("#cm-add-ab").parentNode);
+  });
+  ge("cm-del-ab").addEventListener("click",function(){
+    var rows=ge("cm-abonos-wrap").querySelectorAll("[data-ab-row]");
+    if (rows.length) rows[rows.length-1].remove();
+  });
+}
+function _leerAbonos() {
+  return Array.from(ge("cm-abonos-wrap").querySelectorAll("[data-ab-row]")).map(function(row){
+    return{monto:+row.querySelector(".cm-ab-monto").value||0,semanas:+row.querySelector(".cm-ab-sem").value||1};
+  }).filter(function(a){return a.monto>0;});
+}
+function catAbrirMemb(id) {
+  catEditId=id||null;
+  var m=id?MEMBRESIAS.find(function(x){return String(x.id)===String(id);}):null;
+  ge("cat-modal-titulo").textContent=m?"Editar Membresía":"Nueva Membresía";
+  ge("cat-modal-body").innerHTML=
+    "<div class='fr'><label>Nombre</label><input type='text' id='cm-nombre' value='"+(m?m.nombre:"")+"' placeholder='Mensual'></div>"+
+    "<div class='f2'><div class='fr'><label>Días</label><input type='number' id='cm-dias' value='"+(m?m.dias:"")+"' placeholder='30' inputmode='numeric'></div>"+
+    "<div class='fr'><label>Precio</label><input type='number' id='cm-precio' value='"+(m?m.precio:"")+"' placeholder='1200' inputmode='numeric'></div></div>"+
+    "<div class='fr'><label>Descripción</label><input type='text' id='cm-desc' value='"+(m?m.desc:"")+"' placeholder='Beneficios'></div>"+
+    "<div class='fr'><label>Parcialidades</label>"+_buildAbonosUI(m)+"</div>";
+  ge("modal-cat").classList.add("open"); _bindAbonosUI();
+  ge("cat-guardar").onclick=function(){
+    var nombre=ge("cm-nombre").value.trim(), dias=+ge("cm-dias").value, precio=+ge("cm-precio").value;
+    if (!nombre||!dias||!precio){alert("Completa los campos");return;}
+    var abonos=_leerAbonos();
+    var datos={nombre:nombre,dias:dias,precio:precio,desc:ge("cm-desc").value.trim(),abonos:abonos};
+    if (catEditId){var idx=MEMBRESIAS.findIndex(function(x){return String(x.id)===String(catEditId);});if(idx>-1){datos.id=catEditId;MEMBRESIAS[idx]=datos;}}
+    else{datos.id=nextCatId.memb++;MEMBRESIAS.push(datos);}
+    PLAN_ABONOS[nombre]=abonos; PLAN_DIAS[nombre]=dias; PLAN_PRECIO[nombre]=precio;
+    GymDB.saveMembresias(MEMBRESIAS); ge("modal-cat").classList.remove("open"); renderCatalogo();
+  };
+}
+function catAbrirClase(id) {
+  catEditId=id||null;
+  var cl=id?CLASES.find(function(x){return String(x.id)===String(id);}):null;
+  var dias=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+  ge("cat-modal-titulo").textContent=cl?"Editar Clase":"Nueva Clase";
+  ge("cat-modal-body").innerHTML=
+    "<div class='fr'><label>Nombre</label><input type='text' id='cl-nombre' value='"+(cl?cl.nombre:"")+"'></div>"+
+    "<div class='f2'><div class='fr'><label>Hora</label><input type='time' id='cl-hora' value='"+(cl?cl.hora:"07:00")+"'></div>"+
+    "<div class='fr'><label>Cupo</label><input type='number' id='cl-cupo' value='"+(cl?cl.cupo:"15")+"' inputmode='numeric'></div></div>"+
+    "<div class='fr'><label>Coach</label><input type='text' id='cl-coach' value='"+(cl?cl.coach:"")+"'></div>"+
+    "<div class='fr'><label>Días</label><div class='dias-sel' id='cl-dias'>"+dias.map(function(d){return "<button class='dia-btn"+(cl&&cl.dias.indexOf(d)>-1?" on":"")+"' data-d='"+d+"'>"+d+"</button>";}).join("")+"</div></div>"+
+    "<div class='fr'><label>Color</label><input type='color' id='cl-color' value='"+(cl?cl.color:"#C8F135")+"' style='height:44px;padding:4px 8px;cursor:pointer'></div>";
+  ge("modal-cat").classList.add("open");
+  ge("cat-modal-body").querySelectorAll(".dia-btn").forEach(function(b){b.addEventListener("click",function(){this.classList.toggle("on");});});
+  ge("cat-guardar").onclick=function(){
+    var nombre=ge("cl-nombre").value.trim(); if(!nombre){alert("Escribe el nombre");return;}
+    var ds=Array.from(ge("cl-dias").querySelectorAll(".on")).map(function(b){return b.dataset.d;});
+    if(!ds.length){alert("Selecciona al menos un día");return;}
+    var datos={nombre:nombre,hora:ge("cl-hora").value,cupo:+ge("cl-cupo").value||15,coach:ge("cl-coach").value.trim(),dias:ds,color:ge("cl-color").value};
+    if(catEditId){var idx=CLASES.findIndex(function(x){return String(x.id)===String(catEditId);});if(idx>-1){datos.id=catEditId;CLASES[idx]=datos;}}
+    else{datos.id=nextCatId.clase++;CLASES.push(datos);}
+    GymDB.saveClases(CLASES); ge("modal-cat").classList.remove("open"); renderCatalogo();
+  };
+}
+function catAbrirProd(id) {
+  catEditId=id||null;
+  var p=id?PRODUCTOS.find(function(x){return String(x.id)===String(id);}):null;
+  var cats=["Suplementos","Accesorios","Ropa","Bebidas","Otro"];
+  ge("cat-modal-titulo").textContent=p?"Editar Producto":"Nuevo Producto";
+  ge("cat-modal-body").innerHTML=
+    "<div class='fr'><label>Nombre</label><input type='text' id='pr-nombre' value='"+(p?p.nombre:"")+"'></div>"+
+    "<div class='f2'><div class='fr'><label>Costo</label><input type='number' id='pr-costo' value='"+(p?p.costo:"")+"' inputmode='numeric'></div>"+
+    "<div class='fr'><label>Stock</label><input type='number' id='pr-stock' value='"+(p?p.stock:"0")+"' inputmode='numeric'></div></div>"+
+    "<div class='fr'><label>Categoría</label><select id='pr-cat'>"+cats.map(function(c){return "<option"+(p&&p.cat===c?" selected":"")+">"+c+"</option>";}).join("")+"</select></div>";
+  ge("modal-cat").classList.add("open");
+  ge("cat-guardar").onclick=function(){
+    var nombre=ge("pr-nombre").value.trim(), costo=+ge("pr-costo").value; if(!nombre||!costo){alert("Completa");return;}
+    var datos={nombre:nombre,costo:costo,stock:+ge("pr-stock").value||0,cat:ge("pr-cat").value};
+    if(catEditId){var idx=PRODUCTOS.findIndex(function(x){return String(x.id)===String(catEditId);});if(idx>-1){datos.id=catEditId;PRODUCTOS[idx]=datos;}}
+    else{datos.id=nextCatId.prod++;PRODUCTOS.push(datos);}
+    GymDB.saveProductos(PRODUCTOS); ge("modal-cat").classList.remove("open"); renderCatalogo();
+  };
+}
+function catAbrirTrainer(id) {
+  catEditId=id||null;
+  var t=id?GymDB.getTrainers().find(function(x){return String(x.id)===String(id);}):null;
+  ge("cat-modal-titulo").textContent=t?"Editar Entrenador":"Nuevo Entrenador";
+  ge("cat-modal-body").innerHTML=
+    "<div class='fr'><label>Nombre</label><input id='tr-nombre' value='"+(t?t.nombre:"")+"' placeholder='Diego'></div>"+
+    "<div class='fr'><label>Teléfono</label><input id='tr-tel' value='"+(t?t.telefono:"")+"' placeholder='5512345678'></div>"+
+    "<div class='fr'><label>Código de acceso</label><input id='tr-cod' value='"+(t?t.codigo:"")+"' placeholder='TRAINER01'></div>";
+  ge("cat-guardar").onclick=function(){
+    var nombre=ge("tr-nombre").value.trim(), tel=ge("tr-tel").value.trim(), cod=ge("tr-cod").value.trim();
+    if(!nombre||!tel||!cod){alert("Completa todos los campos");return;}
+    var arr=GymDB.getTrainers();
+    if(id){var idx=arr.findIndex(function(x){return String(x.id)===String(id);});if(idx>-1) arr[idx]={id:t.id,nombre:nombre,telefono:tel,codigo:cod};}
+    else arr.push({id:Date.now(),nombre:nombre,telefono:tel,codigo:cod});
+    GymDB.saveTrainers(arr); ge("modal-cat").classList.remove("open"); renderCatalogo();
+  };
+  ge("modal-cat").classList.add("open");
+}
+function catAbrirMsg(id) {
+  catEditId=id||null;
+  var m=id?MENSAJES_CAT.find(function(x){return String(x.id)===String(id);}):null;
+  ge("cat-modal-titulo").textContent=m?"Editar Mensaje":"Nuevo Mensaje";
+  ge("cat-modal-body").innerHTML=
+    "<div class='fr'><label>Nombre</label><input type='text' id='msg-nombre' value='"+(m?m.nombre:"")+"' placeholder='Recordatorio de pago'></div>"+
+    "<div class='fr'><label>Texto</label><textarea id='msg-cuerpo' style='min-height:90px'>"+(m?m.cuerpo:"")+"</textarea></div>"+
+    "<div style='font-size:11px;color:var(--muted);margin-top:-4px'>Variables: <code style='background:var(--bg3);padding:2px 5px;border-radius:4px;color:var(--lime);font-size:11px'>{nombre}</code> <code style='background:var(--bg3);padding:2px 5px;border-radius:4px;color:var(--lime);font-size:11px'>{plan}</code></div>";
+  ge("modal-cat").classList.add("open");
+  ge("cat-guardar").onclick=function(){
+    var nombre=ge("msg-nombre").value.trim(), cuerpo=ge("msg-cuerpo").value.trim(); if(!nombre||!cuerpo){alert("Completa");return;}
+    if(catEditId){var idx=MENSAJES_CAT.findIndex(function(x){return String(x.id)===String(catEditId);});if(idx>-1) MENSAJES_CAT[idx]={id:catEditId,nombre:nombre,cuerpo:cuerpo};}
+    else MENSAJES_CAT.push({id:nextCatId.msg++,nombre:nombre,cuerpo:cuerpo});
+    GymDB.saveMensajes(MENSAJES_CAT); ge("modal-cat").classList.remove("open"); renderCatalogo();
+  };
+}
+function catNuevo() {
+  if(catTab==="membresias") catAbrirMemb(null);
+  else if(catTab==="clases") catAbrirClase(null);
+  else if(catTab==="productos") catAbrirProd(null);
+  else if(catTab==="trainers") catAbrirTrainer(null);
+  else catAbrirMsg(null);
+}
+
+// ── REPORTES ──────────────────────────────────────────────────
+function mbox(v,c,l){ return "<div style='background:var(--bg2);border-radius:12px;padding:12px 10px;text-align:center;border:1px solid var(--border)'><div style='font-family:\"Bebas Neue\",sans-serif;font-size:26px;color:"+c+"'>"+v+"</div><div style='font-size:10px;color:var(--muted);margin-top:3px'>"+l+"</div></div>"; }
+function rfila(av,avC,n,sub,val){ return "<div style='display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--border)'><div style='width:32px;height:32px;border-radius:50%;background:"+avC+";display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#080808;flex-shrink:0'>"+av+"</div><div style='flex:1;min-width:0'><div style='font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis'>"+n+"</div><div style='font-size:11px;color:var(--muted);margin-top:2px'>"+sub+"</div></div><div style='flex-shrink:0;text-align:right'>"+val+"</div></div>"; }
+function enPeriodo(fecha){ var d=ge("r-desde").value,h=ge("r-hasta").value; if(d&&fecha<d)return false; if(h&&fecha>h)return false; return true; }
+
+function renderReporte() {
+  var mh="",lh="";
+  if (repTab==="socios") {
+    var lista=SOCIOS.slice().filter(function(s){return !ge("r-desde").value||enPeriodo(s.fecha_inicio||"");});
+    lista.sort(function(a,b){ var r=(a.fecha_inicio||"").localeCompare(b.fecha_inicio||""); return repSortAsc?-r:r; });
+    var activos=lista.filter(function(s){return s.activo;}).length;
+    var vencidos=lista.filter(function(s){return calcStatus(s)==="vencido";}).length;
+    mh=mbox(activos,"var(--green)","Activos")+mbox(vencidos,"var(--red)","Vencidos")+mbox(lista.length-activos,"var(--muted)","Inactivos")+mbox(lista.reduce(function(a,s){return a+(s.visitas||0);},0),"var(--lime)","Visitas");
+    lista.forEach(function(s){ var st=calcStatus(s); lh+=rfila(ini(s),avColor(st),"#"+s.id+" · "+s.nombre+" "+s.apellido_paterno,(s.plan||"Sin plan")+" · Alta: "+fF(s.fecha_inicio),pillSt(st)+"<br><span style='font-size:11px;color:var(--muted)'>Vence: "+fF(s.fecha_vencimiento)+"</span>"); });
+  } else if (repTab==="checkins") {
+    var ci=CHECKINS.filter(function(c){return enPeriodo(c.fecha||new Date().toISOString().slice(0,10));});
+    mh=mbox(ci.length,"var(--lime)","Check-ins")+mbox(new Set(ci.map(function(c){return c.socio_id;})).size,"var(--green)","Socios únicos");
+    ci.forEach(function(c){ var s=SOCIOS.find(function(x){return x.id===c.socio_id;}); if(!s)return; lh+=rfila(ini(s),"var(--lime)",s.nombre+" "+s.apellido_paterno,c.hora,"✅"); });
+  } else if (repTab==="pagos") {
+    var act=SOCIOS.filter(function(s){return s.activo;});
+    var cob=act.filter(function(s){return calcStatus(s)==="aldia";}).reduce(function(a,s){return a+(PLAN_PRECIO[s.plan]||0);},0);
+    var esp=act.reduce(function(a,s){return a+(PLAN_PRECIO[s.plan]||0);},0);
+    mh=mbox(fm(cob),"var(--green)","Cobrado")+mbox(fm(esp),"var(--lime)","Esperado");
+    act.forEach(function(s){ var st=calcStatus(s); lh+=rfila(ini(s),avColor(st),"#"+s.id+" · "+s.nombre+" "+s.apellido_paterno,s.plan||"",fm(PLAN_PRECIO[s.plan]||0)); });
+  } else {
+    var vf=VENTAS.filter(function(v){return enPeriodo(v.fecha||"");});
+    vf.sort(function(a,b){ return repSortAsc?(String(b.fecha||"")).localeCompare(String(a.fecha||"")):(String(a.fecha||"")).localeCompare(String(b.fecha||"")); });
+    var tot=vf.reduce(function(a,v){return a+v.total;},0);
+    var cob2=vf.filter(function(v){return v.status==="pagado";}).reduce(function(a,v){return a+v.total;},0);
+    mh=mbox(fm(tot),"var(--lime)","Total")+mbox(fm(cob2),"var(--green)","Cobrado")+mbox(fm(tot-cob2),"var(--orange)","Por cobrar")+mbox(vf.length,"var(--muted)","Ventas");
+    vf.forEach(function(v){ lh+=rfila("$","var(--lime)",v.producto,"#"+(v.socio_id||"")+" "+(v.socio_nombre||"")+" · "+fF(v.fecha),"<span class='pill "+(v.status==="pagado"?"pg":"po")+"'>"+(v.status==="pagado"?"Cobrado":"Por cobrar")+"</span><br><span style='font-family:\"Bebas Neue\",sans-serif;font-size:18px'>"+fm(v.total)+"</span>"); });
+  }
+  ge("rep-metricas").innerHTML=mh;
+  ge("rep-lista").innerHTML=lh||"<div class='empty'><div class='ico'>📊</div><p>Sin datos</p></div>";
+}
+function descargarCSV() {
+  var csv="",fn="reporte.csv";
+  if (repTab==="socios"){csv="ID,Nombre,Plan,Activo,Visitas,Alta,Vencimiento\n";SOCIOS.forEach(function(s){csv+=s.id+","+s.nombre+" "+s.apellido_paterno+","+(s.plan||"")+","+(s.activo?"Si":"No")+","+(s.visitas||0)+","+(s.fecha_inicio||"")+","+(s.fecha_vencimiento||"")+"\n";});fn="socios.csv";}
+  else if(repTab==="ventas"){csv="Producto,Socio,Fecha,Total,Status\n";VENTAS.filter(function(v){return enPeriodo(v.fecha||"");}).forEach(function(v){csv+=v.producto+","+(v.socio_nombre||"")+","+v.fecha+","+v.total+","+v.status+"\n";});fn="ventas.csv";}
+  if(!csv)return;
+  var a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download=fn;a.click();
+}
+
+// ── DASHBOARD ─────────────────────────────────────────────────
+function renderGrafica() {
+  var metrica=ge("dash-metrica").value;
+  var datos=HISTORICO[metrica]||[];
+  if (!datos.length){ge("bar-chart").innerHTML="<div style='font-size:12px;color:var(--muted);width:100%;text-align:center;padding-top:32px'>Sin datos históricos</div>";return;}
+  var vals=datos.map(function(d){return d.v;}),max=Math.max.apply(null,vals)||1;
+  var colors={ventas:"#30D158",checkins:"#C8F135",socios:"#0A84FF"},color=colors[metrica]||"#C8F135";
+  var isMoney=metrica==="ventas";
+  var html="";
+  datos.forEach(function(d,i){
+    var pct=Math.max((d.v/max)*100,5),isLast=i===datos.length-1;
+    var label=isMoney?"$"+(d.v/1000).toFixed(1)+"k":d.v;
+    html+="<div class='bcol'><span class='bval'>"+label+"</span><div class='bfill' style='height:"+pct+"%;background:"+(isLast?color:color+"55")+"'></div><span class='blabel'>"+d.m+"</span></div>";
+  });
+  ge("bar-chart").innerHTML=html;
+}
+
+// ── EVENTOS — DOMContentLoaded ────────────────────────────────
+document.addEventListener("DOMContentLoaded",function(){
+
+  // PIN — se registra ANTES de que cargue Supabase
+  document.querySelectorAll(".pin-key[data-n]").forEach(function(btn){
+    btn.addEventListener("click",function(){
+      if (pinBuf.length>=4) return;
+      pinBuf+=this.dataset.n; actualizarDots();
+      if (pinBuf.length===4) setTimeout(verificarPin,150);
+    });
+  });
+  ge("login-del").addEventListener("click",function(){pinBuf=pinBuf.slice(0,-1);actualizarDots();});
+  ge("login-clear").addEventListener("click",function(){pinBuf="";actualizarDots();});
+
+  _gymdbReady.then(function(){
+    ge("ov-loading").style.display="none";
+    recargarDatos();
+
+    // Nav
+    document.querySelectorAll(".nav-item[data-screen]").forEach(function(b){
+      b.addEventListener("click",function(){showScreen(this.dataset.screen);});
+    });
+
+    // Eventos compartidos del detalle (shared.js)
+    initDetalleEvents();
+
+    // Sync buttons
+    function syncBtn(btnId, renderFn) {
+      var b=ge(btnId); if(!b)return;
+      b.addEventListener("click",function(){
+        var btn=this; btn.textContent="…"; btn.disabled=true;
+        GymDB.init().then(function(){ recargarDatos(); renderFn(); btn.textContent="↻"; btn.disabled=false; mostrarToast("↻ Actualizado"); });
+      });
+    }
+    syncBtn("btn-sync-inicio",  renderInicio);
+    syncBtn("btn-sync-socios",  renderSocios);
+    syncBtn("btn-sync-cat",     renderCatalogo);
+
+    // Check-in
+    ge("btn-checkin").addEventListener("click",abrirCheckin);
+    ge("ci-input").addEventListener("input",previewCI);
+    ge("ci-input").addEventListener("keydown",function(e){if(e.key==="Enter") confirmarCI();});
+    ge("ci-confirmar").addEventListener("click",confirmarCI);
+
+    // Producto a socio (modal de admin)
+    ge("ps-producto").addEventListener("change",calcPSTot);
+    ge("ps-cantidad").addEventListener("input",calcPSTot);
+
+    // Catálogo tabs
+    document.querySelectorAll(".tab[data-cat]").forEach(function(b){
+      b.addEventListener("click",function(){
+        catTab=this.dataset.cat;
+        document.querySelectorAll(".tab[data-cat]").forEach(function(x){x.classList.toggle("active",x.dataset.cat===catTab);});
+        renderCatalogo();
+      });
+    });
+    ge("btn-sync-cat").addEventListener("click",function(){
+      var b=this;b.textContent="…";b.disabled=true;
+      GymDB.init().then(function(){recargarDatos();renderCatalogo();b.textContent="↻";b.disabled=false;mostrarToast("↻ Actualizado");});
+    });
+    ge("btn-cat-nuevo").addEventListener("click",catNuevo);
+
+    // Reportes
+    ge("r-desde").addEventListener("change",renderReporte);
+    ge("r-hasta").addEventListener("change",renderReporte);
+    ge("rep-tipo-sel").addEventListener("change",function(){
+      repTab=this.value;
+      if (repTab==="ventas"){GymDB.init().then(function(){VENTAS=GymDB.getVentas();renderReporte();});}
+      else renderReporte();
+    });
+    ge("btn-rep-sort").addEventListener("click",function(){repSortAsc=!repSortAsc;this.textContent=repSortAsc?"↑↓":"↓↑";renderReporte();});
+    ge("btn-csv").addEventListener("click",descargarCSV);
+
+    // Dashboard
+    ge("dash-metrica").addEventListener("change",renderGrafica);
+
+    // Fechas por defecto en reportes
+    var hoy=new Date().toISOString().slice(0,10);
+    ge("r-desde").value=hoy; ge("r-hasta").value=hoy;
+
+  }).catch(function(err){
+    var errEl=ge("ov-err"); if(errEl){errEl.style.display="block";errEl.textContent="Error: "+err.message;}
+    console.error("[GymDB]",err);
+  });
+});
+</script>
+</body>
+</html>
