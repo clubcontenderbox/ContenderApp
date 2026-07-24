@@ -611,15 +611,19 @@ function nCompleto(s){return s.nombre+" "+s.apellido_paterno+" "+s.apellido_mate
 
 function calcStatus(s){
   if(!s.activo)return"inactivo";
+  // Sin membresía asignada (ej. después de eliminarla) — antes esto
+  // caía en "aldia" por accidente porque new Date("") es una fecha
+  // inválida y las comparaciones daban NaN, que nunca es <0 ni ===0.
+  if(!s.plan||!s.fecha_vencimiento)return"sinmemb";
   var h=new Date();h.setHours(0,0,0,0);
   var v=new Date(s.fecha_vencimiento);v.setHours(0,0,0,0);
   var d=Math.ceil((v-h)/86400000);
   if(d<0)return"vencido";if(d===0)return"vencehoy";return"aldia";
 }
-function avColor(st){return st==="aldia"?"#C8F135":st==="vencehoy"?"var(--orange)":"var(--red)";}
+function avColor(st){return st==="aldia"?"#C8F135":st==="vencehoy"?"var(--orange)":st==="sinmemb"?"var(--muted)":"var(--red)";}
 function pillSt(st){
-  var m={aldia:"pg",vencehoy:"po",vencido:"pr",inactivo:"pm"};
-  var l={aldia:"Al día",vencehoy:"Vence hoy",vencido:"Vencido",inactivo:"Inactivo"};
+  var m={aldia:"pg",vencehoy:"po",vencido:"pr",inactivo:"pm",sinmemb:"pm"};
+  var l={aldia:"Al día",vencehoy:"Vence hoy",vencido:"Vencido",inactivo:"Inactivo",sinmemb:"Sin membresía"};
   return "<span class='pill "+(m[st]||"pm")+"'>"+(l[st]||st)+"</span>";
 }
 
@@ -868,9 +872,9 @@ function renderTabMembresia(s){
   var html="<div class='sec' style='padding-bottom:20px'>";
   // Membresía
   html+="<div style='font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;margin-top:4px'>Membresía</div>";
-  html+="<div class='card "+(st==="aldia"?"verde":st==="vencehoy"?"naranja":"roja")+"' style='margin-bottom:8px'>";
+  html+="<div class='card "+(st==="aldia"?"verde":st==="vencehoy"?"naranja":st==="sinmemb"?"":"roja")+"' style='margin-bottom:8px'>";
   html+="<div style='display:flex;justify-content:space-between;align-items:center'>";
-  html+="<div><div style='font-family:\"Bebas Neue\",sans-serif;font-size:22px'>"+s.plan+"</div><div style='font-size:12px;color:var(--muted)'>Vence: "+fF(s.fecha_vencimiento)+"</div></div>"+pillSt(st)+"</div>";
+  html+="<div><div style='font-family:\"Bebas Neue\",sans-serif;font-size:22px'>"+(s.plan||"Sin membresía asignada")+"</div><div style='font-size:12px;color:var(--muted)'>"+(s.plan?"Vence: "+fF(s.fecha_vencimiento):"Usa \"Renovar membresía\" para asignar una")+"</div></div>"+pillSt(st)+"</div>";
   if(abonos.length){
     var pag=abonos.filter(function(a){return a.pagado;}).length;
     var pct=Math.round((pag/abonos.length)*100);
@@ -907,8 +911,8 @@ function renderTabMembresia(s){
   }
   // Botones
   html+="<div style='display:flex;gap:8px;margin-bottom:8px'>";
-  html+="<button class='btn bl bsm' id='btn-renovar' style='flex:1;justify-content:center'>+ Renovar membresía</button>";
-  html+="<button class='btn br bsm' id='btn-elim-memb'>&#128465;</button>";
+  html+="<button class='btn bl bsm' id='btn-renovar' style='flex:1;justify-content:center'>"+(st==="sinmemb"?"+ Asignar membresía":"+ Renovar membresía")+"</button>";
+  if(st!=="sinmemb") html+="<button class='btn br bsm' id='btn-elim-memb'>&#128465;</button>";
   html+="</div>";
   // Historial de membresías: registros de pagos de membresía (tipo "memb"
   // en VENTAS) de este socio. Permite borrar un registro si se asignó
@@ -943,7 +947,7 @@ function renderTabMembresia(s){
 
   ge("btn-renovar").addEventListener("click",function(){abrirModalPago(s);});
   ge("btn-add-prod").addEventListener("click",function(){abrirModalProdSoc(s);});
-  ge("btn-elim-memb").addEventListener("click",function(){
+  if(ge("btn-elim-memb")) ge("btn-elim-memb").addEventListener("click",function(){
     if(!confirm("¿Eliminar la membresía actual de "+s.nombre+"? Se borran también sus abonos pendientes."))return;
     s.plan=""; s.fecha_inicio=""; s.fecha_vencimiento=""; s.abonos=[];
     GymDB.clearAbonos(s.id).then(function(){
@@ -1062,7 +1066,12 @@ function guardarSoc(){
 // ── MODAL PAGO ────────────────────────────────────────────────
 function abrirModalPago(s){
   ge("pago-plan").value=s.plan||"Mensual";
-  ge("pago-inicio").value=new Date().toISOString().slice(0,10);
+  // Si la membresía actual todavía no vence, la renovación continúa
+  // justo donde termina (sin regalar ni perder días). Si ya venció o
+  // no tiene membresía, arranca hoy.
+  var hoy=new Date().toISOString().slice(0,10);
+  var inicioSugerido = (s.fecha_vencimiento && s.fecha_vencimiento>hoy) ? s.fecha_vencimiento : hoy;
+  ge("pago-inicio").value=inicioSugerido;
   ge("pago-tipo").value="completo";
   var selT=ge("pago-trainer"); selT.innerHTML="<option value=''>— Selecciona —</option>";
   TRAINERS.forEach(function(t){selT.innerHTML+="<option value='"+t.nombre+"'>"+t.nombre+"</option>";});
