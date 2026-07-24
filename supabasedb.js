@@ -107,11 +107,6 @@ var GymDB = (function () {
         s.id = String(s.id);
         s.abonos = (s.abonos||[]).sort(function(a,b){ return a.numero-b.numero; });
         s.abonos.forEach(function(a){ a.id = String(a.id); });
-        // Parse historial_membresias (stored as JSONB, may arrive as string)
-        if (typeof s.historial_membresias === 'string') {
-          try { s.historial_membresias = JSON.parse(s.historial_membresias); } catch(e){ s.historial_membresias=[]; }
-        }
-        if (!Array.isArray(s.historial_membresias)) s.historial_membresias = [];
         return s;
       });
       Object.keys(_pending).forEach(function(pid){
@@ -132,14 +127,7 @@ var GymDB = (function () {
       C.checkins[hoy()] = res[2] || [];
 
       C.ventas    = res[3]  || [];
-      C.membresias= (res[4]||[]).map(function(m){
-        // Parse abonos (stored as JSONB, may arrive as string or array)
-        if (typeof m.abonos === 'string') {
-          try { m.abonos = JSON.parse(m.abonos); } catch(e){ m.abonos=[]; }
-        }
-        if (!Array.isArray(m.abonos)) m.abonos = [];
-        return m;
-      });
+      C.membresias= res[4]  || [];
       C.clases    = (res[5]||[]).map(function(cl){
         if(typeof cl.dias==='string') cl.dias=cl.dias.replace(/[{}]/g,'').split(',').map(function(d){return d.trim();});
         if(!Array.isArray(cl.dias)) cl.dias=[];
@@ -219,8 +207,7 @@ var GymDB = (function () {
         notas:nd(socio.notas),color:socio.color||'#C8F135',
         vendedor_id:nd(socio.vendedor_id),vendedor_nombre:nd(socio.vendedor_nombre),
         ultima_visita:nd(socio.ultima_visita),
-        avisos_ids:JSON.stringify(Array.isArray(socio.avisos_ids)?socio.avisos_ids:[]),
-        historial_membresias:JSON.stringify(Array.isArray(socio.historial_membresias)?socio.historial_membresias:[])
+        avisos_ids:JSON.stringify(Array.isArray(socio.avisos_ids)?socio.avisos_ids:[])
       };
       if(idx>-1){
         C.socios[idx]=socio;
@@ -271,6 +258,15 @@ var GymDB = (function () {
       }
       return null;
     },
+
+    // Borra todos los abonos existentes de un socio en Supabase.
+    // Se usa antes de asignar un nuevo set de abonos al renovar
+    // membresía, para que no se acumulen abonos huérfanos de ciclos
+    // anteriores (setSocio solo inserta/actualiza, nunca borra).
+    clearAbonos: function(socioId) {
+      return del('abonos', 'socio_id=eq.'+socioId);
+    },
+
     crearCuenta: function(socioId, telefono) {
       var codigo=String(socioId);
       var existe=C.cuentas.some(function(c){return c.socios&&c.socios.indexOf(socioId)>-1;});
@@ -307,17 +303,15 @@ var GymDB = (function () {
       get('seguimiento_socio','select=*&socio_id=eq.'+socioId+'&order=fecha.desc,mes.desc')
         .then(function(r){ callback(Array.isArray(r)?r:[]); });
     },
-    saveSeguimiento: function(socioId, fechaOmes, peso, musculo, imc, grasa, fecha, callback) {
-      var fechaReal = fecha || new Date().toISOString().slice(0,10);
+    saveSeguimiento: function(socioId, mes, peso, musculo, imc, grasa, fecha, callback) {
+      var hoy = fecha || new Date().toISOString().slice(0,10);
       var data = {
-        socio_id: socioId,
-        mes: fechaReal.slice(0,7),   // still populate mes for legacy reads
+        socio_id: socioId, mes: mes,
         peso: peso||null, musculo: musculo||null,
         imc: imc||null, grasa: grasa||null,
-        fecha: fechaReal
+        fecha: hoy
       };
-      // Upsert por fecha exacta (no por mes): si ya existe ese día actualiza, si no inserta
-      get('seguimiento_socio','select=id&socio_id=eq.'+socioId+'&fecha=eq.'+fechaReal)
+      get('seguimiento_socio','select=id&socio_id=eq.'+socioId+'&mes=eq.'+mes)
         .then(function(r){
           if(Array.isArray(r)&&r.length>0){
             pat('seguimiento_socio','id=eq.'+r[0].id, data);
@@ -347,7 +341,7 @@ var GymDB = (function () {
         next.forEach(function(nd) {
           var existe = prev.some(function(pd){ return pd.id===nd.id; });
           if (!existe) {
-            post('deudas', { socio_id:sid, producto:nd.producto, total:nd.total, fecha:nd.fecha })
+            post('deudas', { socio_id:sid, producto:nd.producto, total:nd.total, fecha:nd.fecha, trainer:nd.trainer||null })
               .then(function(r){ if(r&&r[0]) nd.id=String(r[0].id); });
           }
         });
@@ -356,7 +350,7 @@ var GymDB = (function () {
       Object.keys(obj).forEach(function(sid) {
         if (!C.deudas[sid]) {
           obj[sid].forEach(function(nd) {
-            post('deudas', { socio_id:sid, producto:nd.producto, total:nd.total, fecha:nd.fecha })
+            post('deudas', { socio_id:sid, producto:nd.producto, total:nd.total, fecha:nd.fecha, trainer:nd.trainer||null })
               .then(function(r){ if(r&&r[0]) nd.id=String(r[0].id); });
           });
         }
@@ -368,7 +362,7 @@ var GymDB = (function () {
     addDeuda: function(sid, deuda) {
       if (!C.deudas[sid]) C.deudas[sid] = [];
       C.deudas[sid].push(deuda);
-      post('deudas', { socio_id:sid, producto:deuda.producto, total:deuda.total, fecha:deuda.fecha })
+      post('deudas', { socio_id:sid, producto:deuda.producto, total:deuda.total, fecha:deuda.fecha, trainer:deuda.trainer||null })
         .then(function(r){ if(r&&r[0]) deuda.id=String(r[0].id); });
       bump();
     },
@@ -381,13 +375,19 @@ var GymDB = (function () {
 
     // ── CHECKINS ────────────────────────────────────────────────
     getAllCheckins:    function()      { return C.checkins; },
-    getTodayCheckins: function()      {
-      // Si hay checkins de días anteriores en cache los ignora automáticamente
-      // porque hoy() devuelve la fecha actual
-      return C.checkins[hoy()] || [];
-    },
+    getTodayCheckins: function()      { return C.checkins[hoy()] || []; },
     getCheckinsByFecha: function(f)   { return C.checkins[f]    || []; },
     saveTodayCheckins: function(arr)  { C.checkins[hoy()] = arr; },
+
+    // Trae check-ins de un rango de fechas directo de Supabase (no cache,
+    // porque loadAll() solo precarga los de HOY para no hacer pesada la
+    // carga inicial). Usado por Reportes → Check-ins.
+    getCheckinsRango: function(desde, hasta) {
+      var q = 'select=*&order=fecha.desc,hora.desc';
+      if (desde) q += '&fecha=gte.' + desde;
+      if (hasta) q += '&fecha=lte.' + hasta;
+      return get('checkins', q).then(function(rows){ return rows || []; });
+    },
 
     addCheckin: function(sid) {
       var arr = this.getTodayCheckins();
@@ -419,7 +419,7 @@ var GymDB = (function () {
           post('ventas',{
             socio_id:v.socio_id, socio_nombre:v.socio_nombre,
             producto:v.producto, cantidad:v.cantidad, total:v.total,
-            fecha:v.fecha, status:v.status, tipo:v.tipo
+            fecha:v.fecha, status:v.status, tipo:v.tipo, trainer:v.trainer||null
           }).then(function(r){ if(r&&r[0]) v.id=r[0].id; });
         }
       });
@@ -429,14 +429,14 @@ var GymDB = (function () {
     // ── CATÁLOGO ────────────────────────────────────────────────
     getMembresias:  function()    { return deepCopy(C.membresias); },
     saveMembresias: function(arr) {
-      _syncCat('membresias', C.membresias, arr, ['nombre','dias','precio','descripcion','abonos']);
+      _syncCat('membresias', C.membresias, arr, ['nombre','dias','precio','descripcion']);
       C.membresias = arr;
       bump();
     },
 
     getClases:  function()    { return deepCopy(C.clases); },
     saveClases: function(arr) {
-      _syncCat('clases', C.clases, arr, ['nombre','hora','coach','cupo','dias','color']);
+      _syncCat('clases', C.clases, arr, ['nombre','hora','coach','cupo','dias']);
       C.clases = arr;
       bump();
     },
@@ -510,7 +510,7 @@ var GymDB = (function () {
     getHistorico: function() { return C.historico; },
     getTrainers:  function() { return deepCopy(C.trainers); },
     saveTrainers: function(arr) {
-      _syncCat('trainers', C.trainers, arr, ['telefono','codigo','nombre']);
+      _syncCat('trainers', C.trainers, arr, ['telefono','codigo','nombre','especialidad']);
       C.trainers = arr;
       bump();
     },
