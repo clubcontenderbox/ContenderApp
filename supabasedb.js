@@ -341,7 +341,7 @@ var GymDB = (function () {
         next.forEach(function(nd) {
           var existe = prev.some(function(pd){ return pd.id===nd.id; });
           if (!existe) {
-            post('deudas', { socio_id:sid, producto:nd.producto, total:nd.total, fecha:nd.fecha, trainer:nd.trainer||null })
+            post('deudas', { socio_id:sid, producto:nd.producto, total:nd.total, fecha:nd.fecha, trainer:nd.trainer||null, tipo:nd.tipo||'producto' })
               .then(function(r){ if(r&&r[0]) nd.id=String(r[0].id); });
           }
         });
@@ -350,7 +350,7 @@ var GymDB = (function () {
       Object.keys(obj).forEach(function(sid) {
         if (!C.deudas[sid]) {
           obj[sid].forEach(function(nd) {
-            post('deudas', { socio_id:sid, producto:nd.producto, total:nd.total, fecha:nd.fecha, trainer:nd.trainer||null })
+            post('deudas', { socio_id:sid, producto:nd.producto, total:nd.total, fecha:nd.fecha, trainer:nd.trainer||null, tipo:nd.tipo||'producto' })
               .then(function(r){ if(r&&r[0]) nd.id=String(r[0].id); });
           });
         }
@@ -362,7 +362,7 @@ var GymDB = (function () {
     addDeuda: function(sid, deuda) {
       if (!C.deudas[sid]) C.deudas[sid] = [];
       C.deudas[sid].push(deuda);
-      post('deudas', { socio_id:sid, producto:deuda.producto, total:deuda.total, fecha:deuda.fecha, trainer:deuda.trainer||null })
+      post('deudas', { socio_id:sid, producto:deuda.producto, total:deuda.total, fecha:deuda.fecha, trainer:deuda.trainer||null, tipo:deuda.tipo||'producto' })
         .then(function(r){ if(r&&r[0]) deuda.id=String(r[0].id); });
       bump();
     },
@@ -408,6 +408,14 @@ var GymDB = (function () {
 
     // ── VENTAS ──────────────────────────────────────────────────
     getVentas: function() { return C.ventas; },
+
+    // Elimina una venta puntual (ej. un registro de membresía mal
+    // asignado). Se usa desde el historial de membresías del socio.
+    removeVenta: function(ventaId) {
+      C.ventas = C.ventas.filter(function(v){ return String(v.id)!==String(ventaId); });
+      del('ventas', 'id=eq.'+ventaId);
+      bump();
+    },
 
     saveVentas: function(arr) {
       var prev = C.ventas;

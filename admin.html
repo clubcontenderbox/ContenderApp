@@ -354,6 +354,9 @@ textarea{resize:vertical;min-height:70px;}
     <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:16px;margin-bottom:12px">Socios activos</div>
     <div class="card"><div class="bar-chart" id="chart-socios"></div></div>
 
+    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:16px;margin-bottom:12px">Nuevas inscripciones</div>
+    <div class="card"><div class="bar-chart" id="chart-altas"></div></div>
+
     <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:16px;margin-bottom:12px">Pagos de membresías</div>
     <div class="card"><div class="bar-chart" id="chart-pagos"></div></div>
   </div>
@@ -419,6 +422,11 @@ textarea{resize:vertical;min-height:70px;}
       <select id="pago-tipo">
         <option value="completo">Pago único</option>
         <option value="parcial">Parcialidades</option>
+      </select>
+    </div>
+    <div class="fr"><label>Entrenador responsable</label>
+      <select id="pago-trainer">
+        <option value="">— Selecciona —</option>
       </select>
     </div>
     <div style="background:var(--bg3);border-radius:12px;padding:12px;border:1px solid var(--border);font-size:12px;color:var(--muted);line-height:1.8;margin-top:4px" id="pago-resumen"></div>
@@ -851,7 +859,10 @@ function renderDetalle(){
 }
 
 function renderTabMembresia(s){
-  var st=calcStatus(s),abonos=s.abonos||[],deudas=DEUDAS[s.id]||[];
+  var st=calcStatus(s),abonos=s.abonos||[],todasDeudas=DEUDAS[s.id]||[];
+  // Las deudas antiguas sin "tipo" se asumen de producto (compatibilidad).
+  var deudasMemb=todasDeudas.filter(function(d){return d.tipo==="membresia";});
+  var deudas=todasDeudas.filter(function(d){return d.tipo!=="membresia";});
   var totalD=deudas.reduce(function(a,d){return a+d.total;},0);
   var hoy=new Date();hoy.setHours(0,0,0,0);
   var html="<div class='sec' style='padding-bottom:20px'>";
@@ -881,10 +892,39 @@ function renderTabMembresia(s){
     });
     html+="</div>";
   }
+  // Deudas de membresía: abonos pendientes de pago, marcados como deuda
+  // (distinta de deudas de producto) para poder cobrarlos uno por uno.
+  if(deudasMemb.length){
+    html+="<div style='font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px'>Deudas de membresía</div>";
+    html+="<div class='card' style='margin-bottom:14px'>";
+    deudasMemb.forEach(function(d){
+      html+="<div class='abono-row'><div style='flex:1;min-width:0'><div style='font-size:13px;font-weight:600'>"+d.producto+"</div>";
+      html+="<div style='font-size:11px;color:var(--muted)'>Límite: "+fF(d.fecha)+(d.trainer?" · "+d.trainer:"")+"</div></div>";
+      html+="<div style='font-family:\"Bebas Neue\",sans-serif;font-size:16px;color:var(--orange);margin-right:8px'>"+fm(d.total)+"</div>";
+      html+="<button class='btn bg2b bsm' data-pag-abono='"+d.id+"'>&#10003;</button></div>";
+    });
+    html+="</div>";
+  }
   // Botones
-  html+="<div style='display:flex;gap:8px;margin-bottom:14px'>";
+  html+="<div style='display:flex;gap:8px;margin-bottom:8px'>";
   html+="<button class='btn bl bsm' id='btn-renovar' style='flex:1;justify-content:center'>+ Renovar membresía</button>";
+  html+="<button class='btn br bsm' id='btn-elim-memb'>&#128465;</button>";
   html+="</div>";
+  // Historial de membresías: registros de pagos de membresía (tipo "memb"
+  // en VENTAS) de este socio. Permite borrar un registro si se asignó
+  // por error — incluye tanto la membresía actual como renovaciones viejas.
+  var histMemb=VENTAS.filter(function(v){return v.tipo==="memb"&&v.socio_id===s.id;}).sort(function(a,b){return (b.fecha||"").localeCompare(a.fecha||"");});
+  if(histMemb.length){
+    html+="<div style='font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px'>Historial de membresías</div>";
+    html+="<div class='card' style='margin-bottom:14px'>";
+    histMemb.forEach(function(v){
+      html+="<div class='abono-row'><div style='flex:1;min-width:0'><div style='font-size:13px;font-weight:600'>"+v.producto+"</div>";
+      html+="<div style='font-size:11px;color:var(--muted)'>"+fF(v.fecha)+(v.trainer?" · "+v.trainer:"")+"</div></div>";
+      html+="<div style='font-family:\"Bebas Neue\",sans-serif;font-size:16px;color:var(--lime);margin-right:8px'>"+fm(v.total)+"</div>";
+      html+="<button class='btn br bsm' data-del-hist-memb='"+v.id+"'>&#128465;</button></div>";
+    });
+    html+="</div>";
+  }
   // Deudas
   html+="<div style='font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px'>Deudas de productos</div>";
   if(!deudas.length) html+="<div style='font-size:13px;color:var(--muted);padding:8px 0'>Sin deudas ✓</div>";
@@ -903,6 +943,47 @@ function renderTabMembresia(s){
 
   ge("btn-renovar").addEventListener("click",function(){abrirModalPago(s);});
   ge("btn-add-prod").addEventListener("click",function(){abrirModalProdSoc(s);});
+  ge("btn-elim-memb").addEventListener("click",function(){
+    if(!confirm("¿Eliminar la membresía actual de "+s.nombre+"? Se borran también sus abonos pendientes."))return;
+    s.plan=""; s.fecha_inicio=""; s.fecha_vencimiento=""; s.abonos=[];
+    GymDB.clearAbonos(s.id).then(function(){
+      GymDB.setSocio(s);
+      SOCIOS = GymDB.getSocios();
+      socioActual = SOCIOS.find(function(x){return x.id===s.id;}) || s;
+      renderDetalle();
+    });
+  });
+  ge("det-content").querySelectorAll("[data-del-hist-memb]").forEach(function(btn){
+    btn.addEventListener("click",function(){
+      if(!confirm("¿Eliminar este registro del historial de membresías? No se puede deshacer."))return;
+      GymDB.removeVenta(this.dataset.delHistMemb);
+      VENTAS = GymDB.getVentas();
+      renderDetalle();
+    });
+  });
+  ge("det-content").querySelectorAll("[data-pag-abono]").forEach(function(btn){
+    btn.addEventListener("click",function(){
+      var did=this.dataset.pagAbono;
+      if(!confirm("¿Marcar este abono como pagado?")) return;
+      var abono=(s.abonos||[]).find(function(a){return a.deudaId===did;});
+      if(!abono){alert("No se encontró el abono correspondiente");return;}
+      var hoyStr=new Date().toISOString().slice(0,10);
+      abono.pagado=true; abono.fecha_pago=hoyStr;
+      // Quita la deuda de membresía ya pagada
+      GymDB.removeDeuda(s.id, did);
+      DEUDAS = GymDB.getAllDeudas();
+      // Guarda el socio con el abono actualizado
+      GymDB.setSocio(s);
+      SOCIOS = GymDB.getSocios();
+      socioActual = SOCIOS.find(function(x){return x.id===s.id;}) || s;
+      // Registra el cobro como venta (tipo "memb") — así el Dashboard y
+      // el historial de membresías van acumulando cada abono real pagado.
+      VENTAS.unshift({id:nextVentaId++,socio_id:s.id,socio_nombre:s.nombre+" "+s.apellido_paterno,producto:s.plan+" · Abono "+abono.numero,cantidad:1,total:abono.monto,fecha:hoyStr,status:"pagado",tipo:"memb",trainer:abono.trainer||""});
+      GymDB.saveVentas(VENTAS);
+      VENTAS = GymDB.getVentas();
+      renderDetalle();
+    });
+  });
   ge("det-content").querySelectorAll("[data-pag-deuda]").forEach(function(btn){
     btn.addEventListener("click",function(){
       var did=this.dataset.pagDeuda;
@@ -983,6 +1064,8 @@ function abrirModalPago(s){
   ge("pago-plan").value=s.plan||"Mensual";
   ge("pago-inicio").value=new Date().toISOString().slice(0,10);
   ge("pago-tipo").value="completo";
+  var selT=ge("pago-trainer"); selT.innerHTML="<option value=''>— Selecciona —</option>";
+  TRAINERS.forEach(function(t){selT.innerHTML+="<option value='"+t.nombre+"'>"+t.nombre+"</option>";});
   actualizarResumenPago();
   ge("modal-pago").classList.add("open");
 }
@@ -1000,16 +1083,39 @@ function actualizarResumenPago(){
 }
 function guardarPago(){
   var plan=ge("pago-plan").value,tipo=ge("pago-tipo").value,fi=ge("pago-inicio").value,s=socioActual;
+  var trainer=ge("pago-trainer").value;
   if(!s||!fi) return;
+  if(!trainer){alert("Selecciona el entrenador responsable");return;}
   s.plan=plan; s.fecha_inicio=fi; s.fecha_vencimiento=addDays(fi,PLAN_DIAS[plan]||30);
+
+  // Limpiar deudas de membresía viejas (de un ciclo anterior) antes de
+  // crear las nuevas — igual que hacemos con los abonos.
+  (DEUDAS[s.id]||[]).filter(function(d){return d.tipo==="membresia";}).forEach(function(d){
+    GymDB.removeDeuda(s.id, d.id);
+  });
+
   if(tipo==="parcial"&&PLAN_ABONOS[plan]&&PLAN_ABONOS[plan].length){
-    s.abonos=PLAN_ABONOS[plan].map(function(a,i){return{numero:i+1,monto:a.monto,fecha_limite:addWeeks(fi,a.semanas),pagado:false,fecha_pago:null};});
+    // Cada abono pendiente se registra como una deuda de membresía
+    // (distinta de las deudas de producto), para que se pueda cobrar y
+    // marcar como pagada individualmente desde su propio checkmark.
+    s.abonos=PLAN_ABONOS[plan].map(function(a,i){
+      var numero=i+1, fechaLimite=addWeeks(fi,a.semanas);
+      var deudaId="d"+(nextDeuId++);
+      GymDB.addDeuda(s.id, {id:deudaId, producto:plan+" · Abono "+numero, total:a.monto, fecha:fechaLimite, trainer:trainer, tipo:"membresia"});
+      return {numero:numero, monto:a.monto, fecha_limite:fechaLimite, pagado:false, fecha_pago:null, deudaId:deudaId, trainer:trainer};
+    });
+    DEUDAS = GymDB.getAllDeudas();
   } else {
     s.abonos=[{numero:1,monto:PLAN_PRECIO[plan],fecha_limite:fi,pagado:true,fecha_pago:fi}];
+    // Pago único: el dinero entra HOY, así que se registra como venta
+    // (tipo "memb") para que Dashboard y Reportes reflejen ingresos reales.
+    VENTAS.unshift({id:nextVentaId++,socio_id:s.id,socio_nombre:s.nombre+" "+s.apellido_paterno,producto:plan,cantidad:1,total:PLAN_PRECIO[plan]||0,fecha:fi,status:"pagado",tipo:"memb",trainer:trainer});
+    GymDB.saveVentas(VENTAS);
+    VENTAS = GymDB.getVentas();
   }
-  // Primero borramos los abonos viejos del socio en Supabase (de la
-  // membresía anterior), luego guardamos el socio con sus abonos nuevos
-  // — así no se acumulan filas huérfanas cada vez que renueva.
+  // Borramos los abonos viejos del socio en Supabase (de la membresía
+  // anterior), luego guardamos el socio con sus abonos nuevos — así no
+  // se acumulan filas huérfanas cada vez que renueva.
   GymDB.clearAbonos(s.id).then(function(){
     GymDB.setSocio(s);
     SOCIOS = GymDB.getSocios();
@@ -1049,7 +1155,7 @@ function guardarProdSoc(){
   var fecha=new Date().toISOString().slice(0,10);
   if(ge("ps-status").value==="debe"){
     // Cada deuda pendiente queda asociada al entrenador que la registró
-    GymDB.addDeuda(s.id, {id:"d"+(nextDeuId++), producto:p.nombre, total:p.costo*cant, fecha:fecha, trainer:trainer});
+    GymDB.addDeuda(s.id, {id:"d"+(nextDeuId++), producto:p.nombre, total:p.costo*cant, fecha:fecha, trainer:trainer, tipo:"producto"});
     DEUDAS = GymDB.getAllDeudas();
   }
   VENTAS.unshift({id:nextVentaId++,socio_id:s.id,socio_nombre:s.nombre+" "+s.apellido_paterno,producto:p.nombre,cantidad:cant,total:p.costo*cant,fecha:fecha,status:ge("ps-status").value,tipo:"prod",trainer:trainer});
@@ -1387,60 +1493,79 @@ function descargarCSV(){
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────
+// Nombres de mes abreviados en español, para agrupar por "YYYY-MM"
+var MESES_ABR = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+
+// Genera los últimos N meses como [{key:"2026-03", m:"Mar"}, ...]
+function ultimosMeses(n){
+  var out=[], d=new Date();
+  d.setDate(1);
+  for(var i=n-1;i>=0;i--){
+    var dd=new Date(d.getFullYear(), d.getMonth()-i, 1);
+    var key=dd.getFullYear()+"-"+String(dd.getMonth()+1).padStart(2,"0");
+    out.push({key:key, m:MESES_ABR[dd.getMonth()]});
+  }
+  return out;
+}
+
 function renderGrafica(){
   var vacio="<div class='empty' style='padding:20px'><p style='font-size:12px'>Sin datos aún</p></div>";
+  var meses=ultimosMeses(5);
 
-  // Check-ins
-  var datos1=HISTORICO.checkins;
-  if(!datos1.length){ge("chart-checkins").innerHTML=vacio;}
-  else{
-    var vals1=datos1.map(function(d){return d.v;}),max1=Math.max.apply(null,vals1)||1;
-    var html1="";
-    datos1.forEach(function(d,i){
-      var pct=Math.max((d.v/max1)*100,5),isLast=i===datos1.length-1;
-      html1+="<div class='bcol'><span class='bval'>"+d.v+"</span><div class='bfill' style='height:"+pct+"%;background:"+(isLast?"#C8F135":"#C8F13555")+"'></div><span class='blabel'>"+d.m+"</span></div>";
+  function pintarChart(elId, datos, color, esMoneda){
+    var el=ge(elId);
+    if(!datos.some(function(d){return d.v>0;})){el.innerHTML=vacio;return;}
+    var vals=datos.map(function(d){return d.v;}),max=Math.max.apply(null,vals)||1;
+    var html="";
+    datos.forEach(function(d,i){
+      var pct=Math.max((d.v/max)*100,5),isLast=i===datos.length-1;
+      var label=esMoneda?("$"+(d.v/1000).toFixed(1)+"k"):d.v;
+      html+="<div class='bcol'><span class='bval'>"+label+"</span><div class='bfill' style='height:"+pct+"%;background:"+(isLast?color:color+"55")+"'></div><span class='blabel'>"+d.m+"</span></div>";
     });
-    ge("chart-checkins").innerHTML=html1;
+    el.innerHTML=html;
   }
 
-  // Ventas productos
-  var datos2=HISTORICO.ventas;
-  if(!datos2.length){ge("chart-ventas").innerHTML=vacio;}
-  else{
-    var vals2=datos2.map(function(d){return d.v;}),max2=Math.max.apply(null,vals2)||1;
-    var html2="";
-    datos2.forEach(function(d,i){
-      var pct=Math.max((d.v/max2)*100,5),isLast=i===datos2.length-1;
-      html2+="<div class='bcol'><span class='bval'>$"+(d.v/1000).toFixed(0)+"k</span><div class='bfill' style='height:"+pct+"%;background:"+(isLast?"#30D158":"#30D15855")+"'></div><span class='blabel'>"+d.m+"</span></div>";
-    });
-    ge("chart-ventas").innerHTML=html2;
-  }
+  // Ventas de productos y Pagos de membresías: calculados EN VIVO desde
+  // VENTAS real (ya conectado a Supabase), agrupado por mes y por tipo.
+  // Antes "Pagos de membresías" era ventas×0.7, un placeholder falso.
+  var ventasProd = meses.map(function(mm){
+    var total=VENTAS.filter(function(v){return v.tipo==="prod" && (v.fecha||"").slice(0,7)===mm.key;})
+                    .reduce(function(a,v){return a+v.total;},0);
+    return {m:mm.m, v:total};
+  });
+  var pagosMemb = meses.map(function(mm){
+    var total=VENTAS.filter(function(v){return v.tipo==="memb" && (v.fecha||"").slice(0,7)===mm.key;})
+                    .reduce(function(a,v){return a+v.total;},0);
+    return {m:mm.m, v:total};
+  });
+  pintarChart("chart-ventas", ventasProd, "#30D158", true);
+  pintarChart("chart-pagos",  pagosMemb,  "#FF9F0A", true);
 
-  // Socios activos
-  var datos3=HISTORICO.socios;
-  if(!datos3.length){ge("chart-socios").innerHTML=vacio;}
-  else{
-    var vals3=datos3.map(function(d){return d.v;}),max3=Math.max.apply(null,vals3)||1;
-    var html3="";
-    datos3.forEach(function(d,i){
-      var pct=Math.max((d.v/max3)*100,5),isLast=i===datos3.length-1;
-      html3+="<div class='bcol'><span class='bval'>"+d.v+"</span><div class='bfill' style='height:"+pct+"%;background:"+(isLast?"#0A84FF":"#0A84FF55")+"'></div><span class='blabel'>"+d.m+"</span></div>";
-    });
-    ge("chart-socios").innerHTML=html3;
-  }
+  // Nuevas inscripciones: calculado en vivo desde SOCIOS real, agrupado
+  // por mes de fecha_inicio (alta del socio).
+  var altas = meses.map(function(mm){
+    var total=SOCIOS.filter(function(s){return (s.fecha_inicio||"").slice(0,7)===mm.key;}).length;
+    return {m:mm.m, v:total};
+  });
+  pintarChart("chart-altas", altas, "#FF5C93", false);
 
-  // Pagos membresías (usar data de ventas como proxy)
-  var datos4=HISTORICO.ventas.map(function(d){return {m:d.m,v:Math.round(d.v*0.7)};});
-  if(!datos4.length){ge("chart-pagos").innerHTML=vacio;}
-  else{
-    var vals4=datos4.map(function(d){return d.v;}),max4=Math.max.apply(null,vals4)||1;
-    var html4="";
-    datos4.forEach(function(d,i){
-      var pct=Math.max((d.v/max4)*100,5),isLast=i===datos4.length-1;
-      html4+="<div class='bcol'><span class='bval'>$"+(d.v/1000).toFixed(0)+"k</span><div class='bfill' style='height:"+pct+"%;background:"+(isLast?"#FF9F0A":"#FF9F0A55")+"'></div><span class='blabel'>"+d.m+"</span></div>";
+  // Check-ins: histórico real completo desde Supabase (no solo hoy),
+  // agrupado por mes.
+  ge("chart-checkins").innerHTML="<div class='empty' style='padding:20px'><p style='font-size:12px'>Cargando…</p></div>";
+  GymDB.getCheckinsRango(null,null).then(function(rows){
+    var ciPorMes = meses.map(function(mm){
+      var total=rows.filter(function(c){return (c.fecha||"").slice(0,7)===mm.key;}).length;
+      return {m:mm.m, v:total};
     });
-    ge("chart-pagos").innerHTML=html4;
-  }
+    pintarChart("chart-checkins", ciPorMes, "#C8F135", false);
+  });
+
+  // Socios activos: histórico mensual de cuántos socios tenían la
+  // bandera "activo" en cada momento. No es calculable en vivo (activo
+  // es un estado actual, no versionado), así que se alimenta a mano en
+  // la tabla `historico` de Supabase (tipo="socios") cada mes.
+  var datos3=HISTORICO.socios||[];
+  pintarChart("chart-socios", datos3.length?datos3:meses.map(function(mm){return {m:mm.m,v:0};}), "#0A84FF", false);
 }
 
 // ── EVENTOS ───────────────────────────────────────────────────

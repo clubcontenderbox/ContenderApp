@@ -8,6 +8,7 @@
 <title>GymPro · Socio</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="supabasedb.js"></script>
 <style>
 
 /* ── RESET ──────────────────────────────────────────────── */
@@ -290,6 +291,13 @@ input:focus,select:focus{border-color:var(--lime);}
 </head>
 <body>
 
+<!-- ═══ OVERLAY DE CARGA ═══════════════════════════════════════ -->
+<div id="ov-loading" style="position:fixed;inset:0;background:#080808;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;gap:12px">
+  <div style="font-family:'Bebas Neue',sans-serif;font-size:40px;color:#C8F135;letter-spacing:3px">CONTENDER</div>
+  <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#555">Conectando con Supabase…</div>
+  <div id="ov-err" style="font-size:11px;color:#FF3B30;display:none;max-width:280px;text-align:center"></div>
+</div>
+
 <!-- ═══ SCREEN: INICIO ═══════════════════════════════════════ -->
 <!-- ═══ SCREEN: LOGIN ════════════════════════════════════════ -->
 <div class="screen active" id="screen-login">
@@ -570,6 +578,12 @@ document.querySelectorAll('.nav-item').forEach(function(btn){
 });
 
 document.addEventListener('DOMContentLoaded', function(){
+ _gymdbReady.then(function(){
+  var ov=ge('ov-loading');
+  if(ov) ov.style.display='none';
+  // Catálogo de clases del gym (ver bloque LÓGICA: CLASES para var CLASES)
+  CLASES = GymDB.getClases();
+
   ge('nav-socio').style.display = 'none';
 
   // Login principal
@@ -625,6 +639,12 @@ document.addEventListener('DOMContentLoaded', function(){
       ge('dropdown-perfil').style.display = 'none';
     }
   });
+
+ }).catch(function(err){
+  var errEl=ge('ov-err');
+  if(errEl){ errEl.style.display='block'; errEl.textContent='Error: '+(err&&err.message?err.message:err); }
+  console.error('[GymDB] Error al cargar:', err);
+ });
 });
 </script>
 
@@ -632,20 +652,11 @@ document.addEventListener('DOMContentLoaded', function(){
 <script>
 
 // ── PERFILES VINCULADOS A ESTA CUENTA ────────────────────────
-// Datos de todos los socios disponibles
-// MODIFICAR: en producción esto vendrá de Supabase (tabla socios)
-var TODOS_SOCIOS = [];
+// Conexión a Supabase (misma base que admin.html)
+var _gymdbReady = GymDB.init(); // Promise
 
 // PERFILES cargados por el usuario (comienza vacío)
 var PERFILES = [];
-
-// Credenciales: cada teléfono + código apunta a un socio único
-// MODIFICAR: en producción esto vendrá de Supabase (tabla socios: numero + id)
-var CUENTAS = [];
-
-// Deudas de productos por socio
-// MODIFICAR: en producción esto vendrá de Supabase (tabla deudas)
-var DEUDAS_POR_SOCIO = {};
 
 // Socio activo (se actualiza cuando el usuario selecciona un perfil)
 var SOCIO = null;
@@ -653,24 +664,33 @@ var SOCIO = null;
 function ge(id){ return document.getElementById(id); }
 function fm(n){ return "$"+Number(n).toLocaleString("es-MX"); }
 
+// Deudas de PRODUCTO del socio activo (excluye las de tipo "membresia",
+// que ya se muestran a través de la lista de abonos de la membresía —
+// mostrarlas también aquí sería duplicado y confuso para el socio).
+function getDeudasProducto(socioId){
+  var todas = GymDB.getAllDeudas()[socioId] || [];
+  return todas.filter(function(d){ return d.tipo!=="membresia"; });
+}
+
 // ── LOGIN ─────────────────────────────────────────────────────
-// Lógica compartida: busca la cuenta, encuentra el socio, y lo agrega
-// a PERFILES si todavía no estaba cargado en este dispositivo.
+// Lógica compartida: busca la cuenta en Supabase, encuentra el socio,
+// y lo agrega a PERFILES si todavía no estaba cargado en este dispositivo.
 // yaExistente:true significa "no es error, el perfil ya estaba" (útil
 // para el login principal, que no debe bloquear si ya lo cargaste antes)
 function cargarPerfilPorCredenciales(tel, code){
-  var cuenta = CUENTAS.find(function(c){ return c.telefono===tel && c.codigo===code; });
+  var cuenta = GymDB.getCuenta(tel, code);
   if(!cuenta) return {ok:false, msg:"Número o código incorrecto"};
-  var socio = TODOS_SOCIOS.find(function(s){ return s.id===cuenta.socio_id; });
+  var socioId = cuenta.socios && cuenta.socios[0];
+  var socio = GymDB.getSocio(socioId);
   if(!socio) return {ok:false, msg:"Perfil no encontrado"};
   if(PERFILES.find(function(p){ return p.id===socio.id; })){
     return {ok:true, yaExistente:true};
   }
   PERFILES.push({
     id:socio.id, nombre:socio.nombre, apellido_paterno:socio.apellido_paterno, apellido_materno:socio.apellido_materno,
-    numero:socio.numero, membresia:socio.membresia, fecha_inicio:socio.fecha_inicio, fecha_vencimiento:socio.fecha_vencimiento,
-    visitas:socio.visitas, peso:socio.peso, musculo:socio.musculo, activo:socio.activo, color:socio.color,
-    abonos:socio.abonos.slice()
+    numero:socio.numero, membresia:socio.plan, fecha_inicio:socio.fecha_inicio, fecha_vencimiento:socio.fecha_vencimiento,
+    visitas:socio.visitas, peso:socio.peso, musculo:socio.musculo, activo:socio.activo, color:socio.color||"#C8F135",
+    abonos:(socio.abonos||[]).slice()
   });
   return {ok:true, yaExistente:false};
 }
@@ -747,13 +767,13 @@ function renderAbonos(){
   // Lista de abonos
   abonos.forEach(function(a){
     var cls  = a.pagado ? "ok" : "pend";
-    var ico  = a.pagado ? "✓"  : a.num;
+    var ico  = a.pagado ? "✓"  : a.numero;
     var color= a.pagado ? "var(--green)" : "var(--orange)";
     var fmtL = new Date(a.fecha_limite+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short"});
     html += "<div class='abono-fila'>";
     html += "<div class='abono-num "+cls+"'>"+ico+"</div>";
     html += "<div class='abono-info'>";
-    html += "  <div class='abono-label'>Abono "+a.num+(a.pagado?" · Pagado":" · Pendiente")+"</div>";
+    html += "  <div class='abono-label'>Abono "+a.numero+(a.pagado?" · Pagado":" · Pendiente")+"</div>";
     html += "  <div class='abono-fecha'>"+(a.pagado?"Pagado el "+new Date(a.fecha_pago+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short"}):"Vence el "+fmtL)+"</div>";
     html += "</div>";
     html += "<div class='abono-monto' style='color:"+color+"'>"+fm(a.monto)+"</div>";
@@ -767,7 +787,7 @@ function renderAbonos(){
 function checkPopupPago(){
   var hoy     = new Date(); hoy.setHours(0,0,0,0);
   var abonos  = SOCIO.abonos || [];
-  var deudas  = DEUDAS_POR_SOCIO[SOCIO.id] || [];
+  var deudas  = getDeudasProducto(SOCIO.id);
   var textos  = [];
 
   // Solo mostrar si hoy es DESPUÉS de la fecha límite del abono pendiente
@@ -791,7 +811,7 @@ function checkPopupPago(){
   ge("popup-pago").classList.add("open");
 }
 function renderDeudas(){
-  var deudas = DEUDAS_POR_SOCIO[SOCIO.id] || [];
+  var deudas = getDeudasProducto(SOCIO.id);
   var lbl = ge("lbl-deudas");
   var c   = ge("deudas-lista");
   if(!deudas.length){ lbl.style.display="none"; c.innerHTML=""; return; }
@@ -895,20 +915,11 @@ function renderStats(){
   ge("st-musculo").textContent = SOCIO.musculo ? SOCIO.musculo+"kg" : "—";
 }
 
-// CLASES_INSCRITAS por perfil
-// Antes esto leía de CLASES_INSCRITAS_POR_SOCIO, que nunca se llenaba
-// porque el sistema real de inscripciones vive en INSCRITOS/CLASES
-// (definidos en el bloque de lógica de Clases, más abajo en el archivo).
-// Ahora "Próxima clase" del Inicio y la pantalla de Clases comparten
-// la misma fuente de datos.
-function getClasesInscritas(){
-  if(!SOCIO) return [];
-  var misIds=[];
-  Object.keys(INSCRITOS).forEach(function(id){
-    if((INSCRITOS[id]||[]).indexOf(SOCIO.id)>-1) misIds.push(+id);
-  });
-  return CLASES.filter(function(cl){ return misIds.indexOf(cl.id)>-1; });
-}
+// Antes esto leía de una variable INSCRITOS recurrente semanal. Ahora
+// la inscripción es por fecha específica (ver bloque LÓGICA: CLASES),
+// así que "próxima clase" solo puede mirar hoy y mañana — que es la
+// misma ventana que la pantalla de Clases permite agendar.
+var DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 
 // ── HEADER con dropdown de perfil ────────────────────────────
 function renderHeader(){
@@ -926,40 +937,42 @@ function renderHeader(){
   ge("s-fecha").textContent = str.charAt(0).toUpperCase()+str.slice(1);
 }
 
-var DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
-
 function renderProximaClase(){
-  var CLASES_INSCRITAS = getClasesInscritas();
   var c = ge("proxima-clase");
-  if(!CLASES_INSCRITAS.length){
-    c.innerHTML = "<div style='font-size:13px;color:var(--muted);padding:8px 0'>Sin clases agendadas</div>";
-    return;
-  }
-  // Buscar la clase más próxima a partir de hoy
-  var hoy    = new Date();
-  var diaHoy = hoy.getDay(); // 0=Dom
-  var mejor  = null;
-  var menorDiff = 99;
+  if(!SOCIO || typeof CLASES==="undefined"){ c.innerHTML=""; return; }
 
-  CLASES_INSCRITAS.forEach(function(cl){
-    cl.dias.forEach(function(d){
-      var idx = DIAS.indexOf(d);
-      if(idx === -1) return;
-      var diff = (idx - diaHoy + 7) % 7;
-      if(diff < menorDiff){ menorDiff=diff; mejor={clase:cl, diff:diff, dia:d}; }
-    });
+  var hoy    = new Date(); hoy.setHours(0,0,0,0);
+  var manana = new Date(hoy); manana.setDate(hoy.getDate()+1);
+  var nomHoy    = DIAS[hoy.getDay()];
+  var nomManana = DIAS[manana.getDay()];
+  var fHoy      = hoy.toISOString().slice(0,10);
+  var fManana   = manana.toISOString().slice(0,10);
+
+  // Buscar entre las clases de HOY primero; si no hay, mañana.
+  var encontrada=null, cuandoTxt="";
+  CLASES.forEach(function(cl){
+    if(encontrada) return;
+    if(cl.dias.indexOf(nomHoy)>-1 && GymDB.getInscritosPorClase(cl.id,fHoy).indexOf(String(SOCIO.id))>-1){
+      encontrada=cl; cuandoTxt="Hoy";
+    }
   });
+  if(!encontrada){
+    CLASES.forEach(function(cl){
+      if(encontrada) return;
+      if(cl.dias.indexOf(nomManana)>-1 && GymDB.getInscritosPorClase(cl.id,fManana).indexOf(String(SOCIO.id))>-1){
+        encontrada=cl; cuandoTxt="Mañana";
+      }
+    });
+  }
 
-  if(!mejor){ c.innerHTML="<div style='font-size:13px;color:var(--muted)'>Sin clases esta semana</div>"; return; }
-
-  var cuandoTxt = mejor.diff===0 ? "Hoy" : mejor.diff===1 ? "Mañana" : mejor.dia;
+  if(!encontrada){ c.innerHTML="<div style='font-size:13px;color:var(--muted);padding:8px 0'>Sin clases agendadas</div>"; return; }
 
   c.innerHTML =
     "<div class='clase-row'>" +
-    "<div class='clase-color' style='background:"+mejor.clase.color+"'></div>" +
+    "<div class='clase-color' style='background:"+(encontrada.color||"#C8F135")+"'></div>" +
     "<div class='clase-info'>" +
-    "  <div class='clase-nombre'>"+mejor.clase.nombre+"</div>" +
-    "  <div class='clase-meta'>"+cuandoTxt+" · "+mejor.clase.hora+" · "+mejor.clase.coach+"</div>" +
+    "  <div class='clase-nombre'>"+encontrada.nombre+"</div>" +
+    "  <div class='clase-meta'>"+cuandoTxt+" · "+encontrada.hora+" · "+encontrada.coach+"</div>" +
     "</div>" +
     "<span class='pill pg'>Inscrito</span>" +
     "</div>";
@@ -967,8 +980,11 @@ function renderProximaClase(){
 
 // ── INIT ──────────────────────────────────────────────────────
 document.addEventListener("DOMContentLoaded",function(){
-  renderHeader(); renderQR(); renderMembresia();
-  renderStats(); renderProximaClase(); renderAbonos(); renderDeudas();
+  // NOTA: no llamamos renderHeader()/renderQR()/etc. aquí porque en este
+  // punto SOCIO todavía es null (nadie ha seleccionado perfil). Eso
+  // causaba un error en consola cada vez que se cargaba la página.
+  // showScreen('inicio') ya se encarga de llamarlas cuando corresponde.
+
   // Cambio de perfil en dropdown
   ge("sel-perfil").addEventListener("change", function(){
     SOCIO = PERFILES.find(function(p){ return p.id===this.value; }, this) || PERFILES[0];
@@ -986,17 +1002,20 @@ document.addEventListener("DOMContentLoaded",function(){
 
 // El socio activo para inscripción de clases es el mismo que está
 // seleccionado en el Inicio (variable global SOCIO, definida arriba).
-// Antes había un SOCIO_ID="001" fijo que ignoraba el perfil activo —
-// ya corregido: ahora todo usa SOCIO.id dinámicamente.
+//
+// IMPORTANTE: la inscripción es por FECHA ESPECÍFICA, no recurrente.
+// Un socio se inscribe "a la clase de CrossFit del 27 de julio", no
+// "a CrossFit para siempre". Cada clase (CLASES) define en qué días de
+// la semana normalmente ocurre (cl.dias), pero estar inscrito es algo
+// que se decide fecha por fecha — así lo guarda Supabase (tabla
+// inscritos: clase_id + socio_id + fecha).
 
-// MODIFICAR: todas las clases del gym
+// CLASES = catálogo de clases del gym (viene de GymDB.getClases())
 var CLASES = [];
 
-// MODIFICAR: inscritos por clase (todos, no solo el socio)
-var INSCRITOS = {};
-
-
 var DIAS_SEMANA = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+
+function fechaISO(d){ return d.toISOString().slice(0,10); }
 
 // ── RENDER: CLASES DE HOY Y MAÑANA ───────────────────────────
 function renderClasesDia(){
@@ -1006,6 +1025,8 @@ function renderClasesDia(){
 
   var nomHoy    = DIAS_SEMANA[hoy.getDay()];
   var nomManana = DIAS_SEMANA[manana.getDay()];
+  var fHoy      = fechaISO(hoy);
+  var fManana   = fechaISO(manana);
 
   var c    = ge("lista-clases");
   var html = "";
@@ -1016,7 +1037,7 @@ function renderClasesDia(){
   if(!hoyClases.length){
     html += "<div class='empty' style='padding:16px 0'><p>Sin clases hoy</p></div>";
   } else {
-    hoyClases.forEach(function(cl){ html += renderCard(cl, false); });
+    hoyClases.forEach(function(cl){ html += renderCard(cl, fHoy); });
   }
 
   // ── MAÑANA ────────────────────────────────────────────────
@@ -1025,43 +1046,43 @@ function renderClasesDia(){
   if(!mananaClases.length){
     html += "<div class='empty' style='padding:16px 0'><p>Sin clases mañana</p></div>";
   } else {
-    mananaClases.forEach(function(cl){ html += renderCard(cl, true); });
+    mananaClases.forEach(function(cl){ html += renderCard(cl, fManana); });
   }
 
   c.innerHTML = html;
 
-  // Eventos
+  // Eventos — cada botón lleva claseId y fecha juntos (separados por "|")
+  // porque la misma clase puede aparecer hoy Y mañana con distinto estado.
   c.querySelectorAll("[data-inscribir]").forEach(function(btn){
     btn.addEventListener("click",function(){
-      var id=+this.dataset.inscribir;
-      if(!INSCRITOS[id]) INSCRITOS[id]=[];
-      INSCRITOS[id].push(SOCIO.id);
+      var partes=this.dataset.inscribir.split("|"), id=+partes[0], fecha=partes[1];
+      GymDB.inscribirSocio(id, SOCIO.id, fecha);
       renderClasesDia(); renderMisClases();
     });
   });
   c.querySelectorAll("[data-cancel]").forEach(function(btn){
     btn.addEventListener("click",function(){
-      var id=+this.dataset.cancel;
-      var idx=(INSCRITOS[id]||[]).indexOf(SOCIO.id);
-      if(idx>-1) INSCRITOS[id].splice(idx,1);
+      var partes=this.dataset.cancel.split("|"), id=+partes[0], fecha=partes[1];
+      GymDB.desinscribirSocio(id, SOCIO.id, fecha);
       renderClasesDia(); renderMisClases();
     });
   });
 }
 
 // ── RENDER: TARJETA DE CLASE ──────────────────────────────────
-// puedaAgendar=true solo para mañana
-function renderCard(cl, puedaAgendar){
-  var inscritos = INSCRITOS[cl.id]||[];
-  var inscrito  = inscritos.indexOf(SOCIO.id)>-1;
+// fecha = fecha específica (YYYY-MM-DD) en la que se muestra esta clase
+function renderCard(cl, fecha){
+  var inscritos = GymDB.getInscritosPorClase(cl.id, fecha);
+  var inscrito  = inscritos.indexOf(String(SOCIO.id))>-1;
   var numIns    = inscritos.length;
   var libre     = cl.cupo - numIns;
   var lleno     = !inscrito && libre <= 0;
   var cupoColor = libre>3?"var(--green)":libre>0?"var(--orange)":"var(--red)";
   var cupoTxt   = lleno?"Lleno":libre+" lugar"+(libre===1?"":"es");
+  var key       = cl.id+"|"+fecha;
 
   var html = "<div class='clase-card'>";
-  html += "<div class='clase-barra' style='background:"+cl.color+"'></div>";
+  html += "<div class='clase-barra' style='background:"+(cl.color||"#C8F135")+"'></div>";
   html += "<div class='clase-body'>";
   html += "  <div class='clase-nombre'>"+cl.nombre+"</div>";
   html += "  <div class='clase-meta'>"+cl.hora+" · "+cl.coach+"</div>";
@@ -1073,61 +1094,61 @@ function renderCard(cl, puedaAgendar){
   } else if(lleno){
     html += "<span class='pill pm'>Lleno</span>";
   } else {
-    html += "<button class='btn btn-lime btn-sm' data-inscribir='"+cl.id+"'>Agendar</button>";
+    html += "<button class='btn btn-lime btn-sm' data-inscribir='"+key+"'>Agendar</button>";
   }
 
   html += "</div></div>";
   return html;
 }
 
-// ── RENDER: MIS CLASES INSCRITAS ──────────────────────────────
+// ── RENDER: MIS CLASES INSCRITAS (hoy y mañana) ───────────────
 function renderMisClases(){
   if(!SOCIO) return;
   var hoy    = new Date(); hoy.setHours(0,0,0,0);
   var manana = new Date(hoy); manana.setDate(hoy.getDate()+1);
   var nomHoy    = DIAS_SEMANA[hoy.getDay()];
   var nomManana = DIAS_SEMANA[manana.getDay()];
+  var fHoy      = fechaISO(hoy);
+  var fManana   = fechaISO(manana);
   var fmtHoy    = hoy.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"short"});
   var fmtManana = manana.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"short"});
 
-  var misIds=[];
-  Object.keys(INSCRITOS).forEach(function(id){
-    if((INSCRITOS[id]||[]).indexOf(SOCIO.id)>-1) misIds.push(+id);
+  // Construir lista de (clase, fecha) donde el socio esté inscrito,
+  // revisando solo hoy y mañana (única ventana de agenda de esta app).
+  var misFilas=[];
+  CLASES.forEach(function(cl){
+    if(cl.dias.indexOf(nomHoy)>-1 && GymDB.getInscritosPorClase(cl.id,fHoy).indexOf(String(SOCIO.id))>-1){
+      misFilas.push({cl:cl, fecha:fHoy, label:fmtHoy});
+    }
+    if(cl.dias.indexOf(nomManana)>-1 && GymDB.getInscritosPorClase(cl.id,fManana).indexOf(String(SOCIO.id))>-1){
+      misFilas.push({cl:cl, fecha:fManana, label:fmtManana});
+    }
   });
-  var mis=CLASES.filter(function(cl){ return misIds.indexOf(cl.id)>-1; });
+
   var c=ge("mis-clases");
-  if(!mis.length){
+  if(!misFilas.length){
     c.innerHTML="<div class='mc-titulo'>Mis clases inscritas</div><div style='padding:12px 14px;font-size:12px;color:var(--muted)'>Sin clases agendadas</div>";
     return;
   }
-  var html="<div class='mc-titulo'>Mis clases inscritas ("+mis.length+")</div>";
-  mis.forEach(function(cl){
-    // Determinar en qué día(s) aplica: hoy o mañana
-    var enHoy    = cl.dias.indexOf(nomHoy)>-1;
-    var enManana = cl.dias.indexOf(nomManana)>-1;
-    var diaLabel = enHoy && enManana ? fmtHoy+" y "+fmtManana
-                 : enHoy    ? fmtHoy
-                 : enManana ? fmtManana
-                 : cl.dias.join(", ");
-
+  var html="<div class='mc-titulo'>Mis clases inscritas ("+misFilas.length+")</div>";
+  misFilas.forEach(function(f){
+    var key=f.cl.id+"|"+f.fecha;
     html+="<div class='mc-fila'>";
-    html+="<div class='mc-dot' style='background:"+cl.color+"'></div>";
+    html+="<div class='mc-dot' style='background:"+(f.cl.color||"#C8F135")+"'></div>";
     html+="<div class='mc-info'>";
-    html+="  <div class='mc-nombre'>"+cl.nombre+"</div>";
-    html+="  <div class='mc-sub'>"+cl.hora+" · "+cl.coach+"</div>";
-    html+="  <div class='mc-sub'>"+diaLabel+"</div>";
+    html+="  <div class='mc-nombre'>"+f.cl.nombre+"</div>";
+    html+="  <div class='mc-sub'>"+f.cl.hora+" · "+f.cl.coach+"</div>";
+    html+="  <div class='mc-sub'>"+f.label+"</div>";
     html+="</div>";
-    html+="<button class='btn btn-outline btn-sm' style='color:var(--red);border-color:var(--red)' data-cancel='"+cl.id+"'>✕</button>";
+    html+="<button class='btn btn-outline btn-sm' style='color:var(--red);border-color:var(--red)' data-cancel='"+key+"'>✕</button>";
     html+="</div>";
   });
   c.innerHTML=html;
 
-  // Botón cancelar desde "mis clases"
   c.querySelectorAll("[data-cancel]").forEach(function(btn){
     btn.addEventListener("click",function(){
-      var id=+this.dataset.cancel;
-      var idx=(INSCRITOS[id]||[]).indexOf(SOCIO.id);
-      if(idx>-1) INSCRITOS[id].splice(idx,1);
+      var partes=this.dataset.cancel.split("|"), id=+partes[0], fecha=partes[1];
+      GymDB.desinscribirSocio(id, SOCIO.id, fecha);
       renderClasesDia(); renderMisClases();
     });
   });
