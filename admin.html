@@ -291,9 +291,12 @@ textarea{resize:vertical;min-height:70px;}
     <label style="margin-left:4px">—</label>
     <input type="date" id="r-hasta" style="flex:1">
   </div>
-  <!-- Modo periodo (solo socios) -->
+  <!-- Filtro de socios por periodo (solo tab Socios):
+       Todos = sin filtro · Inscripción = alta dentro del periodo ·
+       Visitas = con check-ins dentro del periodo · Ambos = las dos -->
   <div id="r-modo-wrap" style="display:flex;gap:6px;padding:0 16px;margin-bottom:10px">
-    <button class="btn bsm" id="rm-ins" style="flex:1;justify-content:center;background:var(--lime);color:#080808">Inscripción</button>
+    <button class="btn bsm" id="rm-todos" style="flex:1;justify-content:center;background:var(--lime);color:#080808">Todos</button>
+    <button class="btn bd bsm" id="rm-ins" style="flex:1;justify-content:center">Inscripción</button>
     <button class="btn bd bsm" id="rm-vis" style="flex:1;justify-content:center">Visitas</button>
     <button class="btn bd bsm" id="rm-amb" style="flex:1;justify-content:center">Ambos</button>
   </div>
@@ -475,20 +478,37 @@ textarea{resize:vertical;min-height:70px;}
 
 <!-- ═══ DATA (GymDB / Supabase) ═══════════════════════════════ -->
 <script>
-var PIN_ADMIN    = "1234";
-
-// Valores por defecto — se sobreescriben con lo que traiga el catálogo
-// de Membresías desde Supabase (ver poblarSelectPlanes). Los abonos
-// (parcialidades) no existen como tabla en Supabase todavía, así que
-// esa parte del cálculo sigue siendo local por ahora.
-var PLAN_PRECIO  = {Mensual:1200,Trimestral:3200,Semestral:5800,Anual:11000};
-var PLAN_DIAS    = {Mensual:30,Trimestral:90,Semestral:180,Anual:365};
-var PLAN_ABONOS  = {
-  Mensual:    [{monto:600, semanas:1},{monto:600, semanas:2}],
-  Trimestral: [{monto:1600,semanas:2},{monto:1600,semanas:4}],
-  Semestral:  [{monto:1450,semanas:2},{monto:1450,semanas:4},{monto:1450,semanas:6},{monto:450,semanas:8}],
-  Anual:      []
+// ═══ CONFIGURACIÓN CENTRAL ════════════════════════════════════
+// Todo lo ajustable vive aquí — un solo lugar para cambiar valores.
+var CONFIG = {
+  PIN: "1234",                 // PIN de acceso al panel admin
+  TOAST_MS: 2000,              // duración del toast de aviso
+  SCANNER_RETRY_MS: 1500,      // espera tras un QR inválido antes de reintentar
+  SCANNER_OK_MS: 700,          // espera tras un QR válido antes de cerrar
+  DASHBOARD_MESES: 5,          // cuántos meses muestran las gráficas
+  CHART_COLORS: {              // color de cada gráfica del dashboard
+    checkins: "#C8F135",
+    ventas:   "#30D158",
+    altas:    "#FF5C93",
+    pagos:    "#FF9F0A"
+  },
+  // Defaults de planes — se sobreescriben con el catálogo real de
+  // Membresías desde Supabase (ver poblarSelectPlanes).
+  PLAN_PRECIO: {Mensual:1200,Trimestral:3200,Semestral:5800,Anual:11000},
+  PLAN_DIAS:   {Mensual:30,Trimestral:90,Semestral:180,Anual:365},
+  // Esquema de parcialidades por plan. Los abonos no existen como
+  // catálogo en Supabase, así que se definen aquí.
+  PLAN_ABONOS: {
+    Mensual:    [{monto:600, semanas:1},{monto:600, semanas:2}],
+    Trimestral: [{monto:1600,semanas:2},{monto:1600,semanas:4}],
+    Semestral:  [{monto:1450,semanas:2},{monto:1450,semanas:4},{monto:1450,semanas:6},{monto:450,semanas:8}],
+    Anual:      []
+  }
 };
+// Alias cortos usados en toda la lógica
+var PLAN_PRECIO = CONFIG.PLAN_PRECIO;
+var PLAN_DIAS   = CONFIG.PLAN_DIAS;
+var PLAN_ABONOS = CONFIG.PLAN_ABONOS;
 
 // ── Conexión a Supabase ───────────────────────────────────────
 var _gymdbReady = GymDB.init(); // Promise — resuelve cuando ya cargó todo
@@ -500,8 +520,7 @@ var nextDeuId   = Date.now();
 var nextVentaId = Date.now()+1;
 var nextCatId   = {memb:Date.now()+2, clase:Date.now()+3, prod:Date.now()+4, msg:Date.now()+5, trainer:Date.now()+6};
 
-// MSGS_WA se construye a partir del catálogo de Mensajes WA — antes eran
-// dos catálogos separados y desconectados, ahora uno alimenta al otro.
+// MSGS_WA se construye a partir del catálogo de Mensajes WA
 function buildMsgsWA(){
   var obj={};
   MENSAJES_CAT.forEach(function(m,i){ obj[String(i+1)] = m.cuerpo; });
@@ -510,7 +529,7 @@ function buildMsgsWA(){
 var MSGS_WA = {};
 
 // Llena PLAN_DIAS/PLAN_PRECIO desde el catálogo de Membresías, y
-// refresca los <select> de plan que dependen de esos datos.
+// refresca el <select> de plan del modal de pago.
 function poblarSelectPlanes(){
   if(!MEMBRESIAS || !MEMBRESIAS.length) return;
   MEMBRESIAS.forEach(function(m){
@@ -518,20 +537,68 @@ function poblarSelectPlanes(){
     PLAN_DIAS[m.nombre]   = m.dias   || 30;
     PLAN_PRECIO[m.nombre] = m.precio || 0;
   });
-  ["f-plan","pago-plan"].forEach(function(sid){
-    var sel=ge(sid); if(!sel) return;
-    var actual=sel.value;
-    sel.innerHTML="<option value=''>— Selecciona —</option>";
-    MEMBRESIAS.forEach(function(m){
-      if(!m.nombre) return;
-      var opt=document.createElement("option");
-      opt.value=m.nombre;
-      opt.textContent=m.nombre+" · "+fm(m.precio||0);
-      sel.appendChild(opt);
-    });
-    if(actual) sel.value=actual;
+  var sel=ge("pago-plan"); if(!sel) return;
+  var actual=sel.value;
+  sel.innerHTML="<option value=''>— Selecciona —</option>";
+  MEMBRESIAS.forEach(function(m){
+    if(!m.nombre) return;
+    var opt=document.createElement("option");
+    opt.value=m.nombre;
+    opt.textContent=m.nombre+" · "+fm(m.precio||0);
+    sel.appendChild(opt);
+  });
+  if(actual) sel.value=actual;
+}
+
+// Llena un <select> con los entrenadores del catálogo, ordenados.
+// conTodos=true agrega la opción "— Todos —" (para filtros).
+// Usado por: modal producto, modal pago, filtro de Reportes.
+function poblarSelectTrainers(selId, conTodos){
+  var sel=ge(selId); if(!sel) return;
+  var actual=sel.value;
+  sel.innerHTML="<option value=''>"+(conTodos?"— Todos —":"— Selecciona —")+"</option>";
+  TRAINERS.slice().sort(function(a,b){return a.nombre.localeCompare(b.nombre);}).forEach(function(t){
+    sel.innerHTML+="<option value='"+t.nombre+"'>"+t.nombre+"</option>";
+  });
+  if(actual) sel.value=actual;
+}
+
+// Registra una venta (producto o membresía) en memoria y en Supabase,
+// y deja VENTAS sincronizado. Único punto de creación de ventas.
+function crearVenta(campos){
+  var v={id:nextVentaId++, cantidad:1, status:"pagado", fecha:hoyISO()};
+  Object.keys(campos).forEach(function(k){ v[k]=campos[k]; });
+  VENTAS.unshift(v);
+  GymDB.saveVentas(VENTAS);
+  VENTAS=GymDB.getVentas();
+  return v;
+}
+
+// Refresca SOCIOS desde el cache y re-apunta socioActual al objeto
+// nuevo (después de un setSocio, para no quedarnos con la copia vieja).
+function refrescarSocioActual(id){
+  SOCIOS = GymDB.getSocios();
+  if(id) socioActual = SOCIOS.find(function(x){return x.id===id;}) || socioActual;
+}
+
+// Sincronización manual: recarga todo desde Supabase y re-renderiza.
+// Un solo comportamiento para todos los botones ↻ de la app.
+function sincronizar(btn, renderFn){
+  btn.textContent="…"; btn.disabled=true;
+  GymDB.init().then(function(){
+    recargarDatos();
+    if(socioActual) refrescarSocioActual(socioActual.id);
+    renderFn();
+    btn.textContent="↻"; btn.disabled=false;
+    mostrarToast("↻ Actualizado");
+  }).catch(function(){
+    btn.textContent="↻"; btn.disabled=false;
+    mostrarToast("⚠ No se pudo actualizar");
   });
 }
+
+// Fecha de hoy en formato ISO (YYYY-MM-DD) — usada en toda la app
+function hoyISO(){ return new Date().toISOString().slice(0,10); }
 
 // Trae del cache de GymDB (ya cargado por init) a las variables locales
 // que usa toda la lógica de renderizado de este archivo.
@@ -560,7 +627,7 @@ function mostrarToast(msg){
   }
   t.textContent=msg; t.style.opacity="1";
   clearTimeout(t._tid);
-  t._tid=setTimeout(function(){ t.style.opacity="0"; },2000);
+  t._tid=setTimeout(function(){ t.style.opacity="0"; },CONFIG.TOAST_MS);
 }
 </script>
 
@@ -602,7 +669,7 @@ var waTarget    = null;
 var catTab      = "membresias";
 var catEditId   = null;
 var repTab      = "socios";
-var repModo     = "inscripcion";
+var repModo     = "todos";
 
 // ── NAVEGACIÓN ────────────────────────────────────────────────
 function showScreen(id){
@@ -624,7 +691,7 @@ function actualizarDots(){
   for(var i=0;i<4;i++) ge("dot"+i).classList.toggle("filled",i<pinBuf.length);
 }
 function verificarPin(){
-  if(pinBuf===PIN_ADMIN){
+  if(pinBuf===CONFIG.PIN){
     ge("screen-login").classList.remove("active");
     ge("nav-admin").style.display="flex";
     var str=new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
@@ -763,7 +830,7 @@ function procesarCodigoEscaneado(data){
   if(!r.ok){
     ge("ci-scan-err").textContent=r.msg;
     ge("ci-scan-status").textContent="Intenta con otro código";
-    setTimeout(function(){ scanBusy=false; if(scanStream) tickScanner(); }, 1500);
+    setTimeout(function(){ scanBusy=false; if(scanStream) tickScanner(); }, CONFIG.SCANNER_RETRY_MS);
     return;
   }
   ge("ci-scan-status").textContent="✓ Check-in registrado: "+r.socio.nombre;
@@ -772,7 +839,7 @@ function procesarCodigoEscaneado(data){
     detenerScanner();
     ge("modal-checkin").classList.remove("open");
     renderInicio();
-  }, 700);
+  }, CONFIG.SCANNER_OK_MS);
 }
 
 // ── SOCIOS ────────────────────────────────────────────────────
@@ -826,12 +893,11 @@ function renderDetalle(){
 }
 
 function renderTabMembresia(s){
-  var st=calcStatus(s),abonos=s.abonos||[],todasDeudas=DEUDAS[s.id]||[];
+  var st=calcStatus(s),todasDeudas=DEUDAS[s.id]||[];
   // Las deudas antiguas sin "tipo" se asumen de producto (compatibilidad).
   var deudasMemb=todasDeudas.filter(function(d){return d.tipo==="membresia";});
   var deudas=todasDeudas.filter(function(d){return d.tipo!=="membresia";});
   var totalD=deudas.reduce(function(a,d){return a+d.total;},0);
-  var hoy=new Date();hoy.setHours(0,0,0,0);
   var html="<div class='sec' style='padding-bottom:20px'>";
 
   // Deudas de membresía: abonos pendientes de pago, marcados como deuda
@@ -914,22 +980,29 @@ function renderTabMembresia(s){
     btn.addEventListener("click",function(){
       var did=this.dataset.pagAbono;
       if(!confirm("¿Marcar este abono como pagado?")) return;
-      var abono=(s.abonos||[]).find(function(a){return a.deudaId===did;});
-      if(!abono){alert("No se encontró el abono correspondiente");return;}
-      var hoyStr=new Date().toISOString().slice(0,10);
-      abono.pagado=true; abono.fecha_pago=hoyStr;
+      // La fuente de verdad del cobro es la DEUDA (persistida en
+      // Supabase). El vínculo con el abono se resuelve por número
+      // parseado del texto "Plan · Abono N" — NO por deudaId, porque
+      // ese campo solo vive en memoria y se pierde al recargar.
+      var deuda=(DEUDAS[s.id]||[]).find(function(d){return d.id===did;});
+      if(!deuda){alert("No se encontró la deuda");return;}
+      var hoyStr=hoyISO();
+      var mNum=(deuda.producto||"").match(/Abono (\d+)/);
+      var numero=mNum?+mNum[1]:null;
+      var abono=(s.abonos||[]).find(function(a){return a.deudaId===did;}) ||
+                (numero!==null ? (s.abonos||[]).find(function(a){return a.numero===numero&&!a.pagado;}) : null);
+      if(abono){
+        abono.pagado=true; abono.fecha_pago=hoyStr;
+        GymDB.setSocio(s);
+        refrescarSocioActual(s.id);
+      }
       // Quita la deuda de membresía ya pagada
       GymDB.removeDeuda(s.id, did);
       DEUDAS = GymDB.getAllDeudas();
-      // Guarda el socio con el abono actualizado
-      GymDB.setSocio(s);
-      SOCIOS = GymDB.getSocios();
-      socioActual = SOCIOS.find(function(x){return x.id===s.id;}) || s;
-      // Registra el cobro como venta (tipo "memb") — así el Dashboard y
-      // el historial de membresías van acumulando cada abono real pagado.
-      VENTAS.unshift({id:nextVentaId++,socio_id:s.id,socio_nombre:s.nombre+" "+s.apellido_paterno,producto:s.plan+" · Abono "+abono.numero,cantidad:1,total:abono.monto,fecha:hoyStr,status:"pagado",tipo:"memb",trainer:abono.trainer||""});
-      GymDB.saveVentas(VENTAS);
-      VENTAS = GymDB.getVentas();
+      // Registra el cobro como venta (tipo "memb") con la fecha real de
+      // hoy y el periodo de cobertura vigente del socio — así Dashboard,
+      // Reportes e historial acumulan cada abono real pagado.
+      crearVenta({socio_id:s.id,socio_nombre:s.nombre+" "+s.apellido_paterno,producto:deuda.producto,total:deuda.total,fecha:hoyStr,tipo:"memb",trainer:deuda.trainer||"",membresia_inicio:s.fecha_inicio||null,membresia_vencimiento:s.fecha_vencimiento||null});
       renderDetalle();
     });
   });
@@ -965,8 +1038,7 @@ function renderTabInfo(s){
     if(confirm((s.activo?"Desactivar":"Activar")+" a "+s.nombre+"?")){
       s.activo=!s.activo;
       GymDB.setSocio(s);
-      SOCIOS = GymDB.getSocios();
-      socioActual = SOCIOS.find(function(x){return x.id===s.id;}) || s;
+      refrescarSocioActual(s.id);
       renderDetalle();
     }
   });
@@ -978,7 +1050,8 @@ var socEditId=null;
 function abrirNuevoSoc(){
   socEditId=null; ge("form-titulo").textContent="Nuevo Socio";
   ["f-id","f-nombre","f-ap","f-am","f-tel","f-emerg","f-correo","f-notas"].forEach(function(i){ge(i).value="";});
-  ge("f-inicio").value=new Date().toISOString().slice(0,10);
+  ge("f-id").disabled=false;
+  ge("f-inicio").value=hoyISO();
   ge("f-nac").value="";ge("f-sexo").value="";
   showScreen("form");
 }
@@ -986,15 +1059,23 @@ function abrirEditarSoc(id){
   var s=SOCIOS.find(function(x){return x.id===id;}); if(!s) return;
   socEditId=id; ge("form-titulo").textContent="Editar Socio";
   ge("f-id").value=s.id;ge("f-nombre").value=s.nombre;ge("f-ap").value=s.apellido_paterno;ge("f-am").value=s.apellido_materno;
+  // El número de socio es la llave de todo (cuenta de acceso, deudas,
+  // ventas, check-ins) — no se puede cambiar una vez creado, porque
+  // "cambiarlo" en realidad crearía un socio duplicado.
+  ge("f-id").disabled=true;
   ge("f-tel").value=s.numero||"";ge("f-emerg").value=s.numero_emergencia||"";ge("f-correo").value=s.correo||"";
   ge("f-notas").value=s.notas||"";ge("f-inicio").value=s.fecha_inicio||"";
   ge("f-nac").value=s.fecha_nacimiento||"";ge("f-sexo").value=s.sexo||"";
   showScreen("form");
 }
 function guardarSoc(){
-  var id=ge("f-id").value.trim(),nombre=ge("f-nombre").value.trim(),ap=ge("f-ap").value.trim();
+  // Al editar, el id manda desde socEditId (el campo está deshabilitado)
+  var id=(socEditId||ge("f-id").value).trim(),nombre=ge("f-nombre").value.trim(),ap=ge("f-ap").value.trim();
   if(!id||!nombre||!ap){alert("Número, nombre y apellido son requeridos");return;}
   var existente=SOCIOS.find(function(x){return x.id===id;});
+  // Desde "Nuevo Socio", un número ya ocupado no debe sobrescribir al
+  // socio existente en silencio — se rechaza con aviso claro.
+  if(!socEditId && existente){alert("Ya existe un socio con el número "+id);return;}
   var esNuevo=!existente;
   // El plan/vencimiento NO se captura aquí — primero se generan los
   // datos del socio, y la membresía se asigna después desde su detalle
@@ -1043,9 +1124,8 @@ function abrirModalPago(s, ventaEditar){
     ge("pago-inicio").value=inicioSugerido;
     ge("pago-tipo").value="completo";
   }
-  var selT=ge("pago-trainer"); selT.innerHTML="<option value=''>— Selecciona —</option>";
-  TRAINERS.forEach(function(t){selT.innerHTML+="<option value='"+t.nombre+"'>"+t.nombre+"</option>";});
-  if(ventaEditando && ventaEditando.trainer) selT.value=ventaEditando.trainer;
+  poblarSelectTrainers("pago-trainer", false);
+  if(ventaEditando && ventaEditando.trainer) ge("pago-trainer").value=ventaEditando.trainer;
   actualizarResumenPago();
   ge("modal-pago").classList.add("open");
 }
@@ -1065,8 +1145,9 @@ function guardarPago(){
   var plan=ge("pago-plan").value,tipo=ge("pago-tipo").value,fi=ge("pago-inicio").value,s=socioActual;
   var trainer=ge("pago-trainer").value;
   if(!s||!fi) return;
+  if(!plan){alert("Selecciona un plan");return;}
   if(!trainer){alert("Selecciona el entrenador responsable");return;}
-  var hoyPago = new Date().toISOString().slice(0,10);
+  var hoyPago = hoyISO();
   var fechaVenc = addDays(fi,PLAN_DIAS[plan]||30);
 
   // ── MODO EDICIÓN: corrige la venta más reciente sin crear una nueva
@@ -1127,17 +1208,14 @@ function guardarPago(){
     // (hoy), no con la fecha de inicio de cobertura. Se guarda también
     // el periodo de cobertura (inicio/vencimiento) para mostrarlo en
     // el historial sin ambigüedad de a qué mes corresponde.
-    VENTAS.unshift({id:nextVentaId++,socio_id:s.id,socio_nombre:s.nombre+" "+s.apellido_paterno,producto:plan,cantidad:1,total:PLAN_PRECIO[plan]||0,fecha:hoyPago,status:"pagado",tipo:"memb",trainer:trainer,membresia_inicio:fi,membresia_vencimiento:fechaVenc});
-    GymDB.saveVentas(VENTAS);
-    VENTAS = GymDB.getVentas();
+    crearVenta({socio_id:s.id,socio_nombre:s.nombre+" "+s.apellido_paterno,producto:plan,total:PLAN_PRECIO[plan]||0,fecha:hoyPago,tipo:"memb",trainer:trainer,membresia_inicio:fi,membresia_vencimiento:fechaVenc});
   }
   // Borramos los abonos viejos del socio en Supabase (de la membresía
   // anterior), luego guardamos el socio con sus abonos nuevos — así no
   // se acumulan filas huérfanas cada vez que renueva.
   GymDB.clearAbonos(s.id).then(function(){
     GymDB.setSocio(s);
-    SOCIOS = GymDB.getSocios();
-    socioActual = SOCIOS.find(function(x){return x.id===s.id;}) || s;
+    refrescarSocioActual(s.id);
   });
   ge("modal-pago").classList.remove("open");
   renderDetalle();
@@ -1152,8 +1230,7 @@ function abrirModalProdSoc(s){
     sel.innerHTML+="<option value='"+p.id+"'>"+p.nombre+" · "+fm(p.costo)+" · Stock: "+p.stock+"</option>";
   });
   // Toda deuda/venta debe quedar asociada a un entrenador responsable
-  var selT=ge("ps-trainer"); selT.innerHTML="<option value=''>— Selecciona —</option>";
-  TRAINERS.forEach(function(t){selT.innerHTML+="<option value='"+t.nombre+"'>"+t.nombre+"</option>";});
+  poblarSelectTrainers("ps-trainer", false);
   ge("ps-cantidad").value=1; ge("ps-status").value="debe"; ge("ps-total").textContent="$0";
   ge("modal-prod-soc").classList.add("open");
 }
@@ -1170,15 +1247,13 @@ function guardarProdSoc(){
   if(cant>p.stock){alert("Stock insuficiente. Disponible: "+p.stock);return;}
   var trainer=ge("ps-trainer").value;
   if(!trainer){alert("Selecciona el entrenador responsable");return;}
-  var fecha=new Date().toISOString().slice(0,10);
+  var fecha=hoyISO();
   if(ge("ps-status").value==="debe"){
     // Cada deuda pendiente queda asociada al entrenador que la registró
     GymDB.addDeuda(s.id, {id:"d"+(nextDeuId++), producto:p.nombre, total:p.costo*cant, fecha:fecha, trainer:trainer, tipo:"producto"});
     DEUDAS = GymDB.getAllDeudas();
   }
-  VENTAS.unshift({id:nextVentaId++,socio_id:s.id,socio_nombre:s.nombre+" "+s.apellido_paterno,producto:p.nombre,cantidad:cant,total:p.costo*cant,fecha:fecha,status:ge("ps-status").value,tipo:"prod",trainer:trainer});
-  GymDB.saveVentas(VENTAS);
-  VENTAS = GymDB.getVentas();
+  crearVenta({socio_id:s.id,socio_nombre:s.nombre+" "+s.apellido_paterno,producto:p.nombre,cantidad:cant,total:p.costo*cant,fecha:fecha,status:ge("ps-status").value,tipo:"prod",trainer:trainer});
   p.stock = p.stock - cant;
   GymDB.saveProductos(PRODUCTOS);
   PRODUCTOS = GymDB.getProductos();
@@ -1373,68 +1448,85 @@ function enPeriodo(fecha){
   if(d&&fecha<d)return false;if(h&&fecha>h)return false;return true;
 }
 
+// Pinta la lista de socios del reporte, aplicando el filtro de repModo.
+// conVisita = mapa {socio_id:true} de quienes tienen check-in en el
+// periodo (solo viene cuando el modo lo requiere; null si no aplica).
+function pintarReporteSocios(conVisita){
+  var desde=ge("r-desde").value,hasta=ge("r-hasta").value;
+  function enRango(f){ return f && (!desde||f>=desde) && (!hasta||f<=hasta); }
+  var list=SOCIOS.filter(function(s){
+    if(repModo==="inscripcion") return enRango(s.fecha_inicio);
+    if(repModo==="visitas")     return conVisita && conVisita[s.id];
+    if(repModo==="ambos")       return enRango(s.fecha_inicio) && conVisita && conVisita[s.id];
+    return true; // "todos"
+  });
+  list.sort(function(a,b){
+    var r=0;
+    if(sortActual==="nombre")     r=(a.nombre+" "+a.apellido_paterno).localeCompare(b.nombre+" "+b.apellido_paterno);
+    else if(sortActual==="vencimiento") r=new Date(a.fecha_vencimiento)-new Date(b.fecha_vencimiento);
+    else if(sortActual==="plan")  r=(a.plan||"").localeCompare(b.plan||"");
+    else if(sortActual==="visitas") r=(b.visitas||0)-(a.visitas||0);
+    else r=a.id.localeCompare(b.id);
+    return ordenAsc?r:-r;
+  });
+  var activos=list.filter(function(s){return s.activo;}).length;
+  var inactivos=list.filter(function(s){return !s.activo;}).length;
+  ge("rep-metricas").innerHTML=mbox(activos,"var(--green)","Activos")+mbox(inactivos,"var(--muted)","Inactivos");
+  var html="";
+  list.forEach(function(s){
+    var st=calcStatus(s),deudas=DEUDAS[s.id]||[],totalD=deudas.reduce(function(a,d){return a+d.total;},0);
+    var abonoP=(s.abonos||[]).find(function(a){return !a.pagado;});
+    html+="<div class='soc-card "+st+"'><div class='soc-fila'>";
+    html+="<div class='soc-av' style='background:"+avColor(st)+"'>"+ini(s)+"</div>";
+    html+="<div class='soc-info'><div class='soc-nombre'>#"+s.id+" · "+s.nombre+" "+s.apellido_paterno+"</div>";
+    html+="<div class='soc-sub'>"+(s.plan||"Sin membresía")+" · Vence: "+fF(s.fecha_vencimiento)+"</div>";
+    html+="<div style='margin-top:5px;display:flex;gap:5px;flex-wrap:wrap'>"+pillSt(st);
+    if(totalD>0) html+="<span class='pill po'>Debe: "+fm(totalD)+"</span>";
+    if(abonoP)   html+="<span class='pill po'>Abono pend.</span>";
+    html+="</div></div><button class='btn bwa bsm' data-wa='"+s.id+"'>&#128241;</button></div>";
+    html+="<div style='margin-top:10px'><button class='btn bl bsm' data-ver='"+s.id+"' style='width:100%;justify-content:center'>Ver detalle</button></div></div>";
+  });
+  ge("rep-lista").innerHTML=html||"<div class='empty'><div class='ico'>&#128101;</div><p>Sin resultados</p></div>";
+  ge("rep-lista").querySelectorAll("[data-ver]").forEach(function(b){b.addEventListener("click",function(){
+    socioActual=SOCIOS.find(function(s){return s.id===this.dataset.ver;},this);
+    detTab="membresia";
+    document.querySelectorAll(".tab[data-det]").forEach(function(t){t.classList.toggle("active",t.dataset.det==="membresia");});
+    showScreen("detalle");
+  });});
+  ge("rep-lista").querySelectorAll("[data-wa]").forEach(function(b){b.addEventListener("click",function(){abrirWA(this.dataset.wa);});});
+}
+
 function renderReporte(){
   var desde=ge("r-desde").value,hasta=ge("r-hasta").value;
-  var modoWrap=ge("r-modo-wrap");
-  
-  // TAB DE SOCIOS: mostrar vista igual a pestaña socios
+  ge("r-modo-wrap").style.display=repTab==="socios"?"flex":"none";
+  ge("r-trainer-wrap").style.display=repTab==="ventas"?"block":"none";
+  if(repTab==="ventas") poblarSelectTrainers("r-trainer", true);
+  ge("btn-csv").style.display="block";
+
+  // ── TAB SOCIOS ──────────────────────────────────────────────
+  // Vista tipo pestaña Socios, con filtro opcional por periodo:
+  // todos / inscritos en el periodo / con visitas en el periodo / ambos.
+  // "Visitas" requiere el histórico de check-ins (async desde Supabase).
   if(repTab==="socios"){
-    modoWrap.style.display="none";
-    ge("btn-csv").style.display="none";
-    var q=ge("soc-buscar")&&ge("soc-buscar").value||"";
-    var list=SOCIOS.slice();
-    if(q) list=list.filter(function(s){return (s.nombre+" "+s.apellido_paterno).toLowerCase().indexOf(q)>-1||s.id.indexOf(q)>-1||s.plan.toLowerCase().indexOf(q)>-1;});
-    list.sort(function(a,b){
-      var r=0;
-      if(sortActual==="nombre")     r=(a.nombre+" "+a.apellido_paterno).localeCompare(b.nombre+" "+b.apellido_paterno);
-      else if(sortActual==="vencimiento") r=new Date(a.fecha_vencimiento)-new Date(b.fecha_vencimiento);
-      else if(sortActual==="plan")  r=a.plan.localeCompare(b.plan);
-      else if(sortActual==="visitas") r=(b.visitas||0)-(a.visitas||0);
-      else r=a.id.localeCompare(b.id);
-      return ordenAsc?r:-r;
-    });
-    var activos=SOCIOS.filter(function(s){return s.activo;}).length;
-    var inactivos=SOCIOS.filter(function(s){return !s.activo;}).length;
-    ge("rep-metricas").innerHTML=mbox(activos,"var(--green)","Activos")+mbox(inactivos,"var(--muted)","Inactivos");
-    var html="";
-    list.forEach(function(s){
-      var st=calcStatus(s),deudas=DEUDAS[s.id]||[],totalD=deudas.reduce(function(a,d){return a+d.total;},0);
-      var abonoP=(s.abonos||[]).find(function(a){return !a.pagado;});
-      html+="<div class='soc-card "+st+"'><div class='soc-fila'>";
-      html+="<div class='soc-av' style='background:"+avColor(st)+"'>"+ini(s)+"</div>";
-      html+="<div class='soc-info'><div class='soc-nombre'>#"+s.id+" · "+s.nombre+" "+s.apellido_paterno+"</div>";
-      html+="<div class='soc-sub'>"+s.plan+" · Vence: "+fF(s.fecha_vencimiento)+"</div>";
-      html+="<div style='margin-top:5px;display:flex;gap:5px;flex-wrap:wrap'>"+pillSt(st);
-      if(totalD>0) html+="<span class='pill po'>Debe: "+fm(totalD)+"</span>";
-      if(abonoP)   html+="<span class='pill po'>Abono pend.</span>";
-      html+="</div></div><button class='btn bwa bsm' data-wa='"+s.id+"'>&#128241;</button></div>";
-      html+="<div style='margin-top:10px'><button class='btn bl bsm' data-ver='"+s.id+"' style='width:100%;justify-content:center'>Ver detalle</button></div></div>";
-    });
-    ge("rep-lista").innerHTML=html||"<div class='empty'><div class='ico'>&#128101;</div><p>Sin resultados</p></div>";
-    ge("rep-lista").querySelectorAll("[data-ver]").forEach(function(b){b.addEventListener("click",function(){
-      socioActual=SOCIOS.find(function(s){return s.id===this.dataset.ver;},this);
-      detTab="membresia";
-      document.querySelectorAll(".tab[data-det]").forEach(function(t){t.classList.toggle("active",t.dataset.det==="membresia");});
-      showScreen("detalle");
-    });});
-    ge("rep-lista").querySelectorAll("[data-wa]").forEach(function(b){b.addEventListener("click",function(){abrirWA(this.dataset.wa);});});
+    var necesitaVisitas = repModo==="visitas"||repModo==="ambos";
+    if(necesitaVisitas){
+      ge("rep-metricas").innerHTML="<div style='grid-column:1/-1;text-align:center;font-size:12px;color:var(--muted);padding:12px'>Cargando…</div>";
+      ge("rep-lista").innerHTML="";
+      GymDB.getCheckinsRango(desde||null, hasta||null).then(function(rows){
+        if(repTab!=="socios") return;
+        var conVisita={};
+        rows.forEach(function(c){ conVisita[String(c.socio_id)]=true; });
+        pintarReporteSocios(conVisita);
+      });
+    } else {
+      pintarReporteSocios(null);
+    }
     return;
   }
 
-  modoWrap.style.display=repTab==="socios"?"flex":"none";
-  ge("r-trainer-wrap").style.display=repTab==="ventas"?"block":"none";
-  if(repTab==="ventas"){
-    var selRT=ge("r-trainer"), actualRT=selRT.value;
-    selRT.innerHTML="<option value=''>— Todos —</option>";
-    TRAINERS.slice().sort(function(a,b){return a.nombre.localeCompare(b.nombre);}).forEach(function(t){
-      selRT.innerHTML+="<option value='"+t.nombre+"'>"+t.nombre+"</option>";
-    });
-    selRT.value=actualRT;
-  }
-  ge("btn-csv").style.display="block";
-
-  // TAB CHECK-INS: histórico completo, no viene precargado en cache
-  // (GymDB solo precarga los de HOY), así que se pide directo a Supabase.
+  // ── TAB CHECK-INS ───────────────────────────────────────────
+  // Histórico completo — no viene precargado en cache (GymDB solo
+  // precarga los de hoy), así que se pide directo a Supabase.
   if(repTab==="checkins"){
     ge("rep-metricas").innerHTML="<div style='grid-column:1/-1;text-align:center;font-size:12px;color:var(--muted);padding:12px'>Cargando…</div>";
     ge("rep-lista").innerHTML="";
@@ -1454,10 +1546,19 @@ function renderReporte(){
 
   var mh="",lh="";
   if(repTab==="pagos"){
-    var activos2=SOCIOS.filter(function(s){return s.activo;});
-    var cob=activos2.filter(function(s){return calcStatus(s)==="aldia";}).reduce(function(a,s){return a+(PLAN_PRECIO[s.plan]||0);},0);
-    mh=mbox(fm(cob),"var(--green)","Cobrado");
-    activos2.forEach(function(s){var st=calcStatus(s);lh+=rfila(ini(s),avColor(st),"#"+s.id+" · "+s.nombre+" "+s.apellido_paterno,s.plan+" · "+pillSt(st),fm(PLAN_PRECIO[s.plan]||0));});
+    // ── TAB MEMBRESÍAS ────────────────────────────────────────
+    // Cobros REALES de membresía (ventas tipo "memb") en el periodo,
+    // más lo pendiente por cobrar (deudas tipo "membresia" vigentes).
+    var mv=VENTAS.filter(function(v){return v.tipo==="memb"&&enPeriodo(v.fecha);});
+    var cobM=mv.reduce(function(a,v){return a+v.total;},0);
+    var porCobrarM=0;
+    Object.keys(DEUDAS).forEach(function(sid){
+      (DEUDAS[sid]||[]).forEach(function(d){ if(d.tipo==="membresia") porCobrarM+=d.total; });
+    });
+    mh=mbox(fm(cobM),"var(--green)","Cobrado")+mbox(fm(porCobrarM),"var(--orange)","Por cobrar");
+    mv.sort(function(a,b){return (b.fecha||"").localeCompare(a.fecha||"");}).forEach(function(v){
+      lh+=rfila("$","var(--lime)",v.producto,"#"+v.socio_id+" "+v.socio_nombre+" · "+(v.trainer||"—")+" · "+fF(v.fecha),fm(v.total));
+    });
   } else {
     var trainerFiltro=ge("r-trainer").value;
     // Solo ventas de PRODUCTO — las membresías tienen su propia pestaña
@@ -1479,18 +1580,44 @@ function renderReporte(){
   ge("rep-lista").innerHTML=lh||"<div class='empty'><div class='ico'>&#128202;</div><p>Sin datos</p></div>";
 }
 
+// Exporta el CSV de la pestaña activa. Las 4 pestañas exportan:
+// Socios (lista completa), Check-ins (histórico del periodo, async),
+// Membresías (cobros memb del periodo), Ventas (productos del periodo).
 function descargarCSV(){
-  var csv="",fn="reporte.csv";
-  if(repTab==="socios"){
-    csv="ID,Nombre,Plan,Activo,Visitas,Alta,Vencimiento\n";
-    SOCIOS.forEach(function(s){csv+=s.id+","+s.nombre+" "+s.apellido_paterno+","+s.plan+","+(s.activo?"Si":"No")+","+s.visitas+","+(s.fecha_inicio||"")+","+(s.fecha_vencimiento||"")+"\n";});
-    fn="socios.csv";
-  } else if(repTab==="ventas"){
-    csv="ID,Socio,Producto,Cantidad,Total,Fecha,Status\n";
-    VENTAS.filter(function(v){return v.tipo==="prod"&&enPeriodo(v.fecha);}).forEach(function(v){csv+=v.id+","+v.socio_nombre+","+v.producto+","+v.cantidad+","+v.total+","+v.fecha+","+v.status+"\n";});
-    fn="ventas.csv";
+  function bajar(csv,fn){
+    var a=document.createElement("a");
+    a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);
+    a.download=fn; a.click();
   }
-  var a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download=fn;a.click();
+  if(repTab==="socios"){
+    var csv="ID,Nombre,Plan,Activo,Visitas,Alta,Vencimiento\n";
+    SOCIOS.forEach(function(s){csv+=s.id+","+s.nombre+" "+s.apellido_paterno+","+(s.plan||"")+","+(s.activo?"Si":"No")+","+(s.visitas||0)+","+(s.fecha_inicio||"")+","+(s.fecha_vencimiento||"")+"\n";});
+    bajar(csv,"socios.csv");
+  } else if(repTab==="checkins"){
+    // El histórico no está en memoria — se pide a Supabase y se
+    // descarga cuando llega.
+    var desde=ge("r-desde").value,hasta=ge("r-hasta").value;
+    GymDB.getCheckinsRango(desde||null,hasta||null).then(function(rows){
+      var csv="Socio ID,Nombre,Fecha,Hora\n";
+      rows.forEach(function(ci){
+        var s=SOCIOS.find(function(x){return x.id===String(ci.socio_id);});
+        csv+=ci.socio_id+","+(s?s.nombre+" "+s.apellido_paterno:"")+","+(ci.fecha||"")+","+(ci.hora||"")+"\n";
+      });
+      bajar(csv,"checkins.csv");
+    });
+  } else if(repTab==="pagos"){
+    var csv2="ID,Socio,Plan,Total,Fecha,Entrenador,Cobertura inicio,Cobertura fin\n";
+    VENTAS.filter(function(v){return v.tipo==="memb"&&enPeriodo(v.fecha);}).forEach(function(v){
+      csv2+=v.id+","+v.socio_nombre+","+v.producto+","+v.total+","+v.fecha+","+(v.trainer||"")+","+(v.membresia_inicio||"")+","+(v.membresia_vencimiento||"")+"\n";
+    });
+    bajar(csv2,"membresias.csv");
+  } else if(repTab==="ventas"){
+    var csv3="ID,Socio,Producto,Cantidad,Total,Fecha,Entrenador,Status\n";
+    VENTAS.filter(function(v){return v.tipo==="prod"&&enPeriodo(v.fecha);}).forEach(function(v){
+      csv3+=v.id+","+v.socio_nombre+","+v.producto+","+v.cantidad+","+v.total+","+v.fecha+","+(v.trainer||"")+","+v.status+"\n";
+    });
+    bajar(csv3,"ventas.csv");
+  }
 }
 
 // ── DASHBOARD ─────────────────────────────────────────────────
@@ -1511,7 +1638,7 @@ function ultimosMeses(n){
 
 function renderGrafica(){
   var vacio="<div class='empty' style='padding:20px'><p style='font-size:12px'>Sin datos aún</p></div>";
-  var meses=ultimosMeses(5);
+  var meses=ultimosMeses(CONFIG.DASHBOARD_MESES);
 
   function pintarChart(elId, datos, color, esMoneda){
     var el=ge(elId);
@@ -1539,8 +1666,8 @@ function renderGrafica(){
                     .reduce(function(a,v){return a+v.total;},0);
     return {m:mm.m, v:total};
   });
-  pintarChart("chart-ventas", ventasProd, "#30D158", true);
-  pintarChart("chart-pagos",  pagosMemb,  "#FF9F0A", true);
+  pintarChart("chart-ventas", ventasProd, CONFIG.CHART_COLORS.ventas, true);
+  pintarChart("chart-pagos",  pagosMemb,  CONFIG.CHART_COLORS.pagos, true);
 
   // Nuevas inscripciones: calculado en vivo desde SOCIOS real, agrupado
   // por mes de fecha_inicio (alta del socio).
@@ -1548,7 +1675,7 @@ function renderGrafica(){
     var total=SOCIOS.filter(function(s){return (s.fecha_inicio||"").slice(0,7)===mm.key;}).length;
     return {m:mm.m, v:total};
   });
-  pintarChart("chart-altas", altas, "#FF5C93", false);
+  pintarChart("chart-altas", altas, CONFIG.CHART_COLORS.altas, false);
 
   // Check-ins: histórico real completo desde Supabase (no solo hoy),
   // agrupado por mes.
@@ -1558,7 +1685,7 @@ function renderGrafica(){
       var total=rows.filter(function(c){return (c.fecha||"").slice(0,7)===mm.key;}).length;
       return {m:mm.m, v:total};
     });
-    pintarChart("chart-checkins", ciPorMes, "#C8F135", false);
+    pintarChart("chart-checkins", ciPorMes, CONFIG.CHART_COLORS.checkins, false);
   });
 }
 
@@ -1587,10 +1714,7 @@ document.addEventListener("DOMContentLoaded",function(){
   });
 
   // Inicio
-  ge("btn-sync-inicio").addEventListener("click",function(){
-    var b=this; b.textContent="…"; b.disabled=true;
-    GymDB.init().then(function(){ recargarDatos(); renderInicio(); b.textContent="↻"; b.disabled=false; mostrarToast("↻ Actualizado"); });
-  });
+  ge("btn-sync-inicio").addEventListener("click",function(){ sincronizar(this, renderInicio); });
   ge("btn-checkin").addEventListener("click",abrirCheckin);
   ge("ci-input").addEventListener("keydown",function(e){if(e.key==="Enter")confirmarCI();});
   ge("ci-confirmar").addEventListener("click",confirmarCI);
@@ -1598,38 +1722,20 @@ document.addEventListener("DOMContentLoaded",function(){
   ge("ci-tab-scan").addEventListener("click",function(){ge("ci-panel-scan").style.display="block";ge("ci-panel-cod").style.display="none";this.style.background="var(--lime)";this.style.color="#080808";ge("ci-tab-cod").className="btn bsm";ge("ci-tab-cod").style="";iniciarScanner();});
 
   // Socios
-  ge("btn-sync-socios").addEventListener("click",function(){
-    var b=this; b.textContent="…"; b.disabled=true;
-    GymDB.init().then(function(){ recargarDatos(); renderSocios(); b.textContent="↻"; b.disabled=false; mostrarToast("↻ Actualizado"); });
-  });
+  ge("btn-sync-socios").addEventListener("click",function(){ sincronizar(this, renderSocios); });
   ge("soc-buscar").addEventListener("input",renderSocios);
   ge("sort-sel").addEventListener("change",function(){sortActual=this.value;renderSocios();});
   ge("btn-orden-dir").addEventListener("click",function(){ordenAsc=!ordenAsc;this.textContent=ordenAsc?"↑":"↓";renderSocios();});
   ge("btn-nuevo-soc").addEventListener("click",abrirNuevoSoc);
   ge("btn-det-back").addEventListener("click",function(){showScreen("socios");});
-  ge("btn-sync-det").addEventListener("click",function(){
-    var b=this; b.textContent="…"; b.disabled=true;
-    GymDB.init().then(function(){
-      recargarDatos();
-      if(socioActual) socioActual=SOCIOS.find(function(x){return x.id===socioActual.id;})||socioActual;
-      renderDetalle();
-      b.textContent="↻"; b.disabled=false;
-      mostrarToast("↻ Actualizado");
-    });
-  });
+  ge("btn-sync-det").addEventListener("click",function(){ sincronizar(this, renderDetalle); });
   ge("btn-form-cancel").addEventListener("click",function(){showScreen("socios");});
   ge("btn-guardar-soc").addEventListener("click",guardarSoc);
   document.querySelectorAll(".tab[data-det]").forEach(function(b){b.addEventListener("click",function(){detTab=this.dataset.det;document.querySelectorAll(".tab[data-det]").forEach(function(x){x.classList.toggle("active",x.dataset.det===detTab);});renderDetalle();});});
 
   // Catálogo
-  ge("btn-sync-cat").addEventListener("click",function(){
-    var b=this; b.textContent="…"; b.disabled=true;
-    GymDB.init().then(function(){ recargarDatos(); renderCatalogo(); b.textContent="↻"; b.disabled=false; mostrarToast("↻ Actualizado"); });
-  });
-  ge("btn-sync-rep").addEventListener("click",function(){
-    var b=this; b.textContent="…"; b.disabled=true;
-    GymDB.init().then(function(){ recargarDatos(); renderReporte(); b.textContent="↻"; b.disabled=false; mostrarToast("↻ Actualizado"); });
-  });
+  ge("btn-sync-cat").addEventListener("click",function(){ sincronizar(this, renderCatalogo); });
+  ge("btn-sync-rep").addEventListener("click",function(){ sincronizar(this, renderReporte); });
   document.querySelectorAll(".tab[data-cat]").forEach(function(b){b.addEventListener("click",function(){catTab=this.dataset.cat;document.querySelectorAll(".tab[data-cat]").forEach(function(x){x.classList.toggle("active",x.dataset.cat===catTab);});renderCatalogo();});});
   ge("btn-cat-nuevo").addEventListener("click",catNuevo);
 
@@ -1641,9 +1747,20 @@ document.addEventListener("DOMContentLoaded",function(){
   ge("r-hasta").addEventListener("change",renderReporte);
   ge("r-trainer").addEventListener("change",renderReporte);
   document.querySelectorAll(".tab[data-rep]").forEach(function(b){b.addEventListener("click",function(){repTab=this.dataset.rep;document.querySelectorAll(".tab[data-rep]").forEach(function(x){x.classList.toggle("active",x.dataset.rep===repTab);});renderReporte();});});
-  ge("rm-ins").addEventListener("click",function(){repModo="inscripcion";[ge("rm-ins"),ge("rm-vis"),ge("rm-amb")].forEach(function(b,i){b.className="btn bsm"+(i===0?"":" bd");b.style.background=i===0?"var(--lime)":"";b.style.color=i===0?"#080808":"";});renderReporte();});
-  ge("rm-vis").addEventListener("click",function(){repModo="visitas";[ge("rm-ins"),ge("rm-vis"),ge("rm-amb")].forEach(function(b,i){b.className="btn bsm"+(i!==1?" bd":"");b.style.background=i===1?"var(--lime)":"";b.style.color=i===1?"#080808":"";});renderReporte();});
-  ge("rm-amb").addEventListener("click",function(){repModo="ambos";[ge("rm-ins"),ge("rm-vis"),ge("rm-amb")].forEach(function(b,i){b.className="btn bsm"+(i!==2?" bd":"");b.style.background=i===2?"var(--lime)":"";b.style.color=i===2?"#080808":"";});renderReporte();});
+  // Botones de modo del reporte de socios — un solo handler
+  // parametrizado para los 4, en vez de 3 copias casi idénticas.
+  [{id:"rm-todos",modo:"todos"},{id:"rm-ins",modo:"inscripcion"},{id:"rm-vis",modo:"visitas"},{id:"rm-amb",modo:"ambos"}].forEach(function(cfg){
+    ge(cfg.id).addEventListener("click",function(){
+      repModo=cfg.modo;
+      ["rm-todos","rm-ins","rm-vis","rm-amb"].forEach(function(bid){
+        var b=ge(bid), on=bid===cfg.id;
+        b.className="btn bsm"+(on?"":" bd");
+        b.style.background=on?"var(--lime)":"";
+        b.style.color=on?"#080808":"";
+      });
+      renderReporte();
+    });
+  });
   ge("btn-csv").addEventListener("click",descargarCSV);
 
   // Dashboard
