@@ -90,7 +90,7 @@ var GymDB = (function () {
       get('socios',    'select=*,abonos(*)&order=id.asc'),
       get('deudas',    'select=*&order=fecha.desc'),
       get('checkins',  'select=*&fecha=eq.' + hoy()),
-      get('ventas',    'select=*&order=created_at.desc&limit=200'),
+      get('ventas',    'select=*&order=id.desc&limit=200'),
       get('membresias','select=*&order=id.asc'),
       get('clases',    'select=*&order=id.asc'),
       get('productos', 'select=*&order=id.asc'),
@@ -101,6 +101,15 @@ var GymDB = (function () {
       get('historico', 'select=*&order=id.asc'),
       get('rutinas',   'select=*,ejercicios(*)&order=dia.asc')
     ]).then(function(res) {
+      // Blindaje: si una tabla falla (columna faltante, tabla sin crear,
+      // etc.), sbFetch devuelve un objeto {_error:true,...} en vez de un
+      // array. Antes "res[i] || []" no lo detectaba porque un objeto es
+      // "truthy" — se guardaba el objeto de error como si fueran datos,
+      // y cualquier .filter()/.forEach() posterior tronaba en silencio,
+      // dejando pantallas enteras (Reportes, Dashboard) vacías sin
+      // ningún aviso visible. Ahora se verifica que sea array de verdad.
+      function arr(x){ return Array.isArray(x) ? x : []; }
+      res = res.map(arr);
 
       // Socios con abonos embebidos
       C.socios = (res[0]||[]).map(function(s) {
@@ -401,7 +410,7 @@ var GymDB = (function () {
       var q = 'select=*&order=fecha.desc,hora.desc';
       if (desde) q += '&fecha=gte.' + desde;
       if (hasta) q += '&fecha=lte.' + hasta;
-      return get('checkins', q).then(function(rows){ return rows || []; });
+      return get('checkins', q).then(function(rows){ return Array.isArray(rows) ? rows : []; });
     },
 
     addCheckin: function(sid) {
