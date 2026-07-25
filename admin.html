@@ -243,18 +243,6 @@ textarea{resize:vertical;min-height:70px;}
       <div class="fr"><label>Emergencia</label><input type="tel" id="f-emerg" placeholder="55 0000 0000" inputmode="numeric"></div>
     </div>
     <div class="fr"><label>Correo</label><input type="email" id="f-correo" placeholder="correo@mail.com"></div>
-    <div class="f2">
-      <div class="fr"><label>Plan</label>
-        <select id="f-plan">
-          <option value="">— Selecciona —</option>
-          <option value="Mensual">Mensual</option>
-          <option value="Trimestral">Trimestral</option>
-          <option value="Semestral">Semestral</option>
-          <option value="Anual">Anual</option>
-        </select>
-      </div>
-      <div class="fr"><label>Vencimiento</label><input type="date" id="f-vence"></div>
-    </div>
     <div class="fr"><label>Fecha de alta</label><input type="date" id="f-inicio"></div>
     <div class="f2">
       <div class="fr"><label>Nacimiento</label><input type="date" id="f-nac"></div>
@@ -350,9 +338,6 @@ textarea{resize:vertical;min-height:70px;}
 
     <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:16px;margin-bottom:12px">Ventas de productos</div>
     <div class="card"><div class="bar-chart" id="chart-ventas"></div></div>
-
-    <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:16px;margin-bottom:12px">Socios activos</div>
-    <div class="card"><div class="bar-chart" id="chart-socios"></div></div>
 
     <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:16px;margin-bottom:12px">Nuevas inscripciones</div>
     <div class="card"><div class="bar-chart" id="chart-altas"></div></div>
@@ -1033,7 +1018,8 @@ var socEditId=null;
 function abrirNuevoSoc(){
   socEditId=null; ge("form-titulo").textContent="Nuevo Socio";
   ["f-id","f-nombre","f-ap","f-am","f-tel","f-emerg","f-correo","f-notas"].forEach(function(i){ge(i).value="";});
-  ge("f-vence").value="";ge("f-inicio").value="";ge("f-nac").value="";ge("f-plan").value="";ge("f-sexo").value="";
+  ge("f-inicio").value=new Date().toISOString().slice(0,10);
+  ge("f-nac").value="";ge("f-sexo").value="";
   showScreen("form");
 }
 function abrirEditarSoc(id){
@@ -1041,26 +1027,38 @@ function abrirEditarSoc(id){
   socEditId=id; ge("form-titulo").textContent="Editar Socio";
   ge("f-id").value=s.id;ge("f-nombre").value=s.nombre;ge("f-ap").value=s.apellido_paterno;ge("f-am").value=s.apellido_materno;
   ge("f-tel").value=s.numero||"";ge("f-emerg").value=s.numero_emergencia||"";ge("f-correo").value=s.correo||"";
-  ge("f-notas").value=s.notas||"";ge("f-vence").value=s.fecha_vencimiento||"";ge("f-inicio").value=s.fecha_inicio||"";
-  ge("f-nac").value=s.fecha_nacimiento||"";ge("f-plan").value=s.plan||"";ge("f-sexo").value=s.sexo||"";
+  ge("f-notas").value=s.notas||"";ge("f-inicio").value=s.fecha_inicio||"";
+  ge("f-nac").value=s.fecha_nacimiento||"";ge("f-sexo").value=s.sexo||"";
   showScreen("form");
 }
 function guardarSoc(){
   var id=ge("f-id").value.trim(),nombre=ge("f-nombre").value.trim(),ap=ge("f-ap").value.trim();
   if(!id||!nombre||!ap){alert("Número, nombre y apellido son requeridos");return;}
   var existente=SOCIOS.find(function(x){return x.id===id;});
+  var esNuevo=!existente;
+  // El plan/vencimiento NO se captura aquí — primero se generan los
+  // datos del socio, y la membresía se asigna después desde su detalle
+  // ("+ Asignar membresía"). Si ya existía, se conserva su membresía tal
+  // cual estaba; si es nuevo, queda "sin membresía" hasta asignarle una.
   var datos={id:id,nombre:nombre,apellido_paterno:ap,apellido_materno:ge("f-am").value.trim(),
     numero:ge("f-tel").value.replace(/\D/g,"").trim(),numero_emergencia:ge("f-emerg").value.trim(),correo:ge("f-correo").value.trim(),
-    notas:ge("f-notas").value.trim(),fecha_vencimiento:ge("f-vence").value,fecha_inicio:ge("f-inicio").value,
-    fecha_nacimiento:ge("f-nac").value,plan:ge("f-plan").value,sexo:ge("f-sexo").value,
+    notas:ge("f-notas").value.trim(),fecha_inicio:ge("f-inicio").value,
+    fecha_vencimiento:existente?existente.fecha_vencimiento:"",
+    fecha_nacimiento:ge("f-nac").value,plan:existente?existente.plan:"",sexo:ge("f-sexo").value,
     visitas:existente?existente.visitas:0, activo:existente?existente.activo:true,
     abonos:existente?(existente.abonos||[]):[]};
   // GymDB.setSocio hace insert o update según si el id ya existe, y
   // también crea/actualiza la cuenta de acceso (tel+código) del socio.
   GymDB.setSocio(datos);
   SOCIOS = GymDB.getSocios();
-  if(socioActual&&socioActual.id===id) socioActual=SOCIOS.find(function(x){return x.id===id;});
-  showScreen("socios");
+  socioActual = SOCIOS.find(function(x){return x.id===id;});
+  if(esNuevo){
+    // Socio recién creado → directo a su detalle para asignarle membresía
+    detTab="membresia";
+    showScreen("detalle");
+  } else {
+    showScreen("socios");
+  }
 }
 
 // ── MODAL PAGO ────────────────────────────────────────────────
@@ -1568,13 +1566,6 @@ function renderGrafica(){
     });
     pintarChart("chart-checkins", ciPorMes, "#C8F135", false);
   });
-
-  // Socios activos: histórico mensual de cuántos socios tenían la
-  // bandera "activo" en cada momento. No es calculable en vivo (activo
-  // es un estado actual, no versionado), así que se alimenta a mano en
-  // la tabla `historico` de Supabase (tipo="socios") cada mes.
-  var datos3=HISTORICO.socios||[];
-  pintarChart("chart-socios", datos3.length?datos3:meses.map(function(mm){return {m:mm.m,v:0};}), "#0A84FF", false);
 }
 
 // ── EVENTOS ───────────────────────────────────────────────────
