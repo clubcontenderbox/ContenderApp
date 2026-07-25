@@ -308,7 +308,7 @@ textarea{resize:vertical;min-height:70px;}
   <div class="tabs">
     <button class="tab active" data-rep="socios">Socios</button>
     <button class="tab" data-rep="checkins">Check-ins</button>
-    <button class="tab" data-rep="pagos">Pagos</button>
+    <button class="tab" data-rep="pagos">Membresías</button>
     <button class="tab" data-rep="ventas">Ventas</button>
   </div>
   <div class="periodo-wrap">
@@ -416,7 +416,7 @@ textarea{resize:vertical;min-height:70px;}
     </div>
     <div style="background:var(--bg3);border-radius:12px;padding:12px;border:1px solid var(--border);font-size:12px;color:var(--muted);line-height:1.8;margin-top:4px" id="pago-resumen"></div>
     <div class="mbtns">
-      <button class="btn bd" style="flex:1;padding:13px" data-close="modal-pago">Cancelar</button>
+      <button class="btn bd" style="flex:1;padding:13px" id="pago-cancelar" data-close="modal-pago">Cancelar</button>
       <button class="btn bl" style="flex:1;padding:13px" id="pago-guardar">Confirmar</button>
     </div>
   </div>
@@ -855,36 +855,11 @@ function renderTabMembresia(s){
   var totalD=deudas.reduce(function(a,d){return a+d.total;},0);
   var hoy=new Date();hoy.setHours(0,0,0,0);
   var html="<div class='sec' style='padding-bottom:20px'>";
-  // Membresía
-  html+="<div style='font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;margin-top:4px'>Membresía</div>";
-  html+="<div class='card "+(st==="aldia"?"verde":st==="vencehoy"?"naranja":st==="sinmemb"?"":"roja")+"' style='margin-bottom:8px'>";
-  html+="<div style='display:flex;justify-content:space-between;align-items:center'>";
-  html+="<div><div style='font-family:\"Bebas Neue\",sans-serif;font-size:22px'>"+(s.plan||"Sin membresía asignada")+"</div><div style='font-size:12px;color:var(--muted)'>"+(s.plan?"Vence: "+fF(s.fecha_vencimiento):"Usa \"Renovar membresía\" para asignar una")+"</div></div>"+pillSt(st)+"</div>";
-  if(abonos.length){
-    var pag=abonos.filter(function(a){return a.pagado;}).length;
-    var pct=Math.round((pag/abonos.length)*100);
-    html+="<div class='prog-wrap' style='margin-top:10px'><div class='prog-fill' style='width:"+pct+"%'></div></div>";
-    html+="<div style='font-size:11px;color:var(--muted);margin-top:4px'>"+pag+"/"+abonos.length+" abonos · "+fm(abonos.filter(function(a){return a.pagado;}).reduce(function(t,a){return t+a.monto;},0))+" pagado</div>";
-  }
-  html+="</div>";
-  // Lista abonos
-  if(abonos.length){
-    html+="<div class='card' style='margin-bottom:8px'>";
-    abonos.forEach(function(a){
-      var lim=new Date(a.fecha_limite+"T00:00:00");
-      var venc=!a.pagado&&lim<hoy;
-      var cls=a.pagado?"aok":venc?"avenc":"apend";
-      html+="<div class='abono-row'><div class='abono-num "+cls+"'>"+(a.pagado?"✓":a.numero)+"</div>";
-      html+="<div style='flex:1;min-width:0'><div style='font-size:13px;font-weight:600'>Abono "+a.numero+(a.pagado?" · Pagado":venc?" · Vencido":" · Pendiente")+"</div>";
-      html+="<div style='font-size:11px;color:var(--muted)'>"+(a.pagado?"Pagado el "+fF(a.fecha_pago):"Límite: "+fF(a.fecha_limite))+"</div></div>";
-      html+="<div style='font-family:\"Bebas Neue\",sans-serif;font-size:18px;color:"+(a.pagado?"var(--green)":venc?"var(--red)":"var(--orange)")+"'>"+fm(a.monto)+"</div></div>";
-    });
-    html+="</div>";
-  }
+
   // Deudas de membresía: abonos pendientes de pago, marcados como deuda
   // (distinta de deudas de producto) para poder cobrarlos uno por uno.
   if(deudasMemb.length){
-    html+="<div style='font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px'>Deudas de membresía</div>";
+    html+="<div style='font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;margin-top:4px'>Deudas de membresía</div>";
     html+="<div class='card' style='margin-bottom:14px'>";
     deudasMemb.forEach(function(d){
       html+="<div class='abono-row'><div style='flex:1;min-width:0'><div style='font-size:13px;font-weight:600'>"+d.producto+"</div>";
@@ -894,26 +869,37 @@ function renderTabMembresia(s){
     });
     html+="</div>";
   }
+
   // Botones
-  html+="<div style='display:flex;gap:8px;margin-bottom:8px'>";
+  html+="<div style='display:flex;gap:8px;margin-bottom:14px'>";
   html+="<button class='btn bl bsm' id='btn-renovar' style='flex:1;justify-content:center'>"+(st==="sinmemb"?"+ Asignar membresía":"+ Renovar membresía")+"</button>";
-  if(st!=="sinmemb") html+="<button class='btn br bsm' id='btn-elim-memb'>&#128465;</button>";
   html+="</div>";
-  // Historial de membresías: registros de pagos de membresía (tipo "memb"
-  // en VENTAS) de este socio. Permite borrar un registro si se asignó
-  // por error — incluye tanto la membresía actual como renovaciones viejas.
+
+  // Historial de membresías: ahora es la ÚNICA vista de membresías (ya
+  // no hay tarjeta de "membresía activa" separada) — cada tarjeta muestra
+  // el plan, fecha de inicio, fecha final de cobertura y qué entrenador
+  // la asignó, para no confundir a qué mes corresponde cada una. La más
+  // reciente (arriba, es la vigente) tiene botón de editar además de
+  // eliminar; las anteriores solo eliminar.
+  html+="<div style='font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px'>Historial de membresías</div>";
   var histMemb=VENTAS.filter(function(v){return v.tipo==="memb"&&v.socio_id===s.id;}).sort(function(a,b){return (b.fecha||"").localeCompare(a.fecha||"");});
-  if(histMemb.length){
-    html+="<div style='font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px'>Historial de membresías</div>";
+  if(!histMemb.length){
+    html+="<div style='font-size:13px;color:var(--muted);padding:8px 0 14px'>Sin membresías registradas todavía</div>";
+  } else {
     html+="<div class='card' style='margin-bottom:14px'>";
-    histMemb.forEach(function(v){
-      html+="<div class='abono-row'><div style='flex:1;min-width:0'><div style='font-size:13px;font-weight:600'>"+v.producto+"</div>";
-      html+="<div style='font-size:11px;color:var(--muted)'>"+fF(v.fecha)+(v.trainer?" · "+v.trainer:"")+"</div></div>";
+    histMemb.forEach(function(v,i){
+      html+="<div class='abono-row'><div style='flex:1;min-width:0'>";
+      html+="<div style='font-size:13px;font-weight:600'>"+v.producto+(i===0?" <span style='color:var(--lime);font-size:10px;font-weight:700'>· VIGENTE</span>":"")+"</div>";
+      html+="<div style='font-size:11px;color:var(--muted)'>"+fF(v.membresia_inicio||v.fecha)+" → "+fF(v.membresia_vencimiento)+"</div>";
+      html+="<div style='font-size:11px;color:var(--muted)'>"+(v.trainer||"—")+" · pagado "+fF(v.fecha)+"</div>";
+      html+="</div>";
       html+="<div style='font-family:\"Bebas Neue\",sans-serif;font-size:16px;color:var(--lime);margin-right:8px'>"+fm(v.total)+"</div>";
+      if(i===0) html+="<button class='btn bd bsm' data-edit-hist-memb='"+v.id+"' style='margin-right:4px'>&#9999;</button>";
       html+="<button class='btn br bsm' data-del-hist-memb='"+v.id+"'>&#128465;</button></div>";
     });
     html+="</div>";
   }
+
   // Deudas
   html+="<div style='font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px'>Deudas de productos</div>";
   if(!deudas.length) html+="<div style='font-size:13px;color:var(--muted);padding:8px 0'>Sin deudas ✓</div>";
@@ -932,14 +918,10 @@ function renderTabMembresia(s){
 
   ge("btn-renovar").addEventListener("click",function(){abrirModalPago(s);});
   ge("btn-add-prod").addEventListener("click",function(){abrirModalProdSoc(s);});
-  if(ge("btn-elim-memb")) ge("btn-elim-memb").addEventListener("click",function(){
-    if(!confirm("¿Eliminar la membresía actual de "+s.nombre+"? Se borran también sus abonos pendientes."))return;
-    s.plan=""; s.fecha_inicio=""; s.fecha_vencimiento=""; s.abonos=[];
-    GymDB.clearAbonos(s.id).then(function(){
-      GymDB.setSocio(s);
-      SOCIOS = GymDB.getSocios();
-      socioActual = SOCIOS.find(function(x){return x.id===s.id;}) || s;
-      renderDetalle();
+  ge("det-content").querySelectorAll("[data-edit-hist-memb]").forEach(function(btn){
+    btn.addEventListener("click",function(){
+      var v=VENTAS.find(function(x){return String(x.id)===this.dataset.editHistMemb;},this);
+      if(v) abrirModalPago(s, v);
     });
   });
   ge("det-content").querySelectorAll("[data-del-hist-memb]").forEach(function(btn){
@@ -1062,17 +1044,30 @@ function guardarSoc(){
 }
 
 // ── MODAL PAGO ────────────────────────────────────────────────
-function abrirModalPago(s){
-  ge("pago-plan").value=s.plan||"Mensual";
-  // Si la membresía actual todavía no vence, la renovación continúa
-  // justo donde termina (sin regalar ni perder días). Si ya venció o
-  // no tiene membresía, arranca hoy.
-  var hoy=new Date().toISOString().slice(0,10);
-  var inicioSugerido = (s.fecha_vencimiento && s.fecha_vencimiento>hoy) ? s.fecha_vencimiento : hoy;
-  ge("pago-inicio").value=inicioSugerido;
-  ge("pago-tipo").value="completo";
+var ventaEditando = null; // venta que se está editando (null = alta/renovación normal)
+
+function abrirModalPago(s, ventaEditar){
+  ventaEditando = ventaEditar || null;
+  ge("modal-pago").querySelector("h2").textContent = ventaEditando ? "Editar Membresía" : "Registrar Pago";
+  if(ventaEditando){
+    // Modo edición: precargar los valores de esa venta puntual, sin
+    // tocar el resto del historial ni recalcular deudas/abonos.
+    ge("pago-plan").value = ventaEditando.producto || s.plan || "Mensual";
+    ge("pago-inicio").value = ventaEditando.membresia_inicio || s.fecha_inicio || new Date().toISOString().slice(0,10);
+    ge("pago-tipo").value = "completo";
+  } else {
+    ge("pago-plan").value=s.plan||"Mensual";
+    // Si la membresía actual todavía no vence, la renovación continúa
+    // justo donde termina (sin regalar ni perder días). Si ya venció o
+    // no tiene membresía, arranca hoy.
+    var hoy=new Date().toISOString().slice(0,10);
+    var inicioSugerido = (s.fecha_vencimiento && s.fecha_vencimiento>hoy) ? s.fecha_vencimiento : hoy;
+    ge("pago-inicio").value=inicioSugerido;
+    ge("pago-tipo").value="completo";
+  }
   var selT=ge("pago-trainer"); selT.innerHTML="<option value=''>— Selecciona —</option>";
   TRAINERS.forEach(function(t){selT.innerHTML+="<option value='"+t.nombre+"'>"+t.nombre+"</option>";});
+  if(ventaEditando && ventaEditando.trainer) selT.value=ventaEditando.trainer;
   actualizarResumenPago();
   ge("modal-pago").classList.add("open");
 }
@@ -1093,7 +1088,42 @@ function guardarPago(){
   var trainer=ge("pago-trainer").value;
   if(!s||!fi) return;
   if(!trainer){alert("Selecciona el entrenador responsable");return;}
-  s.plan=plan; s.fecha_inicio=fi; s.fecha_vencimiento=addDays(fi,PLAN_DIAS[plan]||30);
+  var hoyPago = new Date().toISOString().slice(0,10);
+  var fechaVenc = addDays(fi,PLAN_DIAS[plan]||30);
+
+  // ── MODO EDICIÓN: corrige la venta más reciente sin crear una nueva
+  // fila de historial ni recalcular deudas/abonos de un ciclo. Solo
+  // ajusta plan, fechas de cobertura y entrenador.
+  if(ventaEditando){
+    GymDB.updateVenta(ventaEditando.id, {
+      producto:plan, total:PLAN_PRECIO[plan]||0, trainer:trainer,
+      membresia_inicio:fi, membresia_vencimiento:fechaVenc
+    });
+    VENTAS = GymDB.getVentas();
+    // Si esta venta es la más reciente (la vigente), también refleja
+    // el cambio en el estado actual del socio.
+    var histOrdenado=VENTAS.filter(function(v){return v.tipo==="memb"&&v.socio_id===s.id;}).sort(function(a,b){return (b.fecha||"").localeCompare(a.fecha||"");});
+    if(histOrdenado.length && String(histOrdenado[0].id)===String(ventaEditando.id)){
+      s.plan=plan; s.fecha_inicio=fi; s.fecha_vencimiento=fechaVenc;
+      GymDB.setSocio(s);
+      SOCIOS = GymDB.getSocios();
+      socioActual = SOCIOS.find(function(x){return x.id===s.id;}) || s;
+    }
+    ventaEditando=null;
+    ge("modal-pago").classList.remove("open");
+    renderDetalle();
+    return;
+  }
+
+  // ── MODO NORMAL: alta o renovación ──────────────────────────────
+  // IMPORTANTE: "fi" es la fecha en que ARRANCA LA COBERTURA de la
+  // membresía (puede ser hoy, o una fecha futura si renuevas antes de
+  // que venza la anterior — ver "continuidad" en abrirModalPago). Pero
+  // la VENTA se registra con la fecha en que el dinero realmente entró
+  // (hoy), sin importar hasta cuándo aplique la cobertura. Si un socio
+  // paga hoy 2 meses por adelantado, esa venta cuenta como ingreso de
+  // HOY en Reportes y Dashboard — no se reparte ni se mueve a futuro.
+  s.plan=plan; s.fecha_inicio=fi; s.fecha_vencimiento=fechaVenc;
 
   // Limpiar deudas de membresía viejas (de un ciclo anterior) antes de
   // crear las nuevas — igual que hacemos con los abonos.
@@ -1109,14 +1139,17 @@ function guardarPago(){
       var numero=i+1, fechaLimite=addWeeks(fi,a.semanas);
       var deudaId="d"+(nextDeuId++);
       GymDB.addDeuda(s.id, {id:deudaId, producto:plan+" · Abono "+numero, total:a.monto, fecha:fechaLimite, trainer:trainer, tipo:"membresia"});
-      return {numero:numero, monto:a.monto, fecha_limite:fechaLimite, pagado:false, fecha_pago:null, deudaId:deudaId, trainer:trainer};
+      return {numero:numero, monto:a.monto, fecha_limite:fechaLimite, pagado:false, fecha_pago:null, deudaId:deudaId, trainer:trainer,
+              membresia_inicio:fi, membresia_vencimiento:fechaVenc};
     });
     DEUDAS = GymDB.getAllDeudas();
   } else {
-    s.abonos=[{numero:1,monto:PLAN_PRECIO[plan],fecha_limite:fi,pagado:true,fecha_pago:fi}];
-    // Pago único: el dinero entra HOY, así que se registra como venta
-    // (tipo "memb") para que Dashboard y Reportes reflejen ingresos reales.
-    VENTAS.unshift({id:nextVentaId++,socio_id:s.id,socio_nombre:s.nombre+" "+s.apellido_paterno,producto:plan,cantidad:1,total:PLAN_PRECIO[plan]||0,fecha:fi,status:"pagado",tipo:"memb",trainer:trainer});
+    s.abonos=[{numero:1,monto:PLAN_PRECIO[plan],fecha_limite:fi,pagado:true,fecha_pago:hoyPago}];
+    // Pago único: se registra como venta con la fecha REAL del cobro
+    // (hoy), no con la fecha de inicio de cobertura. Se guarda también
+    // el periodo de cobertura (inicio/vencimiento) para mostrarlo en
+    // el historial sin ambigüedad de a qué mes corresponde.
+    VENTAS.unshift({id:nextVentaId++,socio_id:s.id,socio_nombre:s.nombre+" "+s.apellido_paterno,producto:plan,cantidad:1,total:PLAN_PRECIO[plan]||0,fecha:hoyPago,status:"pagado",tipo:"memb",trainer:trainer,membresia_inicio:fi,membresia_vencimiento:fechaVenc});
     GymDB.saveVentas(VENTAS);
     VENTAS = GymDB.getVentas();
   }
@@ -1677,6 +1710,7 @@ document.addEventListener("DOMContentLoaded",function(){
   ge("pago-tipo").addEventListener("change",actualizarResumenPago);
   ge("pago-inicio").addEventListener("change",actualizarResumenPago);
   ge("pago-guardar").addEventListener("click",guardarPago);
+  ge("pago-cancelar").addEventListener("click",function(){ ventaEditando=null; });
 
   // Prod a socio
   ge("ps-producto").addEventListener("change",calcPSTot);

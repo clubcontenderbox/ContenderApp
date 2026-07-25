@@ -442,10 +442,21 @@ var GymDB = (function () {
           post('ventas',{
             socio_id:v.socio_id, socio_nombre:v.socio_nombre,
             producto:v.producto, cantidad:v.cantidad, total:v.total,
-            fecha:v.fecha, status:v.status, tipo:v.tipo, trainer:v.trainer||null
+            fecha:v.fecha, status:v.status, tipo:v.tipo, trainer:v.trainer||null,
+            membresia_inicio:v.membresia_inicio||null, membresia_vencimiento:v.membresia_vencimiento||null
           }).then(function(r){ if(r&&r[0]) v.id=r[0].id; });
         }
       });
+      bump();
+    },
+
+    // Actualiza una venta existente en su lugar (ej. corregir el
+    // registro de membresía más reciente sin crear uno nuevo).
+    updateVenta: function(id, campos) {
+      var idx=-1;
+      for(var i=0;i<C.ventas.length;i++){ if(String(C.ventas[i].id)===String(id)){ idx=i; break; } }
+      if(idx>-1){ Object.keys(campos).forEach(function(k){ C.ventas[idx][k]=campos[k]; }); }
+      pat('ventas','id=eq.'+id, campos);
       bump();
     },
 
