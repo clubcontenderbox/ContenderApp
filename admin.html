@@ -1050,7 +1050,7 @@ function guardarSoc(){
   if(!id||!nombre||!ap){alert("Número, nombre y apellido son requeridos");return;}
   var existente=SOCIOS.find(function(x){return x.id===id;});
   var datos={id:id,nombre:nombre,apellido_paterno:ap,apellido_materno:ge("f-am").value.trim(),
-    numero:ge("f-tel").value.trim(),numero_emergencia:ge("f-emerg").value.trim(),correo:ge("f-correo").value.trim(),
+    numero:ge("f-tel").value.replace(/\D/g,"").trim(),numero_emergencia:ge("f-emerg").value.trim(),correo:ge("f-correo").value.trim(),
     notas:ge("f-notas").value.trim(),fecha_vencimiento:ge("f-vence").value,fecha_inicio:ge("f-inicio").value,
     fecha_nacimiento:ge("f-nac").value,plan:ge("f-plan").value,sexo:ge("f-sexo").value,
     visitas:existente?existente.visitas:0, activo:existente?existente.activo:true,

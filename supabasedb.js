@@ -212,11 +212,26 @@ var GymDB = (function () {
       if(idx>-1){
         C.socios[idx]=socio;
         pat('socios','id=eq.'+socio.id,data);
+        // BUG CORREGIDO: antes buscaba la cuenta comparando cuenta.id
+        // (que es el ID interno autogenerado de la tabla `cuentas`, sin
+        // relación con el socio) contra socio.id — nunca coincidía, así
+        // que un socio editado (tel agregado o cambiado después de
+        // creado) se quedaba sin cuenta de acceso o con el tel viejo,
+        // y por eso no podía entrar a socio.html con esas credenciales.
         if(nd(socio.numero)){
-          var ci=findIdx(C.cuentas,String(socio.id));
-          if(ci>-1&&C.cuentas[ci].telefono!==socio.numero){
-            C.cuentas[ci].telefono=socio.numero;
-            pat('cuentas','id=eq.'+C.cuentas[ci].id,{telefono:socio.numero});
+          var ci=-1;
+          for(var i=0;i<C.cuentas.length;i++){
+            if(C.cuentas[i].socios&&C.cuentas[i].socios.indexOf(String(socio.id))>-1){ ci=i; break; }
+          }
+          if(ci>-1){
+            if(C.cuentas[ci].telefono!==socio.numero){
+              C.cuentas[ci].telefono=socio.numero;
+              pat('cuentas','id=eq.'+C.cuentas[ci].id,{telefono:socio.numero});
+            }
+          } else {
+            // No tenía cuenta todavía (ej. se creó sin teléfono y se
+            // agregó después) — la creamos ahora.
+            self.crearCuenta(String(socio.id), socio.numero);
           }
         }
         bump();
