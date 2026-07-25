@@ -278,7 +278,7 @@ textarea{resize:vertical;min-height:70px;}
 <!-- ═══ VENTAS ════════════════════════════════════════════════ -->
 <!-- ═══ REPORTES ══════════════════════════════════════════════ -->
 <div class="screen" id="screen-reportes">
-  <div class="hdr"><div><h1>Reportes</h1></div></div>
+  <div class="hdr"><div><h1>Reportes</h1></div><div class="hdr-r"><button class="btn bd bsm" id="btn-sync-rep">↻</button></div></div>
   <div class="tabs">
     <button class="tab active" data-rep="socios">Socios</button>
     <button class="tab" data-rep="checkins">Check-ins</button>
@@ -1460,7 +1460,10 @@ function renderReporte(){
     activos2.forEach(function(s){var st=calcStatus(s);lh+=rfila(ini(s),avColor(st),"#"+s.id+" · "+s.nombre+" "+s.apellido_paterno,s.plan+" · "+pillSt(st),fm(PLAN_PRECIO[s.plan]||0));});
   } else {
     var trainerFiltro=ge("r-trainer").value;
+    // Solo ventas de PRODUCTO — las membresías tienen su propia pestaña
+    // "Membresías" y su propio historial por socio.
     var vf=VENTAS.filter(function(v){
+      if(v.tipo!=="prod")return false;
       if(!enPeriodo(v.fecha))return false;
       if(trainerFiltro&&v.trainer!==trainerFiltro)return false;
       return true;
@@ -1484,7 +1487,7 @@ function descargarCSV(){
     fn="socios.csv";
   } else if(repTab==="ventas"){
     csv="ID,Socio,Producto,Cantidad,Total,Fecha,Status\n";
-    VENTAS.filter(function(v){return enPeriodo(v.fecha);}).forEach(function(v){csv+=v.id+","+v.socio_nombre+","+v.producto+","+v.cantidad+","+v.total+","+v.fecha+","+v.status+"\n";});
+    VENTAS.filter(function(v){return v.tipo==="prod"&&enPeriodo(v.fecha);}).forEach(function(v){csv+=v.id+","+v.socio_nombre+","+v.producto+","+v.cantidad+","+v.total+","+v.fecha+","+v.status+"\n";});
     fn="ventas.csv";
   }
   var a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download=fn;a.click();
@@ -1622,6 +1625,10 @@ document.addEventListener("DOMContentLoaded",function(){
   ge("btn-sync-cat").addEventListener("click",function(){
     var b=this; b.textContent="…"; b.disabled=true;
     GymDB.init().then(function(){ recargarDatos(); renderCatalogo(); b.textContent="↻"; b.disabled=false; mostrarToast("↻ Actualizado"); });
+  });
+  ge("btn-sync-rep").addEventListener("click",function(){
+    var b=this; b.textContent="…"; b.disabled=true;
+    GymDB.init().then(function(){ recargarDatos(); renderReporte(); b.textContent="↻"; b.disabled=false; mostrarToast("↻ Actualizado"); });
   });
   document.querySelectorAll(".tab[data-cat]").forEach(function(b){b.addEventListener("click",function(){catTab=this.dataset.cat;document.querySelectorAll(".tab[data-cat]").forEach(function(x){x.classList.toggle("active",x.dataset.cat===catTab);});renderCatalogo();});});
   ge("btn-cat-nuevo").addEventListener("click",catNuevo);
