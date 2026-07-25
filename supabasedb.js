@@ -471,8 +471,26 @@ var GymDB = (function () {
 
     // Elimina una venta puntual (ej. un registro de membresía mal
     // asignado). Se usa desde el historial de membresías del socio.
+    // Detecta si un id es el temporal que se le asigna en memoria antes
+    // de que Supabase confirme el guardado (Date.now(), siempre un
+    // número enorme de 13 dígitos) — vs. un id real ya asignado por
+    // Postgres (autoincremental, empieza chico: 1, 2, 3...). Si el
+    // registro nunca terminó de guardarse, su id se queda temporal
+    // para siempre, y mandarlo tal cual a Supabase truena con
+    // "value ... is out of range for type integer" porque la columna
+    // id es de 4 bytes y ese número de 13 dígitos no cabe ahí.
+    _esIdTemporal: function(id){
+      var n = Number(id);
+      return !isNaN(n) && n > 2147483647;
+    },
+
     removeVenta: function(ventaId) {
       C.ventas = C.ventas.filter(function(v){ return String(v.id)!==String(ventaId); });
+      if (this._esIdTemporal(ventaId)) {
+        console.warn('[GymDB] La venta '+ventaId+' nunca se guardó en Supabase (falló su creación) — se quita solo de memoria, no había nada que borrar en el servidor.');
+        bump();
+        return;
+      }
       del('ventas', 'id=eq.'+ventaId);
       bump();
     },
@@ -504,6 +522,11 @@ var GymDB = (function () {
       var idx=-1;
       for(var i=0;i<C.ventas.length;i++){ if(String(C.ventas[i].id)===String(id)){ idx=i; break; } }
       if(idx>-1){ Object.keys(campos).forEach(function(k){ C.ventas[idx][k]=campos[k]; }); }
+      if (this._esIdTemporal(id)) {
+        console.warn('[GymDB] La venta '+id+' nunca se guardó en Supabase — se actualiza solo en memoria. Vuelve a crearla si necesitas que quede en la base.');
+        bump();
+        return;
+      }
       pat('ventas','id=eq.'+id, campos);
       bump();
     },

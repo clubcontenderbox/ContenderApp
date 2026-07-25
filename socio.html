@@ -806,7 +806,7 @@ function renderPerfiles(){
 function renderAbonos(){
   var abonos = (SOCIO.abonos||[]).slice().sort(function(a,b){return (b.fecha_pago||"").localeCompare(a.fecha_pago||"");});
   var c = ge("abonos-lista");
-  if(!SOCIO.membresia || !abonos.length){ c.innerHTML=""; return; }
+  if(!SOCIO.membresia){ c.innerHTML=""; return; }
 
   var precio = precioPlan(SOCIO.membresia);
   var pagado = totalAbonado();
@@ -820,18 +820,25 @@ function renderAbonos(){
   var pct = precio>0 ? Math.min(Math.round((pagado/precio)*100),100) : 0;
   html += "<div style='background:var(--bg3);border-radius:4px;height:5px;overflow:hidden;margin-bottom:12px'>";
   html += "  <div style='height:100%;border-radius:4px;background:"+(saldo>0?"var(--orange)":"var(--lime)")+";width:"+pct+"%'></div></div>";
-  // Lista de pagos hechos
-  abonos.forEach(function(a){
-    var fmtP = a.fecha_pago ? new Date(a.fecha_pago+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short"}) : "—";
-    html += "<div class='abono-fila'>";
-    html += "<div class='abono-num ok'>✓</div>";
-    html += "<div class='abono-info'>";
-    html += "  <div class='abono-label'>Pago registrado</div>";
-    html += "  <div class='abono-fecha'>"+fmtP+(a.trainer?" · "+a.trainer:"")+"</div>";
-    html += "</div>";
-    html += "<div class='abono-monto' style='color:var(--green)'>"+fm(a.monto)+"</div>";
-    html += "</div>";
-  });
+  // Lista de pagos hechos — si no hay ninguno registrado todavía, se
+  // avisa explícitamente en vez de dejar la sección en blanco (antes
+  // esto pasaba justo cuando el pago existía pero nunca se había
+  // guardado de verdad en Supabase — dejaba al socio sin ninguna pista).
+  if(!abonos.length){
+    html += "<div style='font-size:12px;color:var(--muted);text-align:center;padding:8px 0'>Sin pagos registrados todavía</div>";
+  } else {
+    abonos.forEach(function(a){
+      var fmtP = a.fecha_pago ? new Date(a.fecha_pago+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short"}) : "—";
+      html += "<div class='abono-fila'>";
+      html += "<div class='abono-num ok'>✓</div>";
+      html += "<div class='abono-info'>";
+      html += "  <div class='abono-label'>Pago registrado</div>";
+      html += "  <div class='abono-fecha'>"+fmtP+(a.trainer?" · "+a.trainer:"")+"</div>";
+      html += "</div>";
+      html += "<div class='abono-monto' style='color:var(--green)'>"+fm(a.monto)+"</div>";
+      html += "</div>";
+    });
+  }
   html += "</div>";
   c.innerHTML = html;
 }
