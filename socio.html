@@ -122,6 +122,7 @@ html,body{height:100%;background:#080808;color:#F0EDE8;font-family:"DM Sans",san
 }
 .memb-card.aldia   {border-left:3px solid var(--green);}
 .memb-card.vencehoy{border-left:3px solid var(--orange);}
+.memb-card.pendiente{border-left:3px solid var(--orange);}
 .memb-card.vencido {border-left:3px solid var(--red);}
 .memb-nombre{font-family:"Bebas Neue",sans-serif;font-size:20px;line-height:1;}
 .memb-vence{font-size:12px;color:var(--muted);margin-top:4px;}
@@ -573,6 +574,17 @@ var CONFIG = {
 // es uno solo, compartido.
 var DIAS_SEMANA = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 
+// Catálogo de Membresías (para saber el precio del plan del socio)
+var MEMBRESIAS = [];
+function precioPlan(nombrePlan){
+  var m=MEMBRESIAS.find(function(x){return x.nombre===nombrePlan;});
+  if(!m){
+    console.warn('[Socio] No se encontró el plan "'+nombrePlan+'" en el catálogo de Membresías. Catálogo cargado: '+JSON.stringify(MEMBRESIAS.map(function(x){return x.nombre;}))+' — el saldo se va a calcular mal (precio $0) hasta que coincida el nombre exacto.');
+    return 0;
+  }
+  return m.precio||0;
+}
+
 function ge(id){ return document.getElementById(id); }
 function fm(n){ return "$"+Number(n).toLocaleString("es-MX"); }
 function fF(f){ return f?new Date(f+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"2-digit"}):"—"; }
@@ -619,6 +631,9 @@ document.addEventListener('DOMContentLoaded', function(){
   if(ov) ov.style.display='none';
   // Catálogo de clases del gym (ver bloque LÓGICA: CLASES para var CLASES)
   CLASES = GymDB.getClases();
+  // Catálogo de Membresías — necesario para saber el precio del plan
+  // del socio y así calcular su saldo pendiente (precio - abonado).
+  MEMBRESIAS = GymDB.getMembresias();
   // Diagnóstico: qué llegó realmente desde Supabase (visible en la
   // consola F12; útil si la pantalla de Clases sale vacía)
   console.log('[Socio] Clases cargadas:', CLASES.length, JSON.stringify(CLASES.map(function(c){return {nombre:c.nombre, dias:c.dias};})));
@@ -783,36 +798,38 @@ function renderPerfiles(){
 }
 
 // ── ABONOS ────────────────────────────────────────────────────
+// ── PAGOS DE MEMBRESÍA ──────────────────────────────────────────
+// Ya no hay parcialidades fijas con fecha límite — cada abono es
+// simplemente un pago que el socio ya hizo. Se muestra cuánto lleva
+// pagado del total del plan, y la lista de esos pagos (más reciente
+// primero).
 function renderAbonos(){
-  var abonos = SOCIO.abonos || [];
+  var abonos = (SOCIO.abonos||[]).slice().sort(function(a,b){return (b.fecha_pago||"").localeCompare(a.fecha_pago||"");});
   var c = ge("abonos-lista");
-  if(!abonos.length){ c.innerHTML=""; return; }
-  var pagados  = abonos.filter(function(a){ return a.pagado; }).length;
-  var totalPag = abonos.filter(function(a){ return a.pagado; }).reduce(function(s,a){ return s+a.monto; },0);
-  var totalPlan= abonos.reduce(function(s,a){ return s+a.monto; },0);
+  if(!SOCIO.membresia || !abonos.length){ c.innerHTML=""; return; }
+
+  var precio = precioPlan(SOCIO.membresia);
+  var pagado = totalAbonado();
+  var saldo  = Math.max(precio-pagado,0);
 
   var html = "<div style='background:var(--bg2);border-radius:14px;padding:13px;border:1px solid var(--border);margin-bottom:8px'>";
-  // Barra de progreso
-  var pct = Math.round((pagados/abonos.length)*100);
   html += "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'>";
-  html += "  <span style='font-size:12px;color:var(--muted)'>"+pagados+"/"+abonos.length+" pagos</span>";
-  html += "  <span style='font-family:\"Bebas Neue\",sans-serif;font-size:16px;color:var(--lime)'>"+fm(totalPag)+" / "+fm(totalPlan)+"</span>";
+  html += "  <span style='font-size:12px;color:var(--muted)'>"+(saldo>0?"Pendiente":"Al día ✓")+"</span>";
+  html += "  <span style='font-family:\"Bebas Neue\",sans-serif;font-size:16px;color:"+(saldo>0?"var(--orange)":"var(--lime)")+"'>"+fm(pagado)+" / "+fm(precio)+"</span>";
   html += "</div>";
+  var pct = precio>0 ? Math.min(Math.round((pagado/precio)*100),100) : 0;
   html += "<div style='background:var(--bg3);border-radius:4px;height:5px;overflow:hidden;margin-bottom:12px'>";
-  html += "  <div style='height:100%;border-radius:4px;background:var(--lime);width:"+pct+"%'></div></div>";
-  // Lista de abonos
+  html += "  <div style='height:100%;border-radius:4px;background:"+(saldo>0?"var(--orange)":"var(--lime)")+";width:"+pct+"%'></div></div>";
+  // Lista de pagos hechos
   abonos.forEach(function(a){
-    var cls  = a.pagado ? "ok" : "pend";
-    var ico  = a.pagado ? "✓"  : a.numero;
-    var color= a.pagado ? "var(--green)" : "var(--orange)";
-    var fmtL = new Date(a.fecha_limite+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short"});
+    var fmtP = a.fecha_pago ? new Date(a.fecha_pago+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short"}) : "—";
     html += "<div class='abono-fila'>";
-    html += "<div class='abono-num "+cls+"'>"+ico+"</div>";
+    html += "<div class='abono-num ok'>✓</div>";
     html += "<div class='abono-info'>";
-    html += "  <div class='abono-label'>Abono "+a.numero+(a.pagado?" · Pagado":" · Pendiente")+"</div>";
-    html += "  <div class='abono-fecha'>"+(a.pagado?"Pagado el "+new Date(a.fecha_pago+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short"}):"Vence el "+fmtL)+"</div>";
+    html += "  <div class='abono-label'>Pago registrado</div>";
+    html += "  <div class='abono-fecha'>"+fmtP+(a.trainer?" · "+a.trainer:"")+"</div>";
     html += "</div>";
-    html += "<div class='abono-monto' style='color:"+color+"'>"+fm(a.monto)+"</div>";
+    html += "<div class='abono-monto' style='color:var(--green)'>"+fm(a.monto)+"</div>";
     html += "</div>";
   });
   html += "</div>";
@@ -821,22 +838,11 @@ function renderAbonos(){
 
 // ── POPUP PAGO PENDIENTE ──────────────────────────────────────
 function checkPopupPago(){
-  var hoy     = new Date(); hoy.setHours(0,0,0,0);
-  var abonos  = SOCIO.abonos || [];
   var deudas  = getDeudasProducto(SOCIO.id);
   var textos  = [];
 
-  // Solo mostrar si hoy es DESPUÉS de la fecha límite del abono pendiente
-  var pendMem = abonos.filter(function(a){
-    if(a.pagado) return false;
-    var limite = new Date(a.fecha_limite+"T00:00:00");
-    return hoy > limite;
-  });
-
-  if(pendMem.length){
-    var a    = pendMem[0];
-    var fmtL = new Date(a.fecha_limite+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"long"});
-    textos.push("Tienes un abono de membresía vencido de "+fm(a.monto)+". Fecha límite: "+fmtL+".");
+  if(calcStatus()==="pendiente"){
+    textos.push("Tienes un saldo pendiente en tu membresía de "+fm(saldoMembresia())+".");
   }
   if(deudas.length){
     var totalP = deudas.reduce(function(s,d){ return s+d.total; },0);
@@ -903,13 +909,20 @@ function renderQR(){
 }
 
 // ── STATUS ────────────────────────────────────────────────────
-// BUG CORREGIDO (mismo que en admin.html): un socio recién creado
-// puede no tener membresía asignada todavía (fecha_vencimiento vacía).
-// new Date("") da una fecha inválida → las comparaciones daban NaN,
-// que nunca es <0 ni ===0, así que caía por accidente en "aldia" y
-// mostraba una tarjeta rota con "Vence: fecha inválida".
+// Total abonado en el ciclo vigente (suma de todos los pagos que ha
+// hecho el socio para su membresía actual — sin parcialidades fijas,
+// cada abono es simplemente "lo que pagó" en ese momento).
+function totalAbonado(){
+  return (SOCIO.abonos||[]).filter(function(a){return a.pagado!==false;}).reduce(function(a,x){return a+(x.monto||0);},0);
+}
+function saldoMembresia(){
+  return Math.max(precioPlan(SOCIO.membresia)-totalAbonado(),0);
+}
 function calcStatus(){
   if(!SOCIO.membresia || !SOCIO.fecha_vencimiento) return "sinmemb";
+  // Mientras deba algo de la membresía vigente, el estatus es
+  // "pendiente" sin importar si la fecha de vencimiento ya pasó o no.
+  if(saldoMembresia()>0) return "pendiente";
   var hoy=new Date(); hoy.setHours(0,0,0,0);
   var v=new Date(SOCIO.fecha_vencimiento); v.setHours(0,0,0,0);
   var d=Math.ceil((v-hoy)/86400000);
@@ -937,7 +950,11 @@ function renderMembresia(){
   var hoy   = new Date(); hoy.setHours(0,0,0,0);
   var diff  = Math.ceil((vDate-hoy)/86400000);
 
-  if(diff<0)       ge("memb-vence").textContent = "Venció el "+vStr;
+  if(st==="pendiente"){
+    // Mientras deba saldo, lo más importante es mostrar eso — no la
+    // fecha de vencimiento, que pasa a segundo plano.
+    ge("memb-vence").textContent = "Saldo pendiente: "+fm(saldoMembresia());
+  } else if(diff<0)       ge("memb-vence").textContent = "Venció el "+vStr;
   else if(diff===0) ge("memb-vence").textContent = "Vence HOY";
   else             ge("memb-vence").textContent = "Vence el "+vStr+" ("+diff+" días)";
 
@@ -945,7 +962,8 @@ function renderMembresia(){
   var pills = {
     aldia:    "<span class='pill pg'>Al día ✓</span>",
     vencehoy: "<span class='pill po'>Vence hoy</span>",
-    vencido:  "<span class='pill pr'>Vencido</span>"
+    vencido:  "<span class='pill pr'>Vencido</span>",
+    pendiente:"<span class='pill po'>Pendiente</span>"
   };
   ge("memb-pill").innerHTML = pills[st] || "";
 
@@ -1042,6 +1060,7 @@ function sincronizar(btn, renderFn){
   btn.textContent="…"; btn.disabled=true;
   GymDB.init().then(function(){
     CLASES = GymDB.getClases();
+    MEMBRESIAS = GymDB.getMembresias();
     refrescarPerfilActivo();
     renderFn();
     btn.textContent="↻"; btn.disabled=false;

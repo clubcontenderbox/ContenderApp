@@ -271,17 +271,23 @@ var GymDB = (function () {
         return;
       }
 
-      // Sincronizar abonos
+      // Sincronizar abonos — esquema nuevo: cada abono es un pago ya
+      // hecho (monto, fecha_pago, trainer, ventaId), sin fecha_limite
+      // ni bandera "pagado" (eso era del esquema viejo de parcialidades
+      // fijas). Antes esto seguía mandando los campos viejos, y al
+      // editar el monto de un abono existente NUNCA se mandaba el
+      // monto nuevo al PATCH — el cambio solo vivía en memoria.
       abonos.forEach(function(a) {
         var aData = { socio_id:socio.id, numero:a.numero, monto:a.monto,
-                      fecha_limite:a.fecha_limite, pagado:a.pagado, fecha_pago:a.fecha_pago||null };
+                      fecha_pago:a.fecha_pago||null, trainer:a.trainer||null };
         if (a.id && !isNaN(Number(a.id))) {
-          // Existente → PATCH
-          pat('abonos', 'id=eq.'+a.id, { pagado:a.pagado, fecha_pago:a.fecha_pago||null });
+          // Existente → PATCH (incluye monto, por si se editó)
+          pat('abonos', 'id=eq.'+a.id, { monto:a.monto, fecha_pago:a.fecha_pago||null, trainer:a.trainer||null });
         } else {
           // Nuevo → POST
           post('abonos', aData).then(function(r){
             if(r&&r[0]) a.id = String(r[0].id);
+            else console.error('[GymDB] El abono de '+a.monto+' NO se guardó en Supabase (ver error arriba). Sigue solo en memoria — probablemente la tabla `abonos` todavía tiene columnas NOT NULL del esquema viejo (fecha_limite/pagado) que ya no se están mandando.');
           });
         }
       });
