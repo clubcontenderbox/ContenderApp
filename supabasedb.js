@@ -401,12 +401,27 @@ var GymDB = (function () {
       if (!C.deudas[sid]) C.deudas[sid] = [];
       C.deudas[sid].push(deuda);
       post('deudas', { socio_id:sid, producto:deuda.producto, total:deuda.total, fecha:deuda.fecha, trainer:deuda.trainer||null, tipo:deuda.tipo||'producto' })
-        .then(function(r){ if(r&&r[0]) deuda.id=String(r[0].id); });
+        .then(function(r){
+          if(r&&r[0]) deuda.id=String(r[0].id);
+          else console.error('[GymDB] La deuda "'+deuda.producto+'" NO se guardó en Supabase (ver error arriba). Sigue solo en memoria con id temporal '+deuda.id+' — probablemente falta una columna en la tabla `deudas` (tipo/trainer).');
+        });
       bump();
     },
 
     removeDeuda: function(sid, did) {
       if (C.deudas[sid]) C.deudas[sid] = C.deudas[sid].filter(function(d){ return d.id!==did; });
+      // Los IDs temporales (creados localmente antes de que Supabase
+      // confirme el guardado) tienen forma "d" + número, ej "d123456".
+      // Si intentamos borrar uno de esos en Supabase, la tabla rechaza
+      // la petición porque su columna id es bigint (solo números) — el
+      // error "invalid input syntax for type bigint" viene de aquí.
+      // Como esa fila nunca existió realmente en la base, no hay nada
+      // que borrar del lado del servidor: solo la quitamos de memoria.
+      if (/^d\d+$/.test(String(did))) {
+        console.warn('[GymDB] La deuda '+did+' nunca se guardó en Supabase (falló su creación) — se quita solo de memoria, no había nada que borrar en el servidor.');
+        bump();
+        return;
+      }
       del('deudas', 'id=eq.'+did);
       bump();
     },
@@ -467,7 +482,10 @@ var GymDB = (function () {
             producto:v.producto, cantidad:v.cantidad, total:v.total,
             fecha:v.fecha, status:v.status, tipo:v.tipo, trainer:v.trainer||null,
             membresia_inicio:v.membresia_inicio||null, membresia_vencimiento:v.membresia_vencimiento||null
-          }).then(function(r){ if(r&&r[0]) v.id=r[0].id; });
+          }).then(function(r){
+            if(r&&r[0]) v.id=r[0].id;
+            else console.error('[GymDB] La venta "'+v.producto+'" NO se guardó en Supabase (ver error arriba). Sigue solo en memoria — probablemente falta una columna en la tabla `ventas` (trainer/tipo/membresia_inicio/membresia_vencimiento).');
+          });
         }
       });
       bump();
