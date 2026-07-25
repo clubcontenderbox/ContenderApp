@@ -276,32 +276,6 @@ textarea{resize:vertical;min-height:70px;}
 </div>
 
 <!-- ═══ VENTAS ════════════════════════════════════════════════ -->
-<div class="screen" id="screen-ventas">
-  <div class="hdr"><div><h1>Ventas</h1></div><div class="hdr-r"><button class="btn bl bsm" id="btn-nueva-venta">+ Nueva</button></div></div>
-  <div class="tabs">
-    <button class="tab active" data-vtab="productos">Productos</button>
-    <button class="tab" data-vtab="membresias">Membresías</button>
-  </div>
-  <div style="padding:0 16px;margin-bottom:10px">
-    <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;font-weight:500;text-transform:uppercase;letter-spacing:.8px;">Filtrar entrenador</label>
-    <select id="v-trainer" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 13px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;width:100%;outline:none;">
-      <option value="">— Todos —</option>
-    </select>
-  </div>
-  <div class="periodo-wrap">
-    <label>De</label>
-    <input type="date" id="v-desde" style="flex:1">
-    <label style="margin-left:4px">—</label>
-    <input type="date" id="v-hasta" style="flex:1">
-  </div>
-  <div style="padding:0 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-    <span style="font-size:12px;color:var(--muted)" id="v-contador">0 registros</span>
-    <span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--lime)" id="v-total">$0</span>
-  </div>
-  <div style="padding:0 16px" id="lista-ventas"></div>
-  <div class="nav-ph"></div>
-</div>
-
 <!-- ═══ REPORTES ══════════════════════════════════════════════ -->
 <div class="screen" id="screen-reportes">
   <div class="hdr"><div><h1>Reportes</h1></div></div>
@@ -322,6 +296,13 @@ textarea{resize:vertical;min-height:70px;}
     <button class="btn bsm" id="rm-ins" style="flex:1;justify-content:center;background:var(--lime);color:#080808">Inscripción</button>
     <button class="btn bd bsm" id="rm-vis" style="flex:1;justify-content:center">Visitas</button>
     <button class="btn bd bsm" id="rm-amb" style="flex:1;justify-content:center">Ambos</button>
+  </div>
+  <!-- Filtro entrenador (solo tab Ventas) -->
+  <div id="r-trainer-wrap" style="display:none;padding:0 16px;margin-bottom:10px">
+    <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;font-weight:500;text-transform:uppercase;letter-spacing:.8px;">Filtrar entrenador</label>
+    <select id="r-trainer" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 13px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;width:100%;outline:none;">
+      <option value="">— Todos —</option>
+    </select>
   </div>
   <button style="display:flex;align-items:center;gap:8px;margin:0 16px 12px;padding:10px 14px;background:rgba(200,241,53,.08);border:1px solid rgba(200,241,53,.25);border-radius:12px;color:var(--lime);font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;cursor:pointer;width:calc(100% - 32px)" id="btn-csv">&#11015; Descargar CSV</button>
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:0 16px;margin-bottom:12px" id="rep-metricas"></div>
@@ -353,7 +334,6 @@ textarea{resize:vertical;min-height:70px;}
   <button class="nav-item active" data-screen="inicio"><span class="nav-icon">&#10003;</span>Inicio</button>
   <button class="nav-item" data-screen="socios"><span class="nav-icon">&#128101;</span>Socios</button>
   <button class="nav-item" data-screen="catalogo"><span class="nav-icon">&#128203;</span>Catálogo</button>
-  <button class="nav-item" data-screen="ventas"><span class="nav-icon">&#128176;</span>Ventas</button>
   <button class="nav-item" data-screen="reportes"><span class="nav-icon">&#128202;</span>Reportes</button>
   <button class="nav-item" data-screen="dashboard"><span class="nav-icon">&#128200;</span>Dashboard</button>
 </nav>
@@ -621,7 +601,6 @@ var detTab      = "membresia";
 var waTarget    = null;
 var catTab      = "membresias";
 var catEditId   = null;
-var vTab        = "productos";
 var repTab      = "socios";
 var repModo     = "inscripcion";
 
@@ -635,7 +614,6 @@ function showScreen(id){
   if(id==="inicio")   renderInicio();
   if(id==="socios")   renderSocios();
   if(id==="catalogo") renderCatalogo();
-  if(id==="ventas")   renderVentas();
   if(id==="reportes") renderReporte();
   if(id==="dashboard")renderGrafica();
   if(id==="detalle")  setTimeout(renderDetalle,0);
@@ -1386,40 +1364,6 @@ function catNuevo(){
   else catAbrirTrainer(null);
 }
 
-// ── VENTAS ────────────────────────────────────────────────────
-function renderVentas(){
-  var desde=ge("v-desde").value,hasta=ge("v-hasta").value,trainer=ge("v-trainer").value;
-  var tipoMap={productos:"prod",membresias:"memb"};
-  var filtroTipo=tipoMap[vTab];
-  
-  var lista=VENTAS.filter(function(v){
-    if(v.tipo!==filtroTipo)return false;
-    if(trainer&&v.trainer!==trainer)return false;
-    if(desde&&v.fecha<desde)return false;
-    if(hasta&&v.fecha>hasta)return false;
-    return true;
-  }).sort(function(a,b){return b.id-a.id;});
-  
-  var total=lista.reduce(function(s,v){return s+v.total;},0);
-  ge("v-contador").textContent=lista.length+" registro"+(lista.length!==1?"s":"");
-  ge("v-total").textContent=fm(total);
-  
-  var c=ge("lista-ventas");
-  if(!lista.length){c.innerHTML="<div class='empty'><div class='ico'>&#128176;</div><p>Sin ventas</p></div>";return;}
-  var html="";
-  lista.forEach(function(v){
-    html+="<div class='venta-card "+v.status+"'>";
-    html+="<div style='display:flex;align-items:center;gap:8px'><div style='flex:1;min-width:0'>";
-    html+="<div style='font-size:14px;font-weight:700'>"+v.producto+"</div>";
-    html+="<div style='font-size:11px;color:var(--muted);margin-top:3px'>#"+v.socio_id+" "+v.socio_nombre+" · "+v.trainer+" · "+fF(v.fecha)+"</div></div>";
-    html+="<div style='font-family:\"Bebas Neue\",sans-serif;font-size:20px;color:var(--lime)'>"+fm(v.total)+"</div></div>";
-    html+="<div style='display:flex;justify-content:space-between;align-items:center;margin-top:8px'>";
-    html+="<span class='pill "+(v.status==="pagado"?"pg":"po")+"'>"+(v.status==="pagado"?"Cobrado":"Por cobrar")+"</span>";
-    html+="</div></div>";
-  });
-  c.innerHTML=html;
-}
-
 // ── REPORTES ──────────────────────────────────────────────────
 function mbox(v,c,l){return "<div style='background:var(--bg2);border-radius:12px;padding:12px 10px;text-align:center;border:1px solid var(--border)'><div style='font-family:\"Bebas Neue\",sans-serif;font-size:26px;color:"+c+"'>"+v+"</div><div style='font-size:10px;color:var(--muted);margin-top:3px'>"+l+"</div></div>";}
 function rfila(av,avColor,n,sub,val){return "<div style='display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid var(--border)'><div style='width:32px;height:32px;border-radius:50%;background:"+avColor+";display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#080808;flex-shrink:0'>"+av+"</div><div style='flex:1;min-width:0'><div style='font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis'>"+n+"</div><div style='font-size:11px;color:var(--muted);margin-top:2px'>"+sub+"</div></div><div style='font-family:\"Bebas Neue\",sans-serif;font-size:18px;flex-shrink:0;text-align:right'>"+val+"</div></div>";}
@@ -1478,6 +1422,15 @@ function renderReporte(){
   }
 
   modoWrap.style.display=repTab==="socios"?"flex":"none";
+  ge("r-trainer-wrap").style.display=repTab==="ventas"?"block":"none";
+  if(repTab==="ventas"){
+    var selRT=ge("r-trainer"), actualRT=selRT.value;
+    selRT.innerHTML="<option value=''>— Todos —</option>";
+    TRAINERS.slice().sort(function(a,b){return a.nombre.localeCompare(b.nombre);}).forEach(function(t){
+      selRT.innerHTML+="<option value='"+t.nombre+"'>"+t.nombre+"</option>";
+    });
+    selRT.value=actualRT;
+  }
   ge("btn-csv").style.display="block";
 
   // TAB CHECK-INS: histórico completo, no viene precargado en cache
@@ -1506,12 +1459,17 @@ function renderReporte(){
     mh=mbox(fm(cob),"var(--green)","Cobrado");
     activos2.forEach(function(s){var st=calcStatus(s);lh+=rfila(ini(s),avColor(st),"#"+s.id+" · "+s.nombre+" "+s.apellido_paterno,s.plan+" · "+pillSt(st),fm(PLAN_PRECIO[s.plan]||0));});
   } else {
-    var vf=VENTAS.filter(function(v){return enPeriodo(v.fecha);});
+    var trainerFiltro=ge("r-trainer").value;
+    var vf=VENTAS.filter(function(v){
+      if(!enPeriodo(v.fecha))return false;
+      if(trainerFiltro&&v.trainer!==trainerFiltro)return false;
+      return true;
+    });
     var tot=vf.reduce(function(a,v){return a+v.total;},0);
     var cob2=vf.filter(function(v){return v.status==="pagado";}).reduce(function(a,v){return a+v.total;},0);
     mh=mbox(fm(cob2),"var(--green)","Cobrado")+mbox(fm(tot-cob2),"var(--orange)","Por cobrar");
     vf.sort(function(a,b){return b.id-a.id;}).forEach(function(v){
-      lh+=rfila("$","var(--lime)",v.producto,"#"+v.socio_id+" "+v.socio_nombre+" · x"+v.cantidad+" · "+fF(v.fecha),"<span class='pill "+(v.status==="pagado"?"pg":"po")+"'>"+(v.status==="pagado"?"Cobrado":"Por cobrar")+"</span><br>"+fm(v.total));
+      lh+=rfila("$","var(--lime)",v.producto,"#"+v.socio_id+" "+v.socio_nombre+" · "+(v.trainer||"—")+" · "+fF(v.fecha),"<span class='pill "+(v.status==="pagado"?"pg":"po")+"'>"+(v.status==="pagado"?"Cobrado":"Por cobrar")+"</span><br>"+fm(v.total));
     });
   }
   ge("rep-metricas").innerHTML=mh;
@@ -1668,35 +1626,13 @@ document.addEventListener("DOMContentLoaded",function(){
   document.querySelectorAll(".tab[data-cat]").forEach(function(b){b.addEventListener("click",function(){catTab=this.dataset.cat;document.querySelectorAll(".tab[data-cat]").forEach(function(x){x.classList.toggle("active",x.dataset.cat===catTab);});renderCatalogo();});});
   ge("btn-cat-nuevo").addEventListener("click",catNuevo);
 
-  // Ventas
+  // Fecha de hoy (usada más abajo para los filtros de Reportes)
   var hoy=new Date().toISOString().slice(0,10);
-  ge("v-desde").value=hoy;
-  ge("v-hasta").value=hoy;
-
-  // Cargar todos los entrenadores registrados en el select de filtro
-  // (antes solo aparecían los que ya tenían una venta registrada)
-  ge("v-trainer").innerHTML="<option value=''>— Todos —</option>";
-  TRAINERS.slice().sort(function(a,b){return a.nombre.localeCompare(b.nombre);}).forEach(function(t){
-    ge("v-trainer").innerHTML+="<option value='"+t.nombre+"'>"+t.nombre+"</option>";
-  });
-  
-  ge("v-desde").addEventListener("change",renderVentas);
-  ge("v-hasta").addEventListener("change",renderVentas);
-  ge("v-trainer").addEventListener("change",renderVentas);
-  ge("btn-nueva-venta").addEventListener("click",function(){
-    // TODO: Abrir modal nueva venta
-  });
-  document.querySelectorAll(".tab[data-vtab]").forEach(function(b){
-    b.addEventListener("click",function(){
-      vTab=this.dataset.vtab;
-      document.querySelectorAll(".tab[data-vtab]").forEach(function(x){x.classList.toggle("active",x.dataset.vtab===vTab);});
-      renderVentas();
-    });
-  });
 
   // Reportes
   ge("r-desde").addEventListener("change",renderReporte);
   ge("r-hasta").addEventListener("change",renderReporte);
+  ge("r-trainer").addEventListener("change",renderReporte);
   document.querySelectorAll(".tab[data-rep]").forEach(function(b){b.addEventListener("click",function(){repTab=this.dataset.rep;document.querySelectorAll(".tab[data-rep]").forEach(function(x){x.classList.toggle("active",x.dataset.rep===repTab);});renderReporte();});});
   ge("rm-ins").addEventListener("click",function(){repModo="inscripcion";[ge("rm-ins"),ge("rm-vis"),ge("rm-amb")].forEach(function(b,i){b.className="btn bsm"+(i===0?"":" bd");b.style.background=i===0?"var(--lime)":"";b.style.color=i===0?"#080808":"";});renderReporte();});
   ge("rm-vis").addEventListener("click",function(){repModo="visitas";[ge("rm-ins"),ge("rm-vis"),ge("rm-amb")].forEach(function(b,i){b.className="btn bsm"+(i!==1?" bd":"");b.style.background=i===1?"var(--lime)":"";b.style.color=i===1?"#080808":"";});renderReporte();});
