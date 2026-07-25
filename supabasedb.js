@@ -272,18 +272,18 @@ var GymDB = (function () {
       }
 
       // Sincronizar abonos — esquema nuevo: cada abono es un pago ya
-      // hecho (monto, fecha_pago, trainer, ventaId). Se siguen mandando
-      // fecha_limite/pagado con valores seguros (por compatibilidad,
-      // en caso de que la tabla todavía las tenga como NOT NULL del
-      // esquema viejo de parcialidades) — así el guardado no falla
-      // aunque no se usen para nada en la lógica nueva.
+      // hecho (monto, fecha_pago). NO se manda "trainer" aquí — la
+      // tabla `abonos` nunca tuvo esa columna (el entrenador de cada
+      // pago vive en su venta correspondiente, ver crearVenta). Se
+      // sigue mandando fecha_limite/pagado con valores seguros por si
+      // la tabla todavía las tiene como NOT NULL del esquema viejo.
       abonos.forEach(function(a) {
         var aData = { socio_id:socio.id, numero:a.numero, monto:a.monto,
-                      fecha_pago:a.fecha_pago||null, trainer:a.trainer||null,
+                      fecha_pago:a.fecha_pago||null,
                       fecha_limite:a.fecha_pago||null, pagado:true };
         if (a.id && !isNaN(Number(a.id))) {
           // Existente → PATCH (incluye monto, por si se editó)
-          pat('abonos', 'id=eq.'+a.id, { monto:a.monto, fecha_pago:a.fecha_pago||null, trainer:a.trainer||null });
+          pat('abonos', 'id=eq.'+a.id, { monto:a.monto, fecha_pago:a.fecha_pago||null });
         } else {
           // Nuevo → POST
           post('abonos', aData).then(function(r){
