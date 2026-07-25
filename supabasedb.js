@@ -138,8 +138,22 @@ var GymDB = (function () {
       C.ventas    = res[3]  || [];
       C.membresias= res[4]  || [];
       C.clases    = (res[5]||[]).map(function(cl){
-        if(typeof cl.dias==='string') cl.dias=cl.dias.replace(/[{}]/g,'').split(',').map(function(d){return d.trim();});
-        if(!Array.isArray(cl.dias)) cl.dias=[];
+        // El campo `dias` puede llegar en formatos distintos según el
+        // tipo de columna en Supabase:
+        //   - Array real: ["Lun","Mié"]           (columna jsonb o text[])
+        //   - String JSON: '["Lun","Mié"]'        (jsonb serializado como texto)
+        //   - String Postgres: '{Lun,Mié}' o '{"Lun","Mié"}' (text[] como texto)
+        //   - String plano: 'Lun,Mié'             (columna text simple)
+        // Si el formato no coincidía, la clase existía pero nunca hacía
+        // match con ningún día → pantalla de Clases vacía sin error.
+        var d = cl.dias;
+        if (typeof d === 'string') {
+          try { d = JSON.parse(d); } catch(e) {
+            d = d.replace(/[{}\[\]"']/g,'').split(',').map(function(x){return x.trim();}).filter(Boolean);
+          }
+        }
+        if (!Array.isArray(d)) d = [];
+        cl.dias = d;
         return cl;
       });
       C.productos = res[6]  || [];

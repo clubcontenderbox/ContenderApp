@@ -340,6 +340,10 @@ input:focus,select:focus{border-color:var(--lime);}
     <!-- Dropdown de perfil -->
     <select id="sel-perfil" style="background:transparent;border:none;color:var(--lime);font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;outline:none;padding:0;margin-top:2px;width:100%;cursor:pointer;-webkit-appearance:none"></select>
   </div>
+  <div style="display:flex;gap:7px;align-items:center;flex-shrink:0">
+    <button class="btn btn-dark btn-sm" id="btn-sync-inicio">↻</button>
+    <button class="btn btn-dark btn-sm" id="btn-perfil-menu">👤</button>
+  </div>
 </div>
 <div style="padding:2px 16px 10px;font-size:12px;color:var(--muted)" id="s-fecha"></div>
 
@@ -414,9 +418,9 @@ input:focus,select:focus{border-color:var(--lime);}
 <!-- DATA -->
 </div>
 
-<!-- POPUP: PAGO PENDIENTE -->
-<div class="modal-ov" id="popup-pago">
-  <div class="modal" style="text-align:center;padding:28px 20px 36px">
+<!-- POPUP: PAGO PENDIENTE (centrado en pantalla, no bottom-sheet) -->
+<div class="modal-ov" id="popup-pago" style="align-items:center;padding:24px">
+  <div class="modal" style="text-align:center;padding:28px 20px 32px;border-radius:22px;border-bottom:1px solid var(--border);animation:fadeIn .2s ease">
     <div style="font-size:48px;margin-bottom:12px">⚠️</div>
     <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;margin-bottom:8px">Pago pendiente</div>
     <div style="font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.6" id="popup-texto"></div>
@@ -453,8 +457,9 @@ input:focus,select:focus{border-color:var(--lime);}
 <div class="hdr">
   <div>
     <h1>Clases</h1>
-    <small id="fecha-hoy">Agendadas hoy · Disponibles mañana</small>
+    <small id="fecha-hoy">Próximos 7 días</small>
   </div>
+  <button class="btn btn-dark btn-sm" id="btn-sync-clases">↻</button>
 </div>
 
 <!-- MIS CLASES INSCRITAS (resumen rápido) -->
@@ -540,11 +545,10 @@ input:focus,select:focus{border-color:var(--lime);}
   <button class="nav-item active" data-screen="inicio"><span class="nav-icon">🏠</span>Inicio</button>
   <button class="nav-item" data-screen="clases"><span class="nav-icon">📅</span>Clases</button>
   <button class="nav-item" data-screen="rutina"><span class="nav-icon">💪</span>Rutina</button>
-  <button class="nav-item" id="btn-perfil-menu"><span class="nav-icon">👤</span>Perfil</button>
 </nav>
 
-<!-- DROPDOWN PERFIL -->
-<div id="dropdown-perfil" style="position:fixed;bottom:76px;right:10px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:8px 0;display:none;z-index:150;min-width:160px;box-shadow:0 4px 16px rgba(0,0,0,.4);">
+<!-- DROPDOWN PERFIL (se abre desde el botón 👤 del header de Inicio) -->
+<div id="dropdown-perfil" style="position:fixed;top:70px;right:12px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:8px 0;display:none;z-index:250;min-width:160px;box-shadow:0 4px 16px rgba(0,0,0,.4);">
   <button style="width:100%;padding:12px 16px;background:none;border:none;color:var(--text);text-align:left;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s;" id="btn-agregar-perfil">
     <span>➕ Agregar perfil</span>
   </button>
@@ -555,6 +559,38 @@ input:focus,select:focus{border-color:var(--lime);}
 
 <!-- ═══ DATA + LÓGICA ════════════════════════════════════════ -->
 <script>
+// ═══ CONFIGURACIÓN CENTRAL ════════════════════════════════════
+var CONFIG = {
+  TOAST_MS: 2000,
+  ADD_CUENTA_OK_MS: 900,     // espera tras cargar perfil antes de cerrar el modal
+  // ⚠️ Ver nota completa de seguridad junto a genCode() más abajo.
+  QR_SECRET: "GPsecret2026"
+};
+
+// Días de la semana en el orden que devuelve Date.getDay() (0=Domingo).
+// Antes existían DOS copias de este mismo array con nombres distintos
+// (DIAS en el bloque Inicio, DIAS_SEMANA en el bloque Clases) — ahora
+// es uno solo, compartido.
+var DIAS_SEMANA = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+
+function ge(id){ return document.getElementById(id); }
+function fm(n){ return "$"+Number(n).toLocaleString("es-MX"); }
+function fF(f){ return f?new Date(f+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"2-digit"}):"—"; }
+function fechaISO(d){ return d.toISOString().slice(0,10); }
+
+function mostrarToast(msg){
+  var t=ge("toast-sync");
+  if(!t){
+    t=document.createElement("div");
+    t.id="toast-sync";
+    t.style.cssText="position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#C8F135;border:1px solid rgba(200,241,53,.4);border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif;z-index:9999;transition:opacity .3s";
+    document.body.appendChild(t);
+  }
+  t.textContent=msg; t.style.opacity="1";
+  clearTimeout(t._tid);
+  t._tid=setTimeout(function(){ t.style.opacity="0"; },CONFIG.TOAST_MS);
+}
+
 // ── NAVEGACIÓN ────────────────────────────────────────────────
 function showScreen(id) {
   document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
@@ -583,6 +619,9 @@ document.addEventListener('DOMContentLoaded', function(){
   if(ov) ov.style.display='none';
   // Catálogo de clases del gym (ver bloque LÓGICA: CLASES para var CLASES)
   CLASES = GymDB.getClases();
+  // Diagnóstico: qué llegó realmente desde Supabase (visible en la
+  // consola F12; útil si la pantalla de Clases sale vacía)
+  console.log('[Socio] Clases cargadas:', CLASES.length, JSON.stringify(CLASES.map(function(c){return {nombre:c.nombre, dias:c.dias};})));
 
   ge('nav-socio').style.display = 'none';
 
@@ -661,9 +700,6 @@ var PERFILES = [];
 // Socio activo (se actualiza cuando el usuario selecciona un perfil)
 var SOCIO = null;
 
-function ge(id){ return document.getElementById(id); }
-function fm(n){ return "$"+Number(n).toLocaleString("es-MX"); }
-
 // Deudas de PRODUCTO del socio activo (excluye las de tipo "membresia",
 // que ya se muestran a través de la lista de abonos de la membresía —
 // mostrarlas también aquí sería duplicado y confuso para el socio).
@@ -719,7 +755,7 @@ function cargarCuenta(){
     ge("add-tel").value=""; ge("add-code").value="";
     ge("add-error").textContent=""; ge("add-error").style.color="var(--red)";
     renderPerfiles();
-  }, 900);
+  }, CONFIG.ADD_CUENTA_OK_MS);
 }
 
 function renderPerfiles(){
@@ -731,7 +767,7 @@ function renderPerfiles(){
     html += "<div class='perfil-av' style='background:"+p.color+"'>"+ini+"</div>";
     html += "<div class='perfil-info'>";
     html += "  <div class='perfil-nombre'>"+p.nombre+" "+p.apellido_paterno+"</div>";
-    html += "  <div class='perfil-detalle'>"+p.membresia+" · "+p.visitas+" visitas</div>";
+    html += "  <div class='perfil-detalle'>"+(p.membresia||"Sin membresía")+" · "+p.visitas+" visitas</div>";
     html += "</div>";
     html += "<span style='font-size:22px;color:var(--muted)'>›</span>";
     html += "</button>";
@@ -821,7 +857,7 @@ function renderDeudas(){
   deudas.forEach(function(d){
     html += "<div class='deuda-card'>";
     html += "<div><div class='deuda-prod'>"+d.producto+"</div>";
-    html += "<div class='deuda-fecha'>"+d.fecha+"</div></div>";
+    html += "<div class='deuda-fecha'>"+fF(d.fecha)+"</div></div>";
     html += "<div class='deuda-monto'>"+fm(d.total)+"</div>";
     html += "</div>";
   });
@@ -842,7 +878,7 @@ function renderDeudas(){
 // mientras la app sea 100% estática sin backend.
 function genCode(id){
   var d    = new Date().toISOString().slice(0,10).replace(/-/g,"");
-  var seed = id + d + "GPsecret2026";
+  var seed = id + d + CONFIG.QR_SECRET;
   var h    = 0;
   for(var i=0;i<seed.length;i++){ h=((h<<5)-h)+seed.charCodeAt(i); h|=0; }
   var chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789", code="", abs=Math.abs(h);
@@ -867,7 +903,13 @@ function renderQR(){
 }
 
 // ── STATUS ────────────────────────────────────────────────────
+// BUG CORREGIDO (mismo que en admin.html): un socio recién creado
+// puede no tener membresía asignada todavía (fecha_vencimiento vacía).
+// new Date("") da una fecha inválida → las comparaciones daban NaN,
+// que nunca es <0 ni ===0, así que caía por accidente en "aldia" y
+// mostraba una tarjeta rota con "Vence: fecha inválida".
 function calcStatus(){
+  if(!SOCIO.membresia || !SOCIO.fecha_vencimiento) return "sinmemb";
   var hoy=new Date(); hoy.setHours(0,0,0,0);
   var v=new Date(SOCIO.fecha_vencimiento); v.setHours(0,0,0,0);
   var d=Math.ceil((v-hoy)/86400000);
@@ -875,11 +917,18 @@ function calcStatus(){
 }
 
 // ── MEMBRESÍA ─────────────────────────────────────────────────
-// MODIFICAR: texto de cada status
 function renderMembresia(){
   var st = calcStatus();
   var card = ge("memb-card");
   card.className = "memb-card " + st;
+
+  if(st==="sinmemb"){
+    ge("memb-nombre").textContent = "Sin membresía";
+    ge("memb-vence").textContent  = "Pregunta en recepción para activarla";
+    ge("memb-pill").innerHTML = "<span class='pill pm'>Sin membresía</span>";
+    ge("memb-prog").style.width = "0%";
+    return;
+  }
 
   ge("memb-nombre").textContent = SOCIO.membresia;
 
@@ -919,7 +968,6 @@ function renderStats(){
 // la inscripción es por fecha específica (ver bloque LÓGICA: CLASES),
 // así que "próxima clase" solo puede mirar hoy y mañana — que es la
 // misma ventana que la pantalla de Clases permite agendar.
-var DIAS = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 
 // ── HEADER con dropdown de perfil ────────────────────────────
 function renderHeader(){
@@ -937,48 +985,73 @@ function renderHeader(){
   ge("s-fecha").textContent = str.charAt(0).toUpperCase()+str.slice(1);
 }
 
-function renderProximaClase(){
-  var c = ge("proxima-clase");
-  if(!SOCIO || typeof CLASES==="undefined"){ c.innerHTML=""; return; }
-
-  var hoy    = new Date(); hoy.setHours(0,0,0,0);
-  var manana = new Date(hoy); manana.setDate(hoy.getDate()+1);
-  var nomHoy    = DIAS[hoy.getDay()];
-  var nomManana = DIAS[manana.getDay()];
-  var fHoy      = hoy.toISOString().slice(0,10);
-  var fManana   = manana.toISOString().slice(0,10);
-
-  // Buscar entre las clases de HOY primero; si no hay, mañana.
-  var encontrada=null, cuandoTxt="";
-  CLASES.forEach(function(cl){
-    if(encontrada) return;
-    if(cl.dias.indexOf(nomHoy)>-1 && GymDB.getInscritosPorClase(cl.id,fHoy).indexOf(String(SOCIO.id))>-1){
-      encontrada=cl; cuandoTxt="Hoy";
-    }
-  });
-  if(!encontrada){
+// Devuelve las clases en las que SOCIO está inscrito dentro de la
+// ventana de 7 días (misma ventana que la pantalla de Clases). Un solo
+// lugar para esta consulta — la usan "Próxima clase" (Inicio) y "Mis
+// clases inscritas" (Clases). Usa proximosDias() del bloque de Clases.
+function getInscripcionesSocio(){
+  if(!SOCIO || typeof CLASES==="undefined" || typeof proximosDias!=="function") return [];
+  var filas=[];
+  proximosDias().forEach(function(dia){
     CLASES.forEach(function(cl){
-      if(encontrada) return;
-      if(cl.dias.indexOf(nomManana)>-1 && GymDB.getInscritosPorClase(cl.id,fManana).indexOf(String(SOCIO.id))>-1){
-        encontrada=cl; cuandoTxt="Mañana";
+      if(cl.dias.indexOf(dia.nom)>-1 && GymDB.getInscritosPorClase(cl.id,dia.f).indexOf(String(SOCIO.id))>-1){
+        filas.push({cl:cl, fecha:dia.f, label:dia.label});
       }
     });
-  }
+  });
+  return filas;
+}
 
-  if(!encontrada){ c.innerHTML="<div style='font-size:13px;color:var(--muted);padding:8px 0'>Sin clases agendadas</div>"; return; }
-
+function renderProximaClase(){
+  var c = ge("proxima-clase");
+  var filas = getInscripcionesSocio();
+  if(!filas.length){ c.innerHTML="<div style='font-size:13px;color:var(--muted);padding:8px 0'>Sin clases agendadas</div>"; return; }
+  var f = filas[0];
   c.innerHTML =
     "<div class='clase-row'>" +
-    "<div class='clase-color' style='background:"+(encontrada.color||"#C8F135")+"'></div>" +
+    "<div class='clase-color' style='background:"+(f.cl.color||"#C8F135")+"'></div>" +
     "<div class='clase-info'>" +
-    "  <div class='clase-nombre'>"+encontrada.nombre+"</div>" +
-    "  <div class='clase-meta'>"+cuandoTxt+" · "+encontrada.hora+" · "+encontrada.coach+"</div>" +
+    "  <div class='clase-nombre'>"+f.cl.nombre+"</div>" +
+    "  <div class='clase-meta'>"+f.label+" · "+f.cl.hora+" · "+f.cl.coach+"</div>" +
     "</div>" +
     "<span class='pill pg'>Inscrito</span>" +
     "</div>";
 }
 
-// ── INIT ──────────────────────────────────────────────────────
+// Vuelve a traer los datos en vivo del socio activo (membresía, abonos,
+// visitas) desde Supabase y actualiza tanto SOCIO como su entrada en
+// PERFILES. Mismo patrón que refrescarSocioActual() en admin.html.
+function refrescarPerfilActivo(){
+  if(!SOCIO) return;
+  var fresco = GymDB.getSocio(SOCIO.id);
+  if(!fresco) return;
+  var datos = {
+    id:fresco.id, nombre:fresco.nombre, apellido_paterno:fresco.apellido_paterno, apellido_materno:fresco.apellido_materno,
+    numero:fresco.numero, membresia:fresco.plan, fecha_inicio:fresco.fecha_inicio, fecha_vencimiento:fresco.fecha_vencimiento,
+    visitas:fresco.visitas, peso:fresco.peso, musculo:fresco.musculo, activo:fresco.activo, color:fresco.color||"#C8F135",
+    abonos:(fresco.abonos||[]).slice()
+  };
+  var idx = PERFILES.findIndex(function(p){ return p.id===datos.id; });
+  if(idx>-1) PERFILES[idx]=datos; else PERFILES.push(datos);
+  SOCIO = datos;
+}
+
+// Sincronización manual: recarga todo desde Supabase y re-renderiza la
+// pantalla actual. Mismo comportamiento que el botón ↻ de admin.html.
+function sincronizar(btn, renderFn){
+  btn.textContent="…"; btn.disabled=true;
+  GymDB.init().then(function(){
+    CLASES = GymDB.getClases();
+    refrescarPerfilActivo();
+    renderFn();
+    btn.textContent="↻"; btn.disabled=false;
+    mostrarToast("↻ Actualizado");
+  }).catch(function(){
+    btn.textContent="↻"; btn.disabled=false;
+    mostrarToast("⚠ No se pudo actualizar");
+  });
+}
+
 document.addEventListener("DOMContentLoaded",function(){
   // NOTA: no llamamos renderHeader()/renderQR()/etc. aquí porque en este
   // punto SOCIO todavía es null (nadie ha seleccionado perfil). Eso
@@ -991,8 +1064,13 @@ document.addEventListener("DOMContentLoaded",function(){
     renderHeader(); renderQR(); renderMembresia();
     renderStats(); renderProximaClase(); renderAbonos(); renderDeudas(); checkPopupPago();
   });
-  // Cerrar popup
-  ge("popup-ok").addEventListener("click", function(){ ge("popup-pago").classList.remove("open"); });
+  // Sincronizar
+  ge("btn-sync-inicio").addEventListener("click", function(){
+    sincronizar(this, function(){
+      renderHeader(); renderQR(); renderMembresia();
+      renderStats(); renderProximaClase(); renderAbonos(); renderDeudas();
+    });
+  });
 });
 
 </script>
@@ -1003,56 +1081,78 @@ document.addEventListener("DOMContentLoaded",function(){
 // El socio activo para inscripción de clases es el mismo que está
 // seleccionado en el Inicio (variable global SOCIO, definida arriba).
 //
-// IMPORTANTE: la inscripción es por FECHA ESPECÍFICA, no recurrente.
-// Un socio se inscribe "a la clase de CrossFit del 27 de julio", no
-// "a CrossFit para siempre". Cada clase (CLASES) define en qué días de
-// la semana normalmente ocurre (cl.dias), pero estar inscrito es algo
-// que se decide fecha por fecha — así lo guarda Supabase (tabla
-// inscritos: clase_id + socio_id + fecha).
+// REGLAS DE AGENDA:
+// 1. La inscripción es por FECHA ESPECÍFICA (clase_id + socio_id +
+//    fecha), tal como lo guarda Supabase en la tabla `inscritos`.
+// 2. La ventana visible es de 7 DÍAS (hoy + los 6 siguientes).
+// 3. UNA INSCRIPCIÓN PENDIENTE POR DISCIPLINA: puedes agendar varias
+//    clases si son de disciplinas distintas, pero mientras tengas una
+//    inscripción pendiente de una disciplina, las demás fechas de esa
+//    misma disciplina quedan bloqueadas. Cuando la clase agendada ya
+//    pasó (su fecha quedó atrás), puedes volver a agendarla.
 
 // CLASES = catálogo de clases del gym (viene de GymDB.getClases())
 var CLASES = [];
 
-var DIAS_SEMANA = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+var VENTANA_DIAS = 7;
 
-function fechaISO(d){ return d.toISOString().slice(0,10); }
+// Devuelve los próximos 7 días como [{d:Date, f:"YYYY-MM-DD",
+// nom:"Lun", label:"Hoy"|"Mañana"|"Lunes 28 jul"}]
+function proximosDias(){
+  var out=[];
+  for(var i=0;i<VENTANA_DIAS;i++){
+    var d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+i);
+    var label;
+    if(i===0) label="Hoy";
+    else if(i===1) label="Mañana";
+    else {
+      var s=d.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"short"});
+      label=s.charAt(0).toUpperCase()+s.slice(1);
+    }
+    out.push({d:d, f:fechaISO(d), nom:DIAS_SEMANA[d.getDay()], label:label});
+  }
+  return out;
+}
 
-// ── RENDER: CLASES DE HOY Y MAÑANA ───────────────────────────
+// Mapa {clase_id: fechaISO} con la inscripción PENDIENTE más próxima
+// del socio por cada disciplina, dentro de la ventana de 7 días.
+// Si una clase aparece aquí, esa disciplina está "ocupada" y sus demás
+// fechas se bloquean hasta que la fecha inscrita pase.
+function inscripcionesPendientes(){
+  var out={};
+  if(!SOCIO) return out;
+  proximosDias().forEach(function(dia){
+    CLASES.forEach(function(cl){
+      if(out[cl.id]) return; // ya encontramos su más próxima
+      if(cl.dias.indexOf(dia.nom)>-1 && GymDB.getInscritosPorClase(cl.id,dia.f).indexOf(String(SOCIO.id))>-1){
+        out[cl.id]=dia.f;
+      }
+    });
+  });
+  return out;
+}
+
+// ── RENDER: CLASES DE LOS PRÓXIMOS 7 DÍAS ────────────────────
 function renderClasesDia(){
   if(!SOCIO) return;
-  var hoy    = new Date(); hoy.setHours(0,0,0,0);
-  var manana = new Date(hoy); manana.setDate(hoy.getDate()+1);
-
-  var nomHoy    = DIAS_SEMANA[hoy.getDay()];
-  var nomManana = DIAS_SEMANA[manana.getDay()];
-  var fHoy      = fechaISO(hoy);
-  var fManana   = fechaISO(manana);
-
   var c    = ge("lista-clases");
   var html = "";
+  var pendientes = inscripcionesPendientes();
 
-  // ── HOY ───────────────────────────────────────────────────
-  var hoyClases = CLASES.filter(function(cl){ return cl.dias.indexOf(nomHoy)>-1; });
-  html += "<div class='sec-lbl' style='margin-bottom:8px'>Hoy · "+hoy.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"})+"</div>";
-  if(!hoyClases.length){
-    html += "<div class='empty' style='padding:16px 0'><p>Sin clases hoy</p></div>";
-  } else {
-    hoyClases.forEach(function(cl){ html += renderCard(cl, fHoy); });
-  }
+  proximosDias().forEach(function(dia){
+    var lista = CLASES.filter(function(cl){ return cl.dias.indexOf(dia.nom)>-1; });
+    if(!lista.length) return; // días sin clases no se muestran
+    var fechaTxt = dia.d.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
+    fechaTxt = fechaTxt.charAt(0).toUpperCase()+fechaTxt.slice(1);
+    html += "<div class='sec-lbl' style='margin-top:16px;margin-bottom:8px'>"+(dia.label==="Hoy"||dia.label==="Mañana"?dia.label+" · ":"")+fechaTxt+"</div>";
+    lista.forEach(function(cl){ html += renderCard(cl, dia.f, pendientes); });
+  });
 
-  // ── MAÑANA ────────────────────────────────────────────────
-  var mananaClases = CLASES.filter(function(cl){ return cl.dias.indexOf(nomManana)>-1; });
-  html += "<div class='sec-lbl' style='margin-top:16px;margin-bottom:8px'>Mañana · "+manana.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"})+"</div>";
-  if(!mananaClases.length){
-    html += "<div class='empty' style='padding:16px 0'><p>Sin clases mañana</p></div>";
-  } else {
-    mananaClases.forEach(function(cl){ html += renderCard(cl, fManana); });
-  }
-
+  if(!html) html="<div class='empty'><div class='ico'>📅</div><p>Sin clases programadas esta semana</p></div>";
   c.innerHTML = html;
 
   // Eventos — cada botón lleva claseId y fecha juntos (separados por "|")
-  // porque la misma clase puede aparecer hoy Y mañana con distinto estado.
+  // porque la misma clase aparece en varios días con distinto estado.
   c.querySelectorAll("[data-inscribir]").forEach(function(btn){
     btn.addEventListener("click",function(){
       var partes=this.dataset.inscribir.split("|"), id=+partes[0], fecha=partes[1];
@@ -1070,10 +1170,14 @@ function renderClasesDia(){
 }
 
 // ── RENDER: TARJETA DE CLASE ──────────────────────────────────
-// fecha = fecha específica (YYYY-MM-DD) en la que se muestra esta clase
-function renderCard(cl, fecha){
+// fecha = fecha específica (YYYY-MM-DD) del día en que se muestra.
+// pendientes = mapa de inscripciones activas por disciplina.
+function renderCard(cl, fecha, pendientes){
   var inscritos = GymDB.getInscritosPorClase(cl.id, fecha);
   var inscrito  = inscritos.indexOf(String(SOCIO.id))>-1;
+  // Bloqueada: el socio ya tiene una inscripción pendiente de ESTA
+  // disciplina en otra fecha — no puede agendar otra hasta que pase.
+  var bloqueada = !inscrito && pendientes[cl.id] && pendientes[cl.id]!==fecha;
   var numIns    = inscritos.length;
   var libre     = cl.cupo - numIns;
   var lleno     = !inscrito && libre <= 0;
@@ -1081,7 +1185,7 @@ function renderCard(cl, fecha){
   var cupoTxt   = lleno?"Lleno":libre+" lugar"+(libre===1?"":"es");
   var key       = cl.id+"|"+fecha;
 
-  var html = "<div class='clase-card'>";
+  var html = "<div class='clase-card'"+(bloqueada?" style='opacity:.55'":"")+">";
   html += "<div class='clase-barra' style='background:"+(cl.color||"#C8F135")+"'></div>";
   html += "<div class='clase-body'>";
   html += "  <div class='clase-nombre'>"+cl.nombre+"</div>";
@@ -1091,6 +1195,8 @@ function renderCard(cl, fecha){
 
   if(inscrito){
     html += "<span class='pill pg'>Inscrito</span>";
+  } else if(bloqueada){
+    html += "<span class='pill pm' title='Ya tienes esta disciplina agendada'>Bloqueada</span>";
   } else if(lleno){
     html += "<span class='pill pm'>Lleno</span>";
   } else {
@@ -1104,26 +1210,7 @@ function renderCard(cl, fecha){
 // ── RENDER: MIS CLASES INSCRITAS (hoy y mañana) ───────────────
 function renderMisClases(){
   if(!SOCIO) return;
-  var hoy    = new Date(); hoy.setHours(0,0,0,0);
-  var manana = new Date(hoy); manana.setDate(hoy.getDate()+1);
-  var nomHoy    = DIAS_SEMANA[hoy.getDay()];
-  var nomManana = DIAS_SEMANA[manana.getDay()];
-  var fHoy      = fechaISO(hoy);
-  var fManana   = fechaISO(manana);
-  var fmtHoy    = hoy.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"short"});
-  var fmtManana = manana.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"short"});
-
-  // Construir lista de (clase, fecha) donde el socio esté inscrito,
-  // revisando solo hoy y mañana (única ventana de agenda de esta app).
-  var misFilas=[];
-  CLASES.forEach(function(cl){
-    if(cl.dias.indexOf(nomHoy)>-1 && GymDB.getInscritosPorClase(cl.id,fHoy).indexOf(String(SOCIO.id))>-1){
-      misFilas.push({cl:cl, fecha:fHoy, label:fmtHoy});
-    }
-    if(cl.dias.indexOf(nomManana)>-1 && GymDB.getInscritosPorClase(cl.id,fManana).indexOf(String(SOCIO.id))>-1){
-      misFilas.push({cl:cl, fecha:fManana, label:fmtManana});
-    }
-  });
+  var misFilas = getInscripcionesSocio();
 
   var c=ge("mis-clases");
   if(!misFilas.length){
@@ -1155,8 +1242,10 @@ function renderMisClases(){
 }
 
 function renderFecha(){
-  var str=new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
-  ge("fecha-hoy").textContent=str.charAt(0).toUpperCase()+str.slice(1);
+  // Muestra el rango de la ventana visible (hoy → dentro de 6 días)
+  var fin=new Date(); fin.setDate(fin.getDate()+VENTANA_DIAS-1);
+  var opts={day:"numeric",month:"short"};
+  ge("fecha-hoy").textContent="Próximos 7 días · "+new Date().toLocaleDateString("es-MX",opts)+" – "+fin.toLocaleDateString("es-MX",opts);
 }
 
 document.addEventListener("DOMContentLoaded",function(){
@@ -1165,6 +1254,9 @@ document.addEventListener("DOMContentLoaded",function(){
   // en este punto todavía no hay ningún perfil seleccionado (SOCIO es
   // null hasta que el usuario elige uno en la pantalla de perfiles).
   // showScreen('clases') ya se encarga de llamarlas cuando corresponde.
+  ge("btn-sync-clases").addEventListener("click", function(){
+    sincronizar(this, function(){ renderClasesDia(); renderMisClases(); });
+  });
 });
 
 </script>
