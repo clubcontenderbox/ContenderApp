@@ -21,17 +21,6 @@ html,body{height:100%;background:#080808;color:#F0EDE8;font-family:"DM Sans",san
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border:none;background:none;color:#444;font-size:8px;font-family:"DM Sans",sans-serif;font-weight:500;transition:color .15s;padding:4px 0;}
 .nav-item.active{color:var(--lime);}
 .nav-icon{font-size:18px;line-height:1;}
-/* LOGIN */
-.login-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 28px;background:radial-gradient(ellipse 80% 50% at 50% 105%,rgba(200,241,53,.1),transparent 68%);}
-.login-marca{font-family:"Bebas Neue",sans-serif;font-size:56px;line-height:.9;letter-spacing:-2px;background:linear-gradient(160deg,#fff 25%,var(--lime));-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-align:center;margin-bottom:4px;}
-.login-rol{font-size:11px;color:var(--lime);letter-spacing:4px;text-transform:uppercase;margin-bottom:40px;}
-.pin-dots{display:flex;gap:14px;margin:12px 0;}
-.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);transition:all .15s;}
-.pin-dot.filled{background:var(--lime);border-color:var(--lime);}
-.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:260px;}
-.pin-key{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:17px;font-size:22px;font-weight:700;color:var(--text);cursor:pointer;font-family:"DM Sans",sans-serif;transition:background .1s;}
-.pin-key:active{background:var(--border);}
-.pin-key.sm{font-size:13px;color:var(--muted);}
 /* HEADER */
 .hdr{padding:18px 16px 8px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;}
 .hdr h1{font-family:"Bebas Neue",sans-serif;font-size:30px;letter-spacing:.5px;line-height:1;}
@@ -115,8 +104,8 @@ textarea{resize:vertical;min-height:70px;}
 .periodo-wrap{display:flex;gap:8px;align-items:center;padding:0 16px;margin-bottom:10px;}
 .periodo-wrap label{font-size:11px;color:var(--muted);white-space:nowrap;}
 /* CHART */
-.bar-chart{display:flex;align-items:flex-end;gap:6px;height:100px;padding-bottom:22px;position:relative;margin-top:8px;}
-.bcol{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;position:relative;}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:100px;padding-bottom:22px;position:relative;margin-top:8px;overflow-x:auto;}
+.bcol{flex:1 0 24px;min-width:24px;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;position:relative;}
 .bfill{width:100%;border-radius:4px 4px 0 0;min-height:4px;}
 .blabel{position:absolute;bottom:-18px;font-size:9px;color:var(--muted);}
 .bval{position:absolute;top:-15px;font-size:9px;color:var(--lime);font-weight:700;}
@@ -150,27 +139,8 @@ textarea{resize:vertical;min-height:70px;}
 </div>
 
 <!-- ═══ LOGIN ════════════════════════════════════════════════ -->
-<div class="screen-full active" id="screen-login">
-  <div class="login-wrap">
-    <div class="login-marca">CONTENDER<br>CLUB</div>
-    <div class="login-rol">&#128081; Administrador</div>
-    <div style="font-size:14px;color:var(--muted);margin-bottom:16px">Ingresa tu PIN de 4 dígitos</div>
-    <div class="pin-dots">
-      <div class="pin-dot" id="dot0"></div><div class="pin-dot" id="dot1"></div>
-      <div class="pin-dot" id="dot2"></div><div class="pin-dot" id="dot3"></div>
-    </div>
-    <div style="font-size:12px;color:var(--red);min-height:16px;margin-bottom:12px;text-align:center" id="login-err"></div>
-    <div class="pin-pad">
-      <button class="pin-key" data-n="1">1</button><button class="pin-key" data-n="2">2</button><button class="pin-key" data-n="3">3</button>
-      <button class="pin-key" data-n="4">4</button><button class="pin-key" data-n="5">5</button><button class="pin-key" data-n="6">6</button>
-      <button class="pin-key" data-n="7">7</button><button class="pin-key" data-n="8">8</button><button class="pin-key" data-n="9">9</button>
-      <button class="pin-key sm" id="login-clear">Borrar</button><button class="pin-key" data-n="0">0</button><button class="pin-key sm" id="login-del">&#9003;</button>
-    </div>
-  </div>
-</div>
-
 <!-- ═══ INICIO: CHECK-INS ════════════════════════════════════ -->
-<div class="screen" id="screen-inicio">
+<div class="screen active" id="screen-inicio">
   <div class="hdr">
     <div><h1>Inicio</h1><small id="hdr-fecha"></small></div>
     <div class="hdr-r"><button class="btn bd bsm" id="btn-sync-inicio">↻</button><button class="btn bl bsm" id="btn-checkin">&#10003; Check-in</button></div>
@@ -316,7 +286,16 @@ textarea{resize:vertical;min-height:70px;}
 
 <!-- ═══ DASHBOARD ════════════════════════════════════════════ -->
 <div class="screen" id="screen-dashboard">
-  <div class="hdr"><div><h1>Dashboard</h1></div></div>
+  <div class="hdr"><div><h1>Dashboard</h1></div><div class="hdr-r"><button class="btn bd bsm" id="btn-sync-dash">↻</button></div></div>
+  <div style="padding:0 16px;margin-bottom:14px">
+    <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;font-weight:500;text-transform:uppercase;letter-spacing:.8px;">Periodo de análisis</label>
+    <select id="dash-meses" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 13px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;width:100%;outline:none;">
+      <option value="3">Últimos 3 meses</option>
+      <option value="6" selected>Últimos 6 meses</option>
+      <option value="12">Últimos 12 meses</option>
+      <option value="24">Últimos 24 meses</option>
+    </select>
+  </div>
   <div style="padding:0 16px">
     <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px">Check-ins</div>
     <div class="card"><div class="bar-chart" id="chart-checkins"></div></div>
@@ -334,7 +313,7 @@ textarea{resize:vertical;min-height:70px;}
 </div>
 
 <!-- ═══ NAV ══════════════════════════════════════════════════ -->
-<nav class="nav-bar" id="nav-admin" style="display:none">
+<nav class="nav-bar" id="nav-admin" style="display:flex">
   <button class="nav-item active" data-screen="inicio"><span class="nav-icon">&#10003;</span>Inicio</button>
   <button class="nav-item" data-screen="socios"><span class="nav-icon">&#128101;</span>Socios</button>
   <button class="nav-item" data-screen="catalogo"><span class="nav-icon">&#128203;</span>Catálogo</button>
@@ -441,6 +420,28 @@ textarea{resize:vertical;min-height:70px;}
   </div>
 </div>
 
+<!-- MODAL: MUESTRA DE COMPOSICIÓN CORPORAL -->
+<div class="modal-ov" id="modal-muestra">
+  <div class="modal">
+    <div class="mhandle"></div>
+    <h2>Agregar Muestra</h2>
+    <div class="fr"><label>Fecha</label><input type="date" id="muestra-fecha"></div>
+    <div class="f2">
+      <div class="fr"><label>Peso (kg)</label><input type="number" id="muestra-peso" inputmode="decimal" placeholder="0.0" step="0.1"></div>
+      <div class="fr"><label>% Masa muscular</label><input type="number" id="muestra-musculo" inputmode="decimal" placeholder="0.0" step="0.1"></div>
+    </div>
+    <div class="f2">
+      <div class="fr"><label>% Grasa</label><input type="number" id="muestra-grasa" inputmode="decimal" placeholder="0.0" step="0.1"></div>
+      <div class="fr"><label>IMC</label><input type="number" id="muestra-imc" inputmode="decimal" placeholder="0.0" step="0.1"></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:-4px">La edad se calcula sola a partir de la fecha de nacimiento — no hace falta capturarla.</div>
+    <div class="mbtns">
+      <button class="btn bd" style="flex:1;padding:13px" data-close="modal-muestra">Cancelar</button>
+      <button class="btn bl" style="flex:1;padding:13px" id="muestra-guardar">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL: WA -->
 <div class="modal-ov" id="modal-wa">
   <div class="modal">
@@ -483,7 +484,6 @@ textarea{resize:vertical;min-height:70px;}
 // ═══ CONFIGURACIÓN CENTRAL ════════════════════════════════════
 // Todo lo ajustable vive aquí — un solo lugar para cambiar valores.
 var CONFIG = {
-  PIN: "1234",                 // PIN de acceso al panel admin
   TOAST_MS: 2000,              // duración del toast de aviso
   SCANNER_RETRY_MS: 1500,      // espera tras un QR inválido antes de reintentar
   SCANNER_OK_MS: 700,          // espera tras un QR válido antes de cerrar
@@ -631,7 +631,6 @@ function fm(n){return "$"+Number(n).toLocaleString("es-MX");}
 function ini(s){return (s.nombre[0]+s.apellido_paterno[0]).toUpperCase();}
 function fF(f){return f?new Date(f+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"2-digit"}):"—";}
 function addDays(f,d){var dt=new Date(f+"T00:00:00");dt.setDate(dt.getDate()+d);return dt.toISOString().slice(0,10);}
-function addWeeks(f,w){return addDays(f,w*7);}
 function nCompleto(s){return [s.nombre,s.apellido_paterno,s.apellido_materno].filter(Boolean).join(" ");}
 
 // Total abonado en el ciclo de membresía vigente del socio (suma de
@@ -669,7 +668,6 @@ function pillSt(st){
 }
 
 // ── ESTADO ────────────────────────────────────────────────────
-var pinBuf      = "";
 var sortActual  = "id";
 var ordenAsc    = true;
 var socioActual = null;
@@ -695,24 +693,6 @@ function showScreen(id){
   if(id==="detalle")  setTimeout(renderDetalle,0);
 }
 
-// ── LOGIN / PIN ───────────────────────────────────────────────
-function actualizarDots(){
-  for(var i=0;i<4;i++) ge("dot"+i).classList.toggle("filled",i<pinBuf.length);
-}
-function verificarPin(){
-  if(pinBuf===CONFIG.PIN){
-    ge("screen-login").classList.remove("active");
-    ge("nav-admin").style.display="flex";
-    var str=new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
-    ge("hdr-fecha").textContent=str.charAt(0).toUpperCase()+str.slice(1);
-    showScreen("inicio");
-  } else {
-    ge("login-err").textContent="PIN incorrecto";
-    pinBuf=""; actualizarDots();
-    setTimeout(function(){ge("login-err").textContent="";},2000);
-  }
-}
-
 // ── INICIO ────────────────────────────────────────────────────
 function renderInicio(){
   // CHECKINS ahora guarda el historial completo (con fecha) para Reportes.
@@ -727,17 +707,12 @@ function renderInicio(){
     var st=calcStatus(s);
     var deudas=DEUDAS[s.id]||[];
     var totalD=deudas.reduce(function(a,d){return a+d.total;},0);
-    var abonoV=(s.abonos||[]).find(function(a){
-      var lim=new Date(a.fecha_limite+"T00:00:00"),h=new Date();h.setHours(0,0,0,0);
-      return !a.pagado&&lim<h;
-    });
     html+="<div class='ci-row' data-ver='"+s.id+"'>";
     html+="<div class='ci-av'>"+ini(s)+"</div>";
     html+="<div style='flex:1;min-width:0'><div style='font-size:13px;font-weight:700'>#"+s.id+" · "+s.nombre+" "+s.apellido_paterno+"</div>";
     html+="<div style='font-size:10px;color:var(--muted);margin-top:2px'>"+ci.hora+" · "+(s.plan||"Sin membresía")+"</div>";
     html+="<div style='margin-top:4px;display:flex;gap:5px;flex-wrap:wrap'>"+pillSt(st);
     if(totalD>0) html+="<span class='pill po'>Debe: "+fm(totalD)+"</span>";
-    if(abonoV)   html+="<span class='pill pr'>Abono vencido</span>";
     html+="</div></div><span style='color:var(--muted);font-size:18px'>›</span></div>";
   });
   ge("lista-ci").innerHTML=html;
@@ -1003,6 +978,9 @@ function renderTabInfo(s){
   html+="<div class='f2' style='margin-bottom:12px'><div><div style='font-size:11px;color:var(--muted)'>Sexo</div><div style='font-size:14px;margin-top:3px'>"+(s.sexo==="M"?"Masculino":s.sexo==="F"?"Femenino":"—")+"</div></div>";
   html+="<div><div style='font-size:11px;color:var(--muted)'>Visitas</div><div style='font-family:\"Bebas Neue\",sans-serif;font-size:26px;color:var(--lime);margin-top:2px'>"+(s.visitas||0)+"</div></div></div>";
   if(s.notas) html+="<div style='margin-bottom:12px'><div style='font-size:11px;color:var(--muted)'>Notas</div><div style='font-size:13px;color:var(--muted);margin-top:3px'>"+s.notas+"</div></div>";
+  html+="<div style='font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin:16px 0 8px'>Composición corporal</div>";
+  html+="<div id='seguimiento-lista' style='margin-bottom:8px'><div style='font-size:12px;color:var(--muted);padding:8px 0'>Cargando…</div></div>";
+  html+="<button class='btn bd bsm' id='btn-add-muestra' style='width:100%;justify-content:center;margin-bottom:16px'>+ Agregar muestra</button>";
   html+="<div style='display:flex;gap:8px;margin-top:8px'>";
   html+="<button class='btn bwa bsm' id='btn-info-wa' style='flex:1;justify-content:center'>&#128241; WhatsApp</button>";
   html+="<button class='btn bsm' id='btn-toggle-activo' style='flex:1;justify-content:center;background:"+(s.activo?"rgba(255,59,48,.12)":"rgba(48,209,88,.12)")+";color:"+(s.activo?"var(--red)":"var(--green)")+";border:1px solid "+(s.activo?"rgba(255,59,48,.3)":"rgba(48,209,88,.3)")+";'>"+(s.activo?"Desactivar":"Activar")+"</button></div>";
@@ -1010,6 +988,8 @@ function renderTabInfo(s){
   html+="</div>";
   ge("det-content").innerHTML=html;
   ge("btn-info-wa").addEventListener("click",function(){abrirWA(s.id);});
+  ge("btn-add-muestra").addEventListener("click",function(){abrirModalMuestra(s);});
+  cargarSeguimiento(s);
   ge("btn-toggle-activo").addEventListener("click",function(){
     if(confirm((s.activo?"Desactivar":"Activar")+" a "+s.nombre+"?")){
       s.activo=!s.activo;
@@ -1019,6 +999,79 @@ function renderTabInfo(s){
     }
   });
   ge("btn-editar-soc").addEventListener("click",function(){abrirEditarSoc(s.id);});
+}
+
+// Calcula la edad en años a partir de la fecha de nacimiento, a la
+// fecha de referencia dada (por defecto hoy). Es un valor derivado —
+// no se guarda por separado, se recalcula siempre desde fecha_nacimiento.
+function calcularEdad(fechaNacimiento, fechaRef){
+  if(!fechaNacimiento) return null;
+  var nac=new Date(fechaNacimiento+"T00:00:00");
+  var ref=fechaRef?new Date(fechaRef+"T00:00:00"):new Date();
+  var edad=ref.getFullYear()-nac.getFullYear();
+  var m=ref.getMonth()-nac.getMonth();
+  if(m<0||(m===0&&ref.getDate()<nac.getDate())) edad--;
+  return edad;
+}
+
+// Trae el historial de seguimiento mensual (peso/músculo/grasa/IMC) de
+// este socio y lo pinta. Es asíncrono (getSeguimiento no viene
+// precargado como el resto de los datos), así que se pide aparte y se
+// rellena cuando llega — mientras tanto se ve "Cargando…".
+function cargarSeguimiento(s){
+  GymDB.getSeguimiento(s.id, function(rows){
+    if(!ge("seguimiento-lista")) return; // el usuario ya cambió de pantalla
+    if(!rows.length){
+      ge("seguimiento-lista").innerHTML="<div style='font-size:12px;color:var(--muted);padding:8px 0'>Sin muestras registradas todavía</div>";
+      return;
+    }
+    rows.sort(function(a,b){return (b.fecha||"").localeCompare(a.fecha||"");});
+    var html="<div class='card'>";
+    rows.forEach(function(r){
+      var edad=calcularEdad(s.fecha_nacimiento,r.fecha);
+      html+="<div class='abono-row'><div style='flex:1;min-width:0'>";
+      html+="<div style='font-size:13px;font-weight:600'>"+fF(r.fecha)+(edad!==null?" · "+edad+" años":"")+"</div>";
+      html+="<div style='font-size:11px;color:var(--muted)'>";
+      var partes=[];
+      if(r.peso!=null) partes.push(r.peso+" kg");
+      if(r.musculo!=null) partes.push(r.musculo+"% MC");
+      if(r.grasa!=null) partes.push(r.grasa+"% grasa");
+      if(r.imc!=null) partes.push("IMC "+r.imc);
+      html+=partes.join(" · ")+"</div>";
+      html+="</div><button class='btn br bsm' data-del-muestra='"+r.id+"'>&#128465;</button></div>";
+    });
+    html+="</div>";
+    ge("seguimiento-lista").innerHTML=html;
+    ge("seguimiento-lista").querySelectorAll("[data-del-muestra]").forEach(function(btn){
+      btn.addEventListener("click",function(){
+        if(!confirm("¿Eliminar esta muestra?")) return;
+        GymDB.removeSeguimiento(this.dataset.delMuestra, function(){ cargarSeguimiento(s); });
+      });
+    });
+  });
+}
+
+// ── MODAL MUESTRA (composición corporal) ──────────────────────
+function abrirModalMuestra(s){
+  ge("muestra-fecha").value=hoyISO();
+  ge("muestra-peso").value=""; ge("muestra-musculo").value="";
+  ge("muestra-grasa").value=""; ge("muestra-imc").value="";
+  ge("modal-muestra").classList.add("open");
+}
+function guardarMuestra(){
+  var s=socioActual; if(!s) return;
+  var fecha=ge("muestra-fecha").value; if(!fecha){alert("Selecciona una fecha");return;}
+  var peso=ge("muestra-peso").value?+ge("muestra-peso").value:null;
+  var musculo=ge("muestra-musculo").value?+ge("muestra-musculo").value:null;
+  var grasa=ge("muestra-grasa").value?+ge("muestra-grasa").value:null;
+  var imc=ge("muestra-imc").value?+ge("muestra-imc").value:null;
+  if(peso==null&&musculo==null&&grasa==null&&imc==null){alert("Captura al menos un valor");return;}
+  var mes=fecha.slice(0,7); // "YYYY-MM" — una muestra por mes (upsert)
+  GymDB.saveSeguimiento(s.id, mes, peso, musculo, imc, grasa, fecha, function(){
+    ge("modal-muestra").classList.remove("open");
+    cargarSeguimiento(s);
+    mostrarToast("↻ Muestra guardada");
+  });
 }
 
 // ── FORMULARIO SOCIO ──────────────────────────────────────────
@@ -1616,14 +1669,21 @@ function ultimosMeses(n){
   for(var i=n-1;i>=0;i--){
     var dd=new Date(d.getFullYear(), d.getMonth()-i, 1);
     var key=dd.getFullYear()+"-"+String(dd.getMonth()+1).padStart(2,"0");
-    out.push({key:key, m:MESES_ABR[dd.getMonth()]});
+    out.push({key:key, m:MESES_ABR[dd.getMonth()], anio:dd.getFullYear()});
+  }
+  // Si el periodo cruza más de un año (12+ meses), se le agrega el año
+  // a la etiqueta — si no, "Ene" aparecería repetido sin decir cuál es
+  // cuál (por ejemplo en un periodo de 24 meses).
+  if(out.length && out[0].anio!==out[out.length-1].anio){
+    out.forEach(function(o){ o.m = o.m+" "+String(o.anio).slice(2); });
   }
   return out;
 }
 
 function renderGrafica(){
   var vacio="<div class='empty' style='padding:20px'><p style='font-size:12px'>Sin datos aún</p></div>";
-  var meses=ultimosMeses(CONFIG.DASHBOARD_MESES);
+  var mesesN = +ge("dash-meses").value || CONFIG.DASHBOARD_MESES;
+  var meses=ultimosMeses(mesesN);
 
   function pintarChart(elId, datos, color, esMoneda){
     var el=ge(elId);
@@ -1682,16 +1742,10 @@ document.addEventListener("DOMContentLoaded",function(){
   if(ov) ov.style.display="none";
   recargarDatos();
 
-  // PIN login
-  document.querySelectorAll(".pin-key[data-n]").forEach(function(btn){
-    btn.addEventListener("click",function(){
-      if(pinBuf.length>=4)return;
-      pinBuf+=this.dataset.n;actualizarDots();
-      if(pinBuf.length===4)setTimeout(verificarPin,150);
-    });
-  });
-  ge("login-del").addEventListener("click",function(){pinBuf=pinBuf.slice(0,-1);actualizarDots();});
-  ge("login-clear").addEventListener("click",function(){pinBuf="";actualizarDots();});
+  // Sin PIN de entrada — entra directo a Inicio
+  var str=new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
+  ge("hdr-fecha").textContent=str.charAt(0).toUpperCase()+str.slice(1);
+  showScreen("inicio");
 
   // Nav
   document.querySelectorAll(".nav-item[data-screen]").forEach(function(b){
@@ -1745,6 +1799,10 @@ document.addEventListener("DOMContentLoaded",function(){
   });
   ge("btn-csv").addEventListener("click",descargarCSV);
 
+  // Dashboard
+  ge("btn-sync-dash").addEventListener("click",function(){ sincronizar(this, renderGrafica); });
+  ge("dash-meses").addEventListener("change",renderGrafica);
+
   // Pago
   ge("pago-plan").addEventListener("change",function(){
     if(pagoModo==="nuevo") ge("pago-monto").value = PLAN_PRECIO[this.value]||0;
@@ -1760,13 +1818,16 @@ document.addEventListener("DOMContentLoaded",function(){
   ge("ps-cantidad").addEventListener("input",calcPSTot);
   ge("ps-guardar").addEventListener("click",guardarProdSoc);
 
+  // Muestra (composición corporal)
+  ge("muestra-guardar").addEventListener("click",guardarMuestra);
+
   // WA
   ge("wa-tipo").addEventListener("change",previewWA);
   ge("wa-enviar").addEventListener("click",enviarWA);
 
   // Cerrar modales
   document.querySelectorAll("[data-close]").forEach(function(b){b.addEventListener("click",function(){ge(this.dataset.close).classList.remove("open");if(this.dataset.close==="modal-checkin")detenerScanner();});});
-  ["modal-checkin","modal-pago","modal-prod-soc","modal-wa","modal-cat"].forEach(function(id){ge(id).addEventListener("click",function(e){if(e.target===this){this.classList.remove("open");if(id==="modal-checkin")detenerScanner();}});});
+  ["modal-checkin","modal-pago","modal-prod-soc","modal-muestra","modal-wa","modal-cat"].forEach(function(id){ge(id).addEventListener("click",function(e){if(e.target===this){this.classList.remove("open");if(id==="modal-checkin")detenerScanner();}});});
 
   var hoy=new Date().toISOString().slice(0,10);
   ge("r-desde").value=hoy; ge("r-hasta").value=hoy;

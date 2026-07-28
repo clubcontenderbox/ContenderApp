@@ -366,6 +366,9 @@ var GymDB = (function () {
           if(callback) callback();
         });
     },
+    removeSeguimiento: function(id, callback) {
+      del('seguimiento_socio','id=eq.'+id).then(function(){ if(callback) callback(); });
+    },
 
     // ── DEUDAS ──────────────────────────────────────────────────
     getAllDeudas:   function()    { return deepCopyObj(C.deudas); },
