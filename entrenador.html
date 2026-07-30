@@ -486,7 +486,14 @@ function sincronizar(btn, renderFn){
 }
 
 // Fecha de hoy en formato ISO (YYYY-MM-DD) — usada en toda la app
-function hoyISO(){ return new Date().toISOString().slice(0,10); }
+// Fecha de hoy en formato ISO (YYYY-MM-DD) — usada en toda la app.
+// BUG CORREGIDO: toISOString() da la fecha en UTC, no en hora local.
+// Para México (UTC-6) eso hacía que desde las 6:00 PM hora local el
+// sistema ya pensara que era el día siguiente.
+function hoyISO(){
+  var d=new Date();
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
 
 // Trae del cache de GymDB (ya cargado por init) a las variables locales
 // que usa toda la lógica de renderizado de este archivo.
@@ -526,7 +533,14 @@ function ge(id){return document.getElementById(id);}
 function fm(n){return "$"+Number(n).toLocaleString("es-MX");}
 function ini(s){return (s.nombre[0]+s.apellido_paterno[0]).toUpperCase();}
 function fF(f){return f?new Date(f+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"2-digit"}):"—";}
-function addDays(f,d){var dt=new Date(f+"T00:00:00");dt.setDate(dt.getDate()+d);return dt.toISOString().slice(0,10);}
+// Suma/resta días a una fecha YYYY-MM-DD, aritmética pura sin pasar
+// por UTC (evita que se corra un día según la zona horaria).
+function addDays(f,d){
+  var p=f.split("-");
+  var dt=new Date(Date.UTC(+p[0],+p[1]-1,+p[2]));
+  dt.setUTCDate(dt.getUTCDate()+d);
+  return dt.getUTCFullYear()+"-"+String(dt.getUTCMonth()+1).padStart(2,"0")+"-"+String(dt.getUTCDate()).padStart(2,"0");
+}
 function addWeeks(f,w){return addDays(f,w*7);}
 function nCompleto(s){return [s.nombre,s.apellido_paterno,s.apellido_materno].filter(Boolean).join(" ");}
 
@@ -610,7 +624,7 @@ function intentarLoginEntrenador(){
 function renderInicio(){
   // CHECKINS ahora guarda el historial completo (con fecha) para Reportes.
   // Aquí en Inicio solo mostramos los de HOY.
-  var hoy=new Date().toISOString().slice(0,10);
+  var hoy=hoyISO();
   var deHoy=CHECKINS.filter(function(c){return c.fecha===hoy;});
   ge("st-ci").textContent=deHoy.length;
   var html="";

@@ -68,7 +68,18 @@ var GymDB = (function () {
   var del  = function(t,q)   { return sbFetch('DELETE',t, q); };
 
   // ── Utilidades ─────────────────────────────────────────────────
-  function hoy() { return new Date().toISOString().slice(0,10); }
+  // BUG CORREGIDO: toISOString() da la fecha en UTC, no en hora local.
+  // Para un gym en México (UTC-6), eso significa que desde las 6:00 PM
+  // hora local el sistema ya "cree" que es el día siguiente — un
+  // check-in de la tarde/noche se guardaba bien, pero unas horas
+  // después "hoy" ya había cambiado de fecha y ese check-in dejaba de
+  // aparecer en la lista de "hoy" (aunque seguía existiendo, por eso
+  // sí se veía en Dashboard). Ahora se arma la fecha con los
+  // componentes LOCALES del dispositivo, sin pasar por UTC.
+  function hoy() {
+    var d = new Date();
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
 
   function findIdx(arr, id) {
     var sid=String(id);
@@ -163,7 +174,7 @@ var GymDB = (function () {
       // Inscritos por fecha: { "clase_id|fecha": [socio_ids] }
       C.inscritos = {};
       (res[8]||[]).forEach(function(i) {
-        var fecha = i.fecha || new Date().toISOString().slice(0,10);
+        var fecha = i.fecha || hoy();
         var key   = String(i.clase_id)+'|'+fecha;
         if (!C.inscritos[key]) C.inscritos[key] = [];
         C.inscritos[key].push(String(i.socio_id));
@@ -330,7 +341,7 @@ var GymDB = (function () {
         socio_nombre:    cobro.socio_nombre||null,
         producto:        cobro.producto,
         monto:           cobro.monto,
-        fecha:           new Date().toISOString().slice(0,10),
+        fecha:           hoy(),
         vendedor_id:     cobro.vendedor_id||null,
         vendedor_nombre: cobro.vendedor_nombre||null,
         notas:           cobro.notas||null
@@ -349,12 +360,12 @@ var GymDB = (function () {
         .then(function(r){ callback(Array.isArray(r)?r:[]); });
     },
     saveSeguimiento: function(socioId, mes, peso, musculo, imc, grasa, fecha, callback) {
-      var hoy = fecha || new Date().toISOString().slice(0,10);
+      var fechaFinal = fecha || hoy();
       var data = {
         socio_id: socioId, mes: mes,
         peso: peso||null, musculo: musculo||null,
         imc: imc||null, grasa: grasa||null,
-        fecha: hoy
+        fecha: fechaFinal
       };
       get('seguimiento_socio','select=id&socio_id=eq.'+socioId+'&mes=eq.'+mes)
         .then(function(r){
@@ -565,12 +576,12 @@ var GymDB = (function () {
 
     // ── INSCRITOS ────────────────────────────────────────────────
     getAllInscritos:       function()    { return deepCopyObj(C.inscritos); },
-    getInscritosPorClase: function(cid, fecha) { var f=fecha||new Date().toISOString().slice(0,10); return C.inscritos[String(cid)+'|'+f] || []; },
+    getInscritosPorClase: function(cid, fecha) { var f=fecha||hoy(); return C.inscritos[String(cid)+'|'+f] || []; },
     saveAllInscritos:     function(obj) { C.inscritos = obj; },
 
     inscribirSocio: function(cid, sid, fecha) {
       var cids=String(cid), sids=String(sid);
-      var f = fecha || new Date().toISOString().slice(0,10);
+      var f = fecha || hoy();
       var key = cids+'|'+f;
       if (!C.inscritos[key]) C.inscritos[key] = [];
       if (C.inscritos[key].indexOf(sids) === -1) {
@@ -582,7 +593,7 @@ var GymDB = (function () {
 
     desinscribirSocio: function(cid, sid, fecha) {
       var cids=String(cid), sids=String(sid);
-      var f = fecha || new Date().toISOString().slice(0,10);
+      var f = fecha || hoy();
       var key = cids+'|'+f;
       if (C.inscritos[key])
         C.inscritos[key] = C.inscritos[key].filter(function(x){ return x!==sids; });

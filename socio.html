@@ -588,7 +588,13 @@ function precioPlan(nombrePlan){
 function ge(id){ return document.getElementById(id); }
 function fm(n){ return "$"+Number(n).toLocaleString("es-MX"); }
 function fF(f){ return f?new Date(f+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"2-digit"}):"—"; }
-function fechaISO(d){ return d.toISOString().slice(0,10); }
+// BUG CORREGIDO: toISOString() da la fecha en UTC, no en hora local.
+// Para México (UTC-6) eso hacía que desde las 6:00 PM hora local el
+// sistema ya pensara que era el día siguiente — afectaba tanto "hoy"
+// como las fechas de Clases (hoy/mañana se recorrían de fecha).
+function fechaISO(d){
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
 
 function mostrarToast(msg){
   var t=ge("toast-sync");
@@ -890,7 +896,7 @@ function renderDeudas(){
 // clave secreta viaje nunca al navegador. No se puede resolver bien
 // mientras la app sea 100% estática sin backend.
 function genCode(id){
-  var d    = new Date().toISOString().slice(0,10).replace(/-/g,"");
+  var d    = fechaISO(new Date()).replace(/-/g,"");
   var seed = id + d + CONFIG.QR_SECRET;
   var h    = 0;
   for(var i=0;i<seed.length;i++){ h=((h<<5)-h)+seed.charCodeAt(i); h|=0; }

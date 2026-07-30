@@ -104,7 +104,11 @@ textarea{resize:vertical;min-height:70px;}
 .periodo-wrap{display:flex;gap:8px;align-items:center;padding:0 16px;margin-bottom:10px;}
 .periodo-wrap label{font-size:11px;color:var(--muted);white-space:nowrap;}
 /* CHART */
-.bar-chart{display:flex;align-items:flex-end;gap:6px;height:100px;padding-bottom:22px;position:relative;margin-top:8px;overflow-x:auto;}
+/* padding-top da lugar al número que flota arriba de cada barra
+   (.bval, top:-15px) — con overflow-x:auto el navegador fuerza
+   overflow-y a "auto" también (así es la spec de CSS), así que sin
+   este padding el número quedaba recortado y no se veía */
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:100px;padding-top:18px;padding-bottom:22px;position:relative;margin-top:8px;overflow-x:auto;}
 .bcol{flex:1 0 24px;min-width:24px;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;position:relative;}
 .bfill{width:100%;border-radius:4px 4px 0 0;min-height:4px;}
 .blabel{position:absolute;bottom:-18px;font-size:9px;color:var(--muted);}
@@ -290,10 +294,13 @@ textarea{resize:vertical;min-height:70px;}
   <div style="padding:0 16px;margin-bottom:14px">
     <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;font-weight:500;text-transform:uppercase;letter-spacing:.8px;">Periodo de análisis</label>
     <select id="dash-meses" style="background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 13px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;width:100%;outline:none;">
-      <option value="3">Últimos 3 meses</option>
-      <option value="6" selected>Últimos 6 meses</option>
-      <option value="12">Últimos 12 meses</option>
-      <option value="24">Últimos 24 meses</option>
+      <option value="d7">Diario · Últimos 7 días</option>
+      <option value="d14">Diario · Últimos 14 días</option>
+      <option value="d30">Diario · Últimos 30 días</option>
+      <option value="m3">Mensual · Últimos 3 meses</option>
+      <option value="m6" selected>Mensual · Últimos 6 meses</option>
+      <option value="m12">Mensual · Últimos 12 meses</option>
+      <option value="m24">Mensual · Últimos 24 meses</option>
     </select>
   </div>
   <div style="padding:0 16px">
@@ -590,8 +597,17 @@ function sincronizar(btn, renderFn){
   });
 }
 
-// Fecha de hoy en formato ISO (YYYY-MM-DD) — usada en toda la app
-function hoyISO(){ return new Date().toISOString().slice(0,10); }
+// Fecha de hoy en formato ISO (YYYY-MM-DD) — usada en toda la app.
+// BUG CORREGIDO: toISOString() da la fecha en UTC. Para México
+// (UTC-6), eso hacía que desde las 6:00 PM hora local el sistema ya
+// pensara que era el día siguiente — un check-in o venta de la
+// tarde/noche se guardaba con una fecha, y unas horas después "hoy"
+// ya había cambiado, haciendo que desapareciera de las listas de "hoy"
+// aunque seguía existiendo (por eso sí aparecía en Dashboard/Reportes).
+function hoyISO(){
+  var d=new Date();
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
 
 // Trae del cache de GymDB (ya cargado por init) a las variables locales
 // que usa toda la lógica de renderizado de este archivo.
@@ -630,7 +646,16 @@ function ge(id){return document.getElementById(id);}
 function fm(n){return "$"+Number(n).toLocaleString("es-MX");}
 function ini(s){return (s.nombre[0]+s.apellido_paterno[0]).toUpperCase();}
 function fF(f){return f?new Date(f+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"2-digit"}):"—";}
-function addDays(f,d){var dt=new Date(f+"T00:00:00");dt.setDate(dt.getDate()+d);return dt.toISOString().slice(0,10);}
+// Suma/resta días a una fecha YYYY-MM-DD. Aritmética de calendario
+// pura (sin pasar por UTC) para que no se corra un día según la zona
+// horaria del dispositivo — mismo tipo de bug que hoyISO(), pero aquí
+// aplicado a fechas ya conocidas en vez de "ahora".
+function addDays(f,d){
+  var p=f.split("-");
+  var dt=new Date(Date.UTC(+p[0],+p[1]-1,+p[2]));
+  dt.setUTCDate(dt.getUTCDate()+d);
+  return dt.getUTCFullYear()+"-"+String(dt.getUTCMonth()+1).padStart(2,"0")+"-"+String(dt.getUTCDate()).padStart(2,"0");
+}
 function nCompleto(s){return [s.nombre,s.apellido_paterno,s.apellido_materno].filter(Boolean).join(" ");}
 
 // Total abonado en el ciclo de membresía vigente del socio (suma de
@@ -697,7 +722,7 @@ function showScreen(id){
 function renderInicio(){
   // CHECKINS ahora guarda el historial completo (con fecha) para Reportes.
   // Aquí en Inicio solo mostramos los de HOY.
-  var hoy=new Date().toISOString().slice(0,10);
+  var hoy=hoyISO();
   var deHoy=CHECKINS.filter(function(c){return c.fecha===hoy;});
   ge("st-ci").textContent=deHoy.length;
   var html="";
@@ -1680,10 +1705,39 @@ function ultimosMeses(n){
   return out;
 }
 
+// Genera los periodos a mostrar en el Dashboard, ya sea por día o por
+// mes, según lo que el usuario eligió en el selector. modo viene como
+// "d7"/"d14"/"d30" (diario, N días) o "m3"/"m6"/"m12"/"m24" (mensual,
+// N meses). Cada periodo trae esDiario para que el filtrado sepa si
+// comparar la fecha exacta o solo el año-mes.
+function ultimosPeriodos(modo){
+  var tipo=modo.charAt(0), n=+modo.slice(1)||1;
+  if(tipo==="d"){
+    var out=[];
+    for(var i=n-1;i>=0;i--){
+      var d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()-i);
+      var key=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+      out.push({key:key, m:d.getDate()+" "+MESES_ABR[d.getMonth()], esDiario:true});
+    }
+    return out;
+  }
+  return ultimosMeses(n).map(function(mm){ mm.esDiario=false; return mm; });
+}
+// Compara una fecha (YYYY-MM-DD) contra un periodo: exacta si es
+// diario, o solo año-mes si es mensual.
+function enPeriodoGrafica(fecha, p){
+  if(!fecha) return false;
+  return p.esDiario ? fecha===p.key : fecha.slice(0,7)===p.key;
+}
+
 function renderGrafica(){
   var vacio="<div class='empty' style='padding:20px'><p style='font-size:12px'>Sin datos aún</p></div>";
-  var mesesN = +ge("dash-meses").value || CONFIG.DASHBOARD_MESES;
-  var meses=ultimosMeses(mesesN);
+  // Formato de monto para las barras: pesos completos si es un monto
+  // chico (más legible para transacciones típicas de gym, $10-$2000),
+  // notación "k" solo si el monto ya es grande — antes SIEMPRE usaba
+  // "k" y un abono de $200 se veía como "$0.2k", confuso.
+  function fm2(v){ return v>=10000 ? "$"+(v/1000).toFixed(1)+"k" : fm(v); }
+  var meses=ultimosPeriodos(ge("dash-meses").value||"m6");
 
   function pintarChart(elId, datos, color, esMoneda){
     var el=ge(elId);
@@ -1692,22 +1746,23 @@ function renderGrafica(){
     var html="";
     datos.forEach(function(d,i){
       var pct=Math.max((d.v/max)*100,5),isLast=i===datos.length-1;
-      var label=esMoneda?("$"+(d.v/1000).toFixed(1)+"k"):d.v;
+      var label=esMoneda?fm2(d.v):d.v;
       html+="<div class='bcol'><span class='bval'>"+label+"</span><div class='bfill' style='height:"+pct+"%;background:"+(isLast?color:color+"55")+"'></div><span class='blabel'>"+d.m+"</span></div>";
     });
     el.innerHTML=html;
   }
 
   // Ventas de productos y Pagos de membresías: calculados EN VIVO desde
-  // VENTAS real (ya conectado a Supabase), agrupado por mes y por tipo.
-  // Antes "Pagos de membresías" era ventas×0.7, un placeholder falso.
+  // VENTAS real (ya conectado a Supabase), agrupado por día o por mes
+  // según el periodo elegido. Antes "Pagos de membresías" era
+  // ventas×0.7, un placeholder falso.
   var ventasProd = meses.map(function(mm){
-    var total=VENTAS.filter(function(v){return v.tipo==="prod" && (v.fecha||"").slice(0,7)===mm.key;})
+    var total=VENTAS.filter(function(v){return v.tipo==="prod" && enPeriodoGrafica(v.fecha,mm);})
                     .reduce(function(a,v){return a+v.total;},0);
     return {m:mm.m, v:total};
   });
   var pagosMemb = meses.map(function(mm){
-    var total=VENTAS.filter(function(v){return v.tipo==="memb" && (v.fecha||"").slice(0,7)===mm.key;})
+    var total=VENTAS.filter(function(v){return v.tipo==="memb" && enPeriodoGrafica(v.fecha,mm);})
                     .reduce(function(a,v){return a+v.total;},0);
     return {m:mm.m, v:total};
   });
@@ -1715,19 +1770,19 @@ function renderGrafica(){
   pintarChart("chart-pagos",  pagosMemb,  CONFIG.CHART_COLORS.pagos, true);
 
   // Nuevas inscripciones: calculado en vivo desde SOCIOS real, agrupado
-  // por mes de fecha_inicio (alta del socio).
+  // por día o mes de fecha_inicio (alta del socio).
   var altas = meses.map(function(mm){
-    var total=SOCIOS.filter(function(s){return (s.fecha_inicio||"").slice(0,7)===mm.key;}).length;
+    var total=SOCIOS.filter(function(s){return enPeriodoGrafica(s.fecha_inicio,mm);}).length;
     return {m:mm.m, v:total};
   });
   pintarChart("chart-altas", altas, CONFIG.CHART_COLORS.altas, false);
 
   // Check-ins: histórico real completo desde Supabase (no solo hoy),
-  // agrupado por mes.
+  // agrupado por día o mes.
   ge("chart-checkins").innerHTML="<div class='empty' style='padding:20px'><p style='font-size:12px'>Cargando…</p></div>";
   GymDB.getCheckinsRango(null,null).then(function(rows){
     var ciPorMes = meses.map(function(mm){
-      var total=rows.filter(function(c){return (c.fecha||"").slice(0,7)===mm.key;}).length;
+      var total=rows.filter(function(c){return enPeriodoGrafica(c.fecha,mm);}).length;
       return {m:mm.m, v:total};
     });
     pintarChart("chart-checkins", ciPorMes, CONFIG.CHART_COLORS.checkins, false);
@@ -1829,7 +1884,7 @@ document.addEventListener("DOMContentLoaded",function(){
   document.querySelectorAll("[data-close]").forEach(function(b){b.addEventListener("click",function(){ge(this.dataset.close).classList.remove("open");if(this.dataset.close==="modal-checkin")detenerScanner();});});
   ["modal-checkin","modal-pago","modal-prod-soc","modal-muestra","modal-wa","modal-cat"].forEach(function(id){ge(id).addEventListener("click",function(e){if(e.target===this){this.classList.remove("open");if(id==="modal-checkin")detenerScanner();}});});
 
-  var hoy=new Date().toISOString().slice(0,10);
+  var hoy=hoyISO();
   ge("r-desde").value=hoy; ge("r-hasta").value=hoy;
 
  }).catch(function(err){
