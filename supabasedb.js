@@ -52,9 +52,21 @@ var GymDB = (function () {
         return r.json().then(function(json){
           if (!r.ok) {
             var msg=(json&&json.message)?json.message:JSON.stringify(json);
+            var code=json&&json.code?String(json.code):'';
+            var constraint=json&&json.details?String(json.details):'';
+            var mensajeUsuario='⚠ DB '+r.status+': '+msg.slice(0,80);
+
+            // La tabla membresias permite repetir duración y precio.
+            // Solo el nombre es único. Traducimos el 409/23505 para no
+            // mostrar el mensaje técnico de PostgreSQL al usuario.
+            if(table==='membresias' && (r.status===409 || code==='23505') &&
+               (msg.indexOf('membresias_nombre_key')>-1 || constraint.indexOf('nombre')>-1)) {
+              mensajeUsuario='⚠ Ya existe una membresía con ese nombre';
+            }
+
             console.error('[GymDB]',method,table,r.status,msg);
-            if(typeof mostrarToast==='function') mostrarToast('⚠ DB '+r.status+': '+msg.slice(0,80));
-            return {_error:true,status:r.status,message:msg};
+            if(typeof mostrarToast==='function') mostrarToast(mensajeUsuario);
+            return {_error:true,status:r.status,code:code,message:msg,userMessage:mensajeUsuario};
           }
           return json;
         });

@@ -1418,7 +1418,23 @@ function catAbrirMemb(id){
   ge("cat-guardar").onclick=function(){
     var nombre=ge("cm-nombre").value.trim(),dias=+ge("cm-dias").value,precio=+ge("cm-precio").value;
     if(!nombre||!dias||!precio){alert("Completa los campos");return;}
-    if(catEditId){var idx=MEMBRESIAS.findIndex(function(x){return x.id===catEditId;});if(idx>-1)MEMBRESIAS[idx]={id:catEditId,nombre:nombre,dias:dias,precio:precio,descripcion:ge("cm-desc").value.trim()};}
+
+    // La única regla de duplicados para membresías es el nombre.
+    // Se permiten la misma duración y cualquier precio, siempre que
+    // el nombre sea distinto. Al editar, se excluye el registro actual.
+    var nombreNormalizado=nombre.toLocaleLowerCase("es-MX").replace(/\s+/g," ");
+    var nombreDuplicado=MEMBRESIAS.some(function(x){
+      var mismoRegistro=catEditId!==null&&String(x.id)===String(catEditId);
+      var otroNombre=String(x.nombre||"").trim().toLocaleLowerCase("es-MX").replace(/\s+/g," ");
+      return !mismoRegistro&&otroNombre===nombreNormalizado;
+    });
+    if(nombreDuplicado){
+      alert('Ya existe una membresía llamada "'+nombre+'". Puedes usar la misma duración y otro precio, pero el nombre debe ser diferente.');
+      ge("cm-nombre").focus();
+      return;
+    }
+
+    if(catEditId){var idx=MEMBRESIAS.findIndex(function(x){return String(x.id)===String(catEditId);});if(idx>-1)MEMBRESIAS[idx]={id:catEditId,nombre:nombre,dias:dias,precio:precio,descripcion:ge("cm-desc").value.trim()};}
     else MEMBRESIAS.push({id:nextCatId.memb++,nombre:nombre,dias:dias,precio:precio,descripcion:ge("cm-desc").value.trim()});
     GymDB.saveMembresias(MEMBRESIAS);
     MEMBRESIAS=GymDB.getMembresias();
