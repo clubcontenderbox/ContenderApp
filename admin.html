@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Contender Club Admin | VERSION 2026.08.11.1510 | actualización 2026-08-11 -->
+<!-- Contender Club Admin | VERSION 2026.08.11.1530 | actualización 2026-08-11 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -7,8 +7,8 @@
 <meta name="theme-color" content="#080808">
 <title>Contender · Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-<script>window.CONTENDER_APP_VERSION="2026.08.11.1510";</script>
-<script src="supabasedb_v2026.08.11.1510.js"></script>
+<script>window.CONTENDER_APP_VERSION="2026.08.11.1530";</script>
+<script src="supabasedb_v2026.08.11.1530.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;background:#080808;color:#F0EDE8;font-family:"DM Sans",sans-serif;max-width:430px;margin:0 auto;-webkit-font-smoothing:antialiased;overflow-x:hidden}
@@ -48,11 +48,11 @@ html,body{height:100%;background:#080808;color:#F0EDE8;font-family:"DM Sans",san
 <div class="modal-ov" id="modal-saldo"><div class="modal"><div class="mhandle"></div><h2 id="saldo-modal-titulo">Abonar saldo</h2><div class="fr"><label>Cantidad</label><input type="number" id="saldo-monto" min="0.01" step="0.01" inputmode="decimal" placeholder="0"></div><div class="fr"><label>Concepto</label><input type="text" id="saldo-concepto" placeholder="Ej. Abono en efectivo"></div><div id="saldo-disponible" style="font-size:12px;color:var(--muted);margin:6px 0 4px"></div><div class="mbtns"><button class="btn bd" style="flex:1;padding:13px" data-close="modal-saldo">Cancelar</button><button class="btn bl" style="flex:1;padding:13px" id="saldo-guardar">Confirmar</button></div></div></div>
 <div class="modal-ov" id="modal-cat"><div class="modal"><div class="mhandle"></div><h2 id="cat-modal-titulo">Nuevo</h2><div id="cat-modal-body"></div><div class="mbtns"><button class="btn bd" style="flex:1;padding:13px" data-close="modal-cat">Cancelar</button><button class="btn bl" style="flex:1;padding:13px" id="cat-guardar">Guardar</button></div></div></div>
 <script>
-var APP_VERSION=window.CONTENDER_APP_VERSION||"2026.08.11.1510";
+var APP_VERSION=window.CONTENDER_APP_VERSION||"2026.08.11.1530";
 var CONFIG={TOAST_MS:2000,SCANNER_RETRY_MS:1500,SCANNER_OK_MS:700,DASHBOARD_MESES:5,SOCIOS_ORDEN_ASC:false,SOCIO_ID_ANCHO_MIN:3,CHART_COLORS:{checkins:"#C8F135",ventas:"#30D158",altas:"#FF5C93",pagos:"#FF9F0A"},PLAN_PRECIO:{},PLAN_DIAS:{}};
 var PLAN_PRECIO=CONFIG.PLAN_PRECIO,PLAN_DIAS=CONFIG.PLAN_DIAS,PLAN_DURACION={};
 var _gymdbReady=(function(){
-  if(typeof GymDB==="undefined")return Promise.reject(new Error("No se cargo supabasedb_v2026.08.11.1510.js"));
+  if(typeof GymDB==="undefined")return Promise.reject(new Error("No se cargo supabasedb_v2026.08.11.1530.js"));
   if(String(GymDB.VERSION||"")!==String(APP_VERSION))return Promise.reject(new Error("Version incompatible: admin "+APP_VERSION+" / supabasedb "+(GymDB.VERSION||"sin version")+". Reemplaza ambos archivos juntos."));
   return GymDB.init();
 })();var SOCIOS=[],DEUDAS={},CHECKINS=[],MEMBRESIAS=[],CLASES=[],PRODUCTOS=[],MENSAJES_CAT=[],VENTAS=[],TRAINERS=[];var HISTORICO={ventas:[],checkins:[],socios:[]};var nextDeuId=Date.now(),nextVentaId=Date.now()+1,nextCatId={clase:Date.now()+3,prod:Date.now()+4,msg:Date.now()+5,trainer:Date.now()+6};
@@ -305,7 +305,7 @@ function pintarReporteSocios(){
 }
 function renderRespaldo(){
   ge("rep-metricas").innerHTML="";
-  ge("rep-lista").innerHTML="<div style='padding:18px'><div style='font-family:Bebas Neue,sans-serif;font-size:24px;color:var(--lime);margin-bottom:6px'>Respaldo de socios</div><div style='font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:14px'>Descarga una base CSV con numero de socio, nombre completo, telefono, membresia actual o ultima, fechas de inicio y fin, historial completo de check-ins y saldo actual.</div><button class='btn bl bfull' id='btn-descargar-respaldo'>&#11015; Descargar respaldo</button><div id='respaldo-estado' style='font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5'></div></div>";
+  ge("rep-lista").innerHTML="<div style='padding:18px'><div style='font-family:Bebas Neue,sans-serif;font-size:24px;color:var(--lime);margin-bottom:6px'>Respaldo de socios</div><div style='font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:14px'>Descarga una base CSV con numero de socio, nombre completo, telefono, membresia actual o ultima, fechas de inicio y fin, conteo historico de check-ins y saldo actual. El respaldo contiene una sola fila por socio.</div><button class='btn bl bfull' id='btn-descargar-respaldo'>&#11015; Descargar respaldo</button><div id='respaldo-estado' style='font-size:11px;color:var(--muted);margin-top:10px;line-height:1.5'></div></div>";
   ge("btn-descargar-respaldo").addEventListener("click",descargarRespaldo);
 }
 function membresiaParaRespaldo(s){
@@ -321,10 +321,10 @@ async function descargarRespaldo(){
     var checkins=await GymDB.getCheckinsRango(null,null),porSocio={};
     checkins.forEach(function(ci){var sid=String(ci.socio_id);if(!porSocio[sid])porSocio[sid]=[];porSocio[sid].push(ci);});
     Object.keys(porSocio).forEach(function(sid){porSocio[sid].sort(function(a,b){return (String(a.fecha||"")+String(a.hora||"")).localeCompare(String(b.fecha||"")+String(b.hora||""));});});
-    var cols=["Numero socio","Nombre completo","Telefono","Membresia actual o ultima","Fecha inicio membresia","Fecha final membresia","Check-ins historicos total","Detalle check-ins historicos","Saldo"];
+    var cols=["Numero socio","Nombre completo","Telefono","Membresia actual o ultima","Fecha inicio membresia","Fecha final membresia","Check-ins historicos total","Saldo"];
     var lineas=[cols.map(csvCelda).join(",")];
-    SOCIOS.slice().sort(function(a,b){var an=Number(a.id),bn=Number(b.id);if(!isNaN(an)&&!isNaN(bn)&&an!==bn)return an-bn;return String(a.id).localeCompare(String(b.id));}).forEach(function(s){var memb=membresiaParaRespaldo(s),cis=porSocio[String(s.id)]||[],detalle=cis.map(function(ci){return String(ci.fecha||"")+(ci.hora?" "+String(ci.hora).slice(0,8):"");}).join(" | ");lineas.push([s.id,nCompleto(s),s.numero||"",memb.plan,memb.inicio,memb.fin,cis.length,detalle,GymDB.getSaldo(s.id)].map(csvCelda).join(","));});
-    var csv="\ufeff"+lineas.join("\r\n"),blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a"),d=new Date(),stamp=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+"_"+String(d.getHours()).padStart(2,"0")+String(d.getMinutes()).padStart(2,"0");a.href=url;a.download="respaldo_contender_"+stamp+".csv";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);estado.textContent="Respaldo generado: "+SOCIOS.length+" socios y "+checkins.length+" check-ins historicos.";mostrarToast("\u2713 Respaldo descargado");
+    SOCIOS.slice().sort(function(a,b){var an=Number(a.id),bn=Number(b.id);if(!isNaN(an)&&!isNaN(bn)&&an!==bn)return an-bn;return String(a.id).localeCompare(String(b.id));}).forEach(function(s){var memb=membresiaParaRespaldo(s),cis=porSocio[String(s.id)]||[];lineas.push([s.id,nCompleto(s),s.numero||"",memb.plan,memb.inicio,memb.fin,cis.length,GymDB.getSaldo(s.id)].map(csvCelda).join(","));});
+    var csv="\ufeff"+lineas.join("\r\n"),blob=new Blob([csv],{type:"text/csv;charset=utf-8;"}),url=URL.createObjectURL(blob),a=document.createElement("a"),d=new Date(),stamp=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")+"_"+String(d.getHours()).padStart(2,"0")+String(d.getMinutes()).padStart(2,"0");a.href=url;a.download="respaldo_contender_"+stamp+".csv";document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);estado.textContent="Respaldo generado: "+SOCIOS.length+" socios, una fila por socio.";mostrarToast("\u2713 Respaldo descargado");
   }catch(err){console.error("[Respaldo]",err);estado.textContent="No se pudo generar el respaldo: "+(err&&err.message?err.message:err);alert(estado.textContent);}finally{btn.disabled=false;btn.textContent=txt;}
 }
 function renderReporte(){
