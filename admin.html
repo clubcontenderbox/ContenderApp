@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Contender Club Admin | VERSION 2026.08.11.1530 | actualización 2026-08-11 -->
+<!-- Contender Club Admin | VERSION 2026.08.11.1745 | actualización 2026-08-11 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -7,8 +7,8 @@
 <meta name="theme-color" content="#080808">
 <title>Contender · Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-<script>window.CONTENDER_APP_VERSION="2026.08.11.1530";</script>
-<script src="supabasedb_v2026.08.11.1530.js"></script>
+<script>window.CONTENDER_APP_VERSION="2026.08.11.1745";</script>
+<script src="supabasedb_v2026.08.11.1745.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;background:#080808;color:#F0EDE8;font-family:"DM Sans",sans-serif;max-width:430px;margin:0 auto;-webkit-font-smoothing:antialiased;overflow-x:hidden}
@@ -48,11 +48,11 @@ html,body{height:100%;background:#080808;color:#F0EDE8;font-family:"DM Sans",san
 <div class="modal-ov" id="modal-saldo"><div class="modal"><div class="mhandle"></div><h2 id="saldo-modal-titulo">Abonar saldo</h2><div class="fr"><label>Cantidad</label><input type="number" id="saldo-monto" min="0.01" step="0.01" inputmode="decimal" placeholder="0"></div><div class="fr"><label>Concepto</label><input type="text" id="saldo-concepto" placeholder="Ej. Abono en efectivo"></div><div id="saldo-disponible" style="font-size:12px;color:var(--muted);margin:6px 0 4px"></div><div class="mbtns"><button class="btn bd" style="flex:1;padding:13px" data-close="modal-saldo">Cancelar</button><button class="btn bl" style="flex:1;padding:13px" id="saldo-guardar">Confirmar</button></div></div></div>
 <div class="modal-ov" id="modal-cat"><div class="modal"><div class="mhandle"></div><h2 id="cat-modal-titulo">Nuevo</h2><div id="cat-modal-body"></div><div class="mbtns"><button class="btn bd" style="flex:1;padding:13px" data-close="modal-cat">Cancelar</button><button class="btn bl" style="flex:1;padding:13px" id="cat-guardar">Guardar</button></div></div></div>
 <script>
-var APP_VERSION=window.CONTENDER_APP_VERSION||"2026.08.11.1530";
+var APP_VERSION=window.CONTENDER_APP_VERSION||"2026.08.11.1745";
 var CONFIG={TOAST_MS:2000,SCANNER_RETRY_MS:1500,SCANNER_OK_MS:700,DASHBOARD_MESES:5,SOCIOS_ORDEN_ASC:false,SOCIO_ID_ANCHO_MIN:3,CHART_COLORS:{checkins:"#C8F135",ventas:"#30D158",altas:"#FF5C93",pagos:"#FF9F0A"},PLAN_PRECIO:{},PLAN_DIAS:{}};
 var PLAN_PRECIO=CONFIG.PLAN_PRECIO,PLAN_DIAS=CONFIG.PLAN_DIAS,PLAN_DURACION={};
 var _gymdbReady=(function(){
-  if(typeof GymDB==="undefined")return Promise.reject(new Error("No se cargo supabasedb_v2026.08.11.1530.js"));
+  if(typeof GymDB==="undefined")return Promise.reject(new Error("No se cargo supabasedb_v2026.08.11.1745.js"));
   if(String(GymDB.VERSION||"")!==String(APP_VERSION))return Promise.reject(new Error("Version incompatible: admin "+APP_VERSION+" / supabasedb "+(GymDB.VERSION||"sin version")+". Reemplaza ambos archivos juntos."));
   return GymDB.init();
 })();var SOCIOS=[],DEUDAS={},CHECKINS=[],MEMBRESIAS=[],CLASES=[],PRODUCTOS=[],MENSAJES_CAT=[],VENTAS=[],TRAINERS=[];var HISTORICO={ventas:[],checkins:[],socios:[]};var nextDeuId=Date.now(),nextVentaId=Date.now()+1,nextCatId={clase:Date.now()+3,prod:Date.now()+4,msg:Date.now()+5,trainer:Date.now()+6};
@@ -67,7 +67,7 @@ function recargarDatos(){SOCIOS=GymDB.getSocios();DEUDAS=GymDB.getAllDeudas();CH
 function mostrarToast(msg){var t=ge("toast-sync");if(!t){t=document.createElement("div");t.id="toast-sync";t.style.cssText="position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#C8F135;border:1px solid rgba(200,241,53,.4);border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif;z-index:9999;transition:opacity .3s;pointer-events:none";document.body.appendChild(t)}t.textContent=msg;t.style.opacity="1";clearTimeout(t._tid);t._tid=setTimeout(function(){t.style.opacity="0"},CONFIG.TOAST_MS)}
 </script>
 <script>
-function ge(id){return document.getElementById(id)}function fm(n){return "$"+Number(n).toLocaleString("es-MX")}function fsaldo(n){return Number(n||0).toLocaleString("es-MX",{minimumFractionDigits:0,maximumFractionDigits:2})}function ini(s){return (s.nombre[0]+s.apellido_paterno[0]).toUpperCase()}function fF(f){return f?new Date(f+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"2-digit"}):"—"}function fHora(h){if(!h)return"—";var m=String(h).match(/^(\d{1,2}):(\d{2})/);if(!m)return String(h);var hr=Number(m[1]),min=m[2],pm=hr>=12,hh=hr%12||12;return String(hh).padStart(2,"0")+":"+min+" "+(pm?"p.m.":"a.m.")}function addDays(f,d){var p=f.split("-"),dt=new Date(Date.UTC(+p[0],+p[1]-1,+p[2]));dt.setUTCDate(dt.getUTCDate()+d);return dt.getUTCFullYear()+"-"+String(dt.getUTCMonth()+1).padStart(2,"0")+"-"+String(dt.getUTCDate()).padStart(2,"0")}function addMonths(f,meses){var p=f.split("-"),anio=+p[0],mes=+p[1]-1,dia=+p[2],total=mes+meses,anioDestino=anio+Math.floor(total/12),mesDestino=((total%12)+12)%12,ultimoDia=new Date(Date.UTC(anioDestino,mesDestino+1,0)).getUTCDate(),diaDestino=Math.min(dia,ultimoDia);return anioDestino+"-"+String(mesDestino+1).padStart(2,"0")+"-"+String(diaDestino).padStart(2,"0")}function calcularVencimiento(plan,fechaInicio){var dur=PLAN_DURACION[plan];if(!dur)return addDays(fechaInicio,PLAN_DIAS[plan]||30);return dur.unidad==="meses"?addMonths(fechaInicio,dur.cantidad):addDays(fechaInicio,dur.cantidad)}function nCompleto(s){return[s.nombre,s.apellido_paterno,s.apellido_materno].filter(Boolean).join(" ")}
+function ge(id){return document.getElementById(id)}function fm(n){return "$"+Number(n).toLocaleString("es-MX")}function fsaldo(n){return Number(n||0).toLocaleString("es-MX",{minimumFractionDigits:0,maximumFractionDigits:2})}function ini(s){return (s.nombre[0]+s.apellido_paterno[0]).toUpperCase()}function fF(f){return f?new Date(f+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"2-digit"}):"—"}function fHora(h){if(!h)return"—";var t=String(h).trim(),m=t.match(/^(\d{1,2}):(\d{2})(?::\d{2}(?:\.\d+)?)?\s*(a\.?m\.?|p\.?m\.?)?/i);if(!m)return t;var hr=Number(m[1]),min=m[2],per=(m[3]||"").toLowerCase();if(per.indexOf("p")===0&&hr<12)hr+=12;if(per.indexOf("a")===0&&hr===12)hr=0;var pm=hr>=12,hh=hr%12||12;return String(hh).padStart(2,"0")+":"+min+" "+(pm?"p.m.":"a.m.")}function addDays(f,d){var p=f.split("-"),dt=new Date(Date.UTC(+p[0],+p[1]-1,+p[2]));dt.setUTCDate(dt.getUTCDate()+d);return dt.getUTCFullYear()+"-"+String(dt.getUTCMonth()+1).padStart(2,"0")+"-"+String(dt.getUTCDate()).padStart(2,"0")}function addMonths(f,meses){var p=f.split("-"),anio=+p[0],mes=+p[1]-1,dia=+p[2],total=mes+meses,anioDestino=anio+Math.floor(total/12),mesDestino=((total%12)+12)%12,ultimoDia=new Date(Date.UTC(anioDestino,mesDestino+1,0)).getUTCDate(),diaDestino=Math.min(dia,ultimoDia);return anioDestino+"-"+String(mesDestino+1).padStart(2,"0")+"-"+String(diaDestino).padStart(2,"0")}function calcularVencimiento(plan,fechaInicio){var dur=PLAN_DURACION[plan];if(!dur)return addDays(fechaInicio,PLAN_DIAS[plan]||30);return dur.unidad==="meses"?addMonths(fechaInicio,dur.cantidad):addDays(fechaInicio,dur.cantidad)}function nCompleto(s){return[s.nombre,s.apellido_paterno,s.apellido_materno].filter(Boolean).join(" ")}
 function esAbonoMembresiaCicloActual(a,s){
   if(!a||!s)return false;
   if(a.socio_id!=null&&String(a.socio_id)!==String(s.id))return false;
