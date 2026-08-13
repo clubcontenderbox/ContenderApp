@@ -2,1455 +2,451 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#080808">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<title>GymPro · Socio</title>
+<title>Contender Club · Socio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="supabasedb.js"></script>
 <style>
-
-/* ── RESET ──────────────────────────────────────────────── */
+:root{
+  --app-max:430px;--bg:#080808;--bg2:#111;--bg3:#1a1a1a;--border:#2a2a2a;--muted:#666;--muted-2:#444;--text:#f0ede8;
+  --lime:#c8f135;--green:#30d158;--orange:#ff9f0a;--red:#ff3b30;--cyan:#4ecdc4;--nav-z:200;--modal-z:300;
+  --radius-sm:10px;--radius-md:14px;--radius-lg:18px;--font-body:"DM Sans",sans-serif;--font-display:"Bebas Neue",sans-serif;
+}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;background:#080808;color:#F0EDE8;font-family:"DM Sans",sans-serif;max-width:430px;margin:0 auto;-webkit-font-smoothing:antialiased;overflow-x:hidden}
-:root{--bg:#080808;--bg2:#111;--bg3:#1A1A1A;--border:#2A2A2A;--muted:#666;--text:#F0EDE8;--lime:#C8F135;--green:#30D158;--orange:#FF9F0A;--red:#FF3B30;}
-
-/* ── SCREENS ─────────────────────────────────────────────── */
-.screen{display:none;flex-direction:column;min-height:100vh;padding-bottom:72px;animation:fadeIn .2s ease;}
-.screen.active{display:flex;}
+html,body{min-height:100%;background:var(--bg);color:var(--text);font-family:var(--font-body);-webkit-font-smoothing:antialiased}
+body{max-width:var(--app-max);margin:0 auto;overflow-x:hidden}
+button,input,select{font:inherit}
+button{touch-action:manipulation}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--lime);outline-offset:2px}
+input,select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;color:var(--text);font-size:14px;outline:none;appearance:none;-webkit-appearance:none;transition:border-color .15s}
+input:focus,select:focus{border-color:var(--lime)}
+::placeholder{color:var(--muted-2)}
+.screen{display:none;flex-direction:column;min-height:100vh;padding-bottom:72px;animation:fadeIn .2s ease}
+.screen.active{display:flex}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-
-/* ── NAV ─────────────────────────────────────────────────── */
-.nav-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:rgba(8,8,8,.96);border-top:1px solid var(--border);display:flex;z-index:200;padding:8px 0 20px;backdrop-filter:blur(16px);}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border:none;background:none;color:#444;font-size:9px;font-family:"DM Sans",sans-serif;font-weight:500;transition:color .15s;padding:4px 0;}
-.nav-item.active{color:var(--lime);}
-.nav-icon{font-size:20px;line-height:1;}
-
-/* ── PANTALLA DE PERFILES ────────────────────────────────── */
-.perfil-screen{
-  min-height:100vh;background:var(--bg);
-  background-image:radial-gradient(ellipse 80% 50% at 50% 100%,rgba(200,241,53,.1),transparent 65%);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:32px 24px;
-}
-.perfil-titulo{font-family:"Bebas Neue",sans-serif;font-size:32px;letter-spacing:.5px;margin-bottom:4px;text-align:center;}
-.perfil-sub{font-size:13px;color:var(--muted);margin-bottom:36px;text-align:center;}
-.perfil-lista{width:100%;display:flex;flex-direction:column;gap:10px;}
-.perfil-btn{
-  width:100%;padding:16px 18px;background:var(--bg2);
-  border:1px solid var(--border);border-radius:16px;
-  display:flex;align-items:center;gap:14px;cursor:pointer;
-  transition:border-color .15s,background .15s;text-align:left;
-}
-.perfil-btn:active{transform:scale(.98);}
-.perfil-btn:hover{border-color:var(--lime);background:rgba(200,241,53,.04);}
-.perfil-av{
-  width:46px;height:46px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:15px;font-weight:700;color:#080808;flex-shrink:0;
-}
-.perfil-info{flex:1;min-width:0;}
-.perfil-nombre{font-size:15px;font-weight:700;color:var(--text);}
-.perfil-detalle{font-size:12px;color:var(--muted);margin-top:3px;}
-
-/* ── ABONOS ──────────────────────────────────────────────── */
-.abono-fila{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
-.abono-fila:last-child{border-bottom:none;}
-.abono-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
-.abono-num.ok{background:rgba(48,209,88,.15);color:var(--green);}
-.abono-num.pend{background:rgba(255,159,10,.15);color:var(--orange);}
-.abono-info{flex:1;min-width:0;}
-.abono-label{font-size:13px;font-weight:600;}
-.abono-fecha{font-size:11px;color:var(--muted);margin-top:2px;}
-.abono-monto{font-family:"Bebas Neue",sans-serif;font-size:18px;flex-shrink:0;}
-
-/* ── MODAL OVERLAY ───────────────────────────────────────── */
-.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px);}
-.modal-ov.open{display:flex;}
-.modal{background:var(--bg2);border-radius:22px 22px 0 0;padding:24px 16px 36px;width:100%;max-width:430px;border:1px solid var(--border);border-bottom:none;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto;}
 @keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
-.deuda-card{
-  background:rgba(255,159,10,.06);border:1px solid rgba(255,159,10,.3);
-  border-radius:12px;padding:11px 13px;margin-bottom:8px;
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
-}
-.deuda-prod{font-size:13px;font-weight:600;}
-.deuda-fecha{font-size:11px;color:var(--muted);margin-top:2px;}
-.deuda-monto{font-family:"Bebas Neue",sans-serif;font-size:20px;color:var(--orange);flex-shrink:0;}
-.hdr-nombre{font-family:"Bebas Neue",sans-serif;font-size:28px;letter-spacing:.5px;line-height:1;}
-.hdr-sub{font-size:12px;color:var(--muted);margin-top:3px;}
 
-/* ── SECCIÓN ─────────────────────────────────────────────── */
-.sec{padding:0 16px;}
-.lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;margin-top:14px;display:block;}
+/* Utilidades */
+.sec{padding:0 16px}.nav-ph{height:84px}.grow{flex:1;min-width:0}.row{display:flex;align-items:center}.row-gap{display:flex;align-items:center;gap:8px}
+.lbl,.sec-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;display:block}
+.lbl{margin:14px 0 8px}.sec-lbl{padding:0 16px;margin-bottom:8px}
+.text-muted{color:var(--muted)}.text-green{color:var(--green)}.text-orange{color:var(--orange)}
+.display{font-family:var(--font-display)}
 
-/* ── QR CARD ─────────────────────────────────────────────── */
-/* MODIFICAR: colores del recuadro QR */
-.qr-card{
-  background:rgba(200,241,53,.04);
-  border:1px solid rgba(200,241,53,.25);
-  border-radius:18px;
-  padding:24px 16px;
-  text-align:center;
-  margin-bottom:8px;
-}
-.qr-wrap{margin:0 auto 14px;width:fit-content;}
-.qr-code{
-  font-family:"Bebas Neue",sans-serif;
-  font-size:22px;
-  letter-spacing:4px;
-  color:var(--lime);
-  margin-bottom:4px;
-}
-.qr-hint{font-size:11px;color:var(--muted);}
+/* Carga */
+.loading-overlay{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;gap:12px}
+.loading-brand{font-family:var(--font-display);font-size:40px;color:var(--lime);letter-spacing:3px;text-align:center;line-height:.95}
+.loading-sub{font-size:13px;color:#555}.loading-error{font-size:11px;color:var(--red);display:none;max-width:300px;text-align:center;line-height:1.45}
 
-/* ── STATS ───────────────────────────────────────────────── */
-/* MODIFICAR: número de columnas, colores */
-.stats-3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;}
-.sbox{background:var(--bg2);border-radius:12px;padding:12px 8px;text-align:center;border:1px solid var(--border);}
-.snum{font-family:"Bebas Neue",sans-serif;font-size:26px;line-height:1;}
-.slbl{font-size:10px;color:var(--muted);margin-top:3px;}
+/* Botones */
+.btn{border:none;border-radius:var(--radius-sm);padding:9px 14px;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:transform .1s,opacity .15s;white-space:nowrap}
+.btn:active{transform:scale(.96)}.btn:disabled{opacity:.55;cursor:not-allowed}.btn-lime{background:var(--lime);color:var(--bg)}
+.btn-dark{background:var(--bg3);color:var(--text);border:1px solid var(--border)}.btn-outline{background:transparent;color:var(--lime);border:1.5px solid var(--lime)}
+.btn-danger-outline{background:transparent;color:var(--red);border:1.5px solid var(--red)}.btn-sm{padding:7px 12px;font-size:12px;border-radius:9px}.btn-full{width:100%;padding:14px}
+.icon-btn{width:38px;height:38px;padding:0;border-radius:50%}
 
-/* ── MEMBRESÍA CARD ──────────────────────────────────────── */
-/* MODIFICAR: colores según status */
-.memb-card{
-  background:var(--bg2);border-radius:14px;
-  padding:14px;margin-bottom:8px;
-  border:1px solid var(--border);
-  display:flex;align-items:center;justify-content:space-between;gap:12px;
-}
-.memb-card.aldia   {border-left:3px solid var(--green);}
-.memb-card.vencehoy{border-left:3px solid var(--orange);}
-.memb-card.pendiente{border-left:3px solid var(--orange);}
-.memb-card.vencido {border-left:3px solid var(--red);}
-.memb-nombre{font-family:"Bebas Neue",sans-serif;font-size:20px;line-height:1;}
-.memb-vence{font-size:12px;color:var(--muted);margin-top:4px;}
+/* Navegación */
+.nav-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:var(--app-max);background:rgba(8,8,8,.96);border-top:1px solid var(--border);display:none;z-index:var(--nav-z);padding:8px 0 max(20px,env(safe-area-inset-bottom));backdrop-filter:blur(16px)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border:none;background:none;color:var(--muted-2);font-size:9px;font-weight:500;transition:color .15s;padding:4px 0}
+.nav-item.active{color:var(--lime)}.nav-icon{font-size:20px;line-height:1}
 
-/* ── PILL ────────────────────────────────────────────────── */
-.pill{border-radius:20px;padding:4px 11px;font-size:12px;font-weight:600;display:inline-block;white-space:nowrap;}
-.pg{background:rgba(48,209,88,.15);color:var(--green);}
-.po{background:rgba(255,159,10,.15);color:var(--orange);}
-.pr{background:rgba(255,59,48,.15);color:var(--red);}
+/* Login / perfiles */
+.perfil-screen{position:relative;min-height:100vh;background:var(--bg);background-image:radial-gradient(ellipse 80% 50% at 50% 100%,rgba(200,241,53,.1),transparent 65%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px}
+.perfil-titulo{font-family:var(--font-display);font-size:32px;letter-spacing:.5px;margin-bottom:4px;text-align:center;line-height:.95}.perfil-titulo.hero{font-size:52px;letter-spacing:-2px}
+.perfil-sub{font-size:13px;color:var(--muted);margin-bottom:36px;text-align:center}.perfil-sub.login{margin-bottom:28px}.perfil-lista{width:100%;display:flex;flex-direction:column;gap:10px}
+.perfil-btn{width:100%;padding:16px 18px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:border-color .15s,background .15s,transform .1s;text-align:left}
+.perfil-btn:active{transform:scale(.98)}.perfil-btn:hover{border-color:var(--lime);background:rgba(200,241,53,.04)}
+.perfil-av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--bg);flex-shrink:0}
+.perfil-info{flex:1;min-width:0}.perfil-nombre{font-size:15px;font-weight:700;color:var(--text)}.perfil-detalle{font-size:12px;color:var(--muted);margin-top:3px}.perfil-arrow{font-size:22px;color:var(--muted)}
+.form-group{width:100%;margin-bottom:12px}.form-group.last{margin-bottom:20px}.form-label{font-size:11px;color:var(--muted);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px;font-weight:500}
+.login-input{background:var(--bg2);border-radius:12px;padding:13px 14px;font-size:16px}.form-error{font-size:12px;color:var(--red);min-height:16px;margin-bottom:10px;text-align:center}
+.add-account-btn{position:absolute;top:20px;right:20px}.add-form-error{text-align:left;margin-bottom:8px}
 
-/* ── PRÓXIMA CLASE ───────────────────────────────────────── */
-.clase-row{
-  background:var(--bg2);border-radius:14px;
-  padding:12px 14px;margin-bottom:8px;
-  border:1px solid var(--border);
-  display:flex;align-items:center;gap:12px;
-}
-.clase-color{width:4px;height:44px;border-radius:4px;flex-shrink:0;}
-.clase-info{flex:1;min-width:0;}
-.clase-nombre{font-weight:700;font-size:14px;}
-.clase-meta{font-size:12px;color:var(--muted);margin-top:3px;}
+/* Header */
+.hdr{padding:20px 16px 10px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.hdr h1{font-family:var(--font-display);font-size:30px;letter-spacing:.5px;line-height:1}.hdr small{font-size:12px;color:var(--muted);display:block;margin-top:3px}
+.hdr-nombre{font-family:var(--font-display);font-size:28px;letter-spacing:.5px;line-height:1}.hdr-r{display:flex;gap:8px;align-items:center}.profile-select{background:transparent;border:none;color:var(--lime);font-size:13px;font-weight:700;padding:0;margin-top:2px;cursor:pointer}
+.current-date{padding:2px 16px 10px;font-size:12px;color:var(--muted)}
 
-/* ── PROGRESS BAR ────────────────────────────────────────── */
-/* MODIFICAR: altura, colores */
-.prog-wrap{background:var(--bg3);border-radius:4px;height:5px;overflow:hidden;margin-top:8px;}
-.prog-fill{height:100%;border-radius:4px;background:var(--lime);transition:width .7s;}
+/* Inicio */
+.qr-card{background:rgba(200,241,53,.04);border:1px solid rgba(200,241,53,.25);border-radius:var(--radius-lg);padding:24px 16px;text-align:center;margin-bottom:8px}.qr-wrap{margin:0 auto 14px;width:fit-content}.qr-code{font-family:var(--font-display);font-size:22px;letter-spacing:4px;color:var(--lime);margin-bottom:4px}.qr-hint{font-size:11px;color:var(--muted)}
+.memb-card{background:var(--bg2);border-radius:var(--radius-md);padding:14px;margin-bottom:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}.memb-card.aldia{border-left:3px solid var(--green)}.memb-card.vencehoy,.memb-card.pendiente{border-left:3px solid var(--orange)}.memb-card.vencido{border-left:3px solid var(--red)}
+.memb-nombre{font-family:var(--font-display);font-size:20px;line-height:1}.memb-vence{font-size:12px;color:var(--muted);margin-top:4px}.prog-wrap{background:var(--bg3);border-radius:4px;height:5px;overflow:hidden;margin-top:8px;width:140px}.prog-fill{height:100%;border-radius:4px;background:var(--lime);transition:width .7s;width:0}
+.stats-3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}.sbox{background:var(--bg2);border-radius:12px;padding:12px 8px;text-align:center;border:1px solid var(--border)}.snum{font-family:var(--font-display);font-size:26px;line-height:1}.snum.visits{color:var(--lime)}.snum.weight{color:var(--cyan)}.snum.muscle{color:var(--green)}.slbl{font-size:10px;color:var(--muted);margin-top:3px}
+.pill{border-radius:20px;padding:3px 9px;font-size:11px;font-weight:600;display:inline-block;white-space:nowrap}.pill-green{background:rgba(48,209,88,.15);color:var(--green)}.pill-orange{background:rgba(255,159,10,.15);color:var(--orange)}.pill-red{background:rgba(255,59,48,.15);color:var(--red)}.pill-muted{background:var(--bg3);color:var(--muted)}
+.upcoming-row{background:var(--bg2);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:8px;border:1px solid var(--border);display:flex;align-items:center;gap:12px}.upcoming-color{width:4px;height:44px;border-radius:4px;flex-shrink:0}.upcoming-info{flex:1;min-width:0}.upcoming-name{font-weight:700;font-size:14px}.upcoming-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.payment-card{background:var(--bg2);border-radius:var(--radius-md);padding:13px;border:1px solid var(--border);margin-bottom:8px}.payment-summary{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.payment-summary-label{font-size:12px;color:var(--muted)}.payment-summary-amount{font-family:var(--font-display);font-size:16px}.payment-progress{background:var(--bg3);border-radius:4px;height:5px;overflow:hidden;margin-bottom:12px}.payment-progress-fill{height:100%;border-radius:4px}.abono-fila{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)}.abono-fila:last-child{border-bottom:none}.abono-num{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;background:rgba(48,209,88,.15);color:var(--green)}.abono-info{flex:1;min-width:0}.abono-label{font-size:13px;font-weight:600}.abono-fecha{font-size:11px;color:var(--muted);margin-top:2px}.abono-monto{font-family:var(--font-display);font-size:18px;color:var(--green);flex-shrink:0}.payment-empty{font-size:12px;color:var(--muted);text-align:center;padding:8px 0}
+.deuda-card{background:rgba(255,159,10,.06);border:1px solid rgba(255,159,10,.3);border-radius:12px;padding:11px 13px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px}.deuda-prod{font-size:13px;font-weight:600}.deuda-fecha{font-size:11px;color:var(--muted);margin-top:2px}.deuda-monto{font-family:var(--font-display);font-size:20px;color:var(--orange);flex-shrink:0}.deuda-total{text-align:right;font-size:12px;color:var(--orange);margin-bottom:8px;padding-right:2px}
+.empty-inline{font-size:13px;color:var(--muted);padding:8px 0}.empty-inline.center{text-align:center}
 
-.nav-ph{height:84px;}
-/* ── HEADER ─────────────────────────────────────────────── */
-.hdr{padding:20px 16px 10px;display:flex;align-items:flex-start;justify-content:space-between;}
-.hdr h1{font-family:"Bebas Neue",sans-serif;font-size:30px;letter-spacing:.5px;line-height:1;}
-.hdr small{font-size:12px;color:var(--muted);display:block;margin-top:3px;}
+/* Clases */
+.mis-clases{margin:0 16px 16px;background:var(--bg2);border-radius:var(--radius-md);border:1px solid var(--border);overflow:hidden}.mc-titulo{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;padding:12px 14px 8px;border-bottom:1px solid var(--border)}.mc-fila{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)}.mc-fila:last-child{border-bottom:none}.mc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}.mc-info{flex:1;min-width:0}.mc-nombre{font-size:13px;font-weight:600}.mc-sub{font-size:11px;color:var(--muted);margin-top:2px}.mc-empty{padding:12px 14px;font-size:12px;color:var(--muted)}
+.day-section{margin-top:16px}.clase-card{display:flex;align-items:stretch;margin-bottom:10px;background:var(--bg2);border-radius:16px;overflow:hidden;border:1px solid var(--border)}.clase-card.blocked{opacity:.55}.clase-barra{width:5px;flex-shrink:0}.clase-body{flex:1;padding:13px 14px}.clase-card-name{font-family:var(--font-display);font-size:20px;line-height:1.1}.clase-card-meta{font-size:12px;color:var(--muted);margin-top:4px}.clase-cupo{font-size:11px;margin-top:6px}.clase-act{padding:0 12px;display:flex;align-items:center}.empty{text-align:center;padding:36px 20px;color:var(--muted)}.empty .ico{font-size:36px;margin-bottom:10px}.empty p{font-size:13px}
 
-/* ── CLASE CARD ──────────────────────────────────────────── */
-/* MODIFICAR: padding, sombra */
-.clase-card{
-  display:flex;align-items:stretch;
-  margin-bottom:10px;
-  background:var(--bg2);border-radius:16px;
-  overflow:hidden;border:1px solid var(--border);
-}
-.clase-barra{width:5px;flex-shrink:0;}
-.clase-body{flex:1;padding:13px 14px;}
-.clase-nombre{font-family:"Bebas Neue",sans-serif;font-size:20px;line-height:1.1;}
-.clase-meta{font-size:12px;color:var(--muted);margin-top:4px;}
-.clase-cupo{font-size:11px;margin-top:6px;}
-.clase-act{padding:0 12px;display:flex;align-items:center;}
+/* Rutina */
+.day-bar{display:flex;gap:6px;overflow-x:auto;padding:0 16px 4px;margin-bottom:14px;scrollbar-width:none}.day-bar::-webkit-scrollbar{display:none}.dbtn{flex-shrink:0;min-width:48px;padding:8px 10px;border-radius:12px;border:1px solid var(--border);background:var(--bg2);color:var(--muted);font-weight:600;font-size:11px;cursor:pointer;text-align:center;transition:all .15s}.dbtn.active{background:var(--lime);color:var(--bg);border-color:var(--lime)}.dbtn .d-nom{font-size:9px;display:block;margin-top:2px;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dia-hdr{display:flex;align-items:center;gap:12px;padding:0 16px;margin-bottom:14px}.dia-icono{font-size:32px;min-width:32px}.dia-titulo{font-family:var(--font-display);font-size:26px;line-height:1}.dia-sub{font-size:12px;color:var(--muted);margin-top:2px}.template-wrap{padding:0 16px;margin-bottom:14px}.template-select{font-size:12px;padding:9px 12px;border-radius:10px}.ejercicios{padding:0 16px}.ex-card{background:var(--bg2);border-radius:var(--radius-md);padding:13px 14px;margin-bottom:8px;border:1px solid var(--border);display:flex;align-items:center;gap:12px}.ex-num{width:28px;height:28px;border-radius:8px;background:rgba(200,241,53,.1);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--lime);flex-shrink:0}.ex-info{flex:1;min-width:0}.ex-nombre{font-size:14px;font-weight:600}.ex-detalle{font-size:12px;color:var(--muted);margin-top:3px}.manual-tag{font-size:9px;color:var(--lime);background:rgba(200,241,53,.1);padding:1px 5px;border-radius:4px}.ex-del{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0}.ex-del:active{color:var(--red)}.descanso{text-align:center;padding:40px 20px;color:var(--muted)}.descanso .ico{font-size:48px;margin-bottom:12px}.descanso p{font-size:14px}
 
-/* ── BOTONES ─────────────────────────────────────────────── */
-.btn{border:none;border-radius:10px;padding:9px 14px;font-family:"DM Sans",sans-serif;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:transform .1s;white-space:nowrap;}
-.btn:active{transform:scale(.96);}
-.btn-lime  {background:var(--lime);color:#080808;}
-.btn-outline{background:transparent;color:var(--lime);border:1.5px solid var(--lime);}
-.btn-gray  {background:var(--bg3);color:var(--muted);border:1px solid var(--border);}
-.btn-sm    {padding:7px 13px;font-size:12px;border-radius:9px;}
-
-/* ── PILL ────────────────────────────────────────────────── */
-.pill{border-radius:20px;padding:3px 9px;font-size:11px;font-weight:600;display:inline-block;}
-.pg{background:rgba(48,209,88,.15);color:var(--green);}
-.pr{background:rgba(255,59,48,.15);color:var(--red);}
-.pm{background:var(--bg3);color:var(--muted);}
-
-/* ── MIS CLASES RESUMEN ──────────────────────────────────── */
-/* MODIFICAR: colores de la sección de inscritas */
-.mis-clases{
-  margin:0 16px 16px;
-  background:var(--bg2);border-radius:14px;
-  border:1px solid var(--border);overflow:hidden;
-}
-.mc-titulo{
-  font-size:10px;font-weight:700;color:var(--muted);
-  text-transform:uppercase;letter-spacing:1.5px;
-  padding:12px 14px 8px;border-bottom:1px solid var(--border);
-}
-.mc-fila{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);}
-.mc-fila:last-child{border-bottom:none;}
-.mc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-.mc-info{flex:1;min-width:0;}
-.mc-nombre{font-size:13px;font-weight:600;}
-.mc-sub{font-size:11px;color:var(--muted);margin-top:2px;}
-
-/* ── EMPTY ───────────────────────────────────────────────── */
-.empty{text-align:center;padding:36px 20px;color:var(--muted);}
-.empty .ico{font-size:36px;margin-bottom:10px;}
-.empty p{font-size:13px;}
-
-.sec-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;padding:0 16px;margin-bottom:8px;display:block;}
-
-/* ── HEADER (continuación: variantes usadas en otras pantallas) ── */
-.hdr-r{display:flex;gap:8px;align-items:center;}
-
-/* ── BARRA DE DÍAS ───────────────────────────────────────── */
-/* MODIFICAR: tamaño, colores */
-.day-bar{display:flex;gap:6px;overflow-x:auto;padding:0 16px 4px;margin-bottom:14px;scrollbar-width:none;}
-.day-bar::-webkit-scrollbar{display:none;}
-.dbtn{
-  flex-shrink:0;min-width:48px;padding:8px 10px;
-  border-radius:12px;border:1px solid var(--border);
-  background:var(--bg2);color:var(--muted);
-  font-family:"DM Sans",sans-serif;font-weight:600;
-  font-size:11px;cursor:pointer;text-align:center;transition:all .15s;
-}
-.dbtn.active{background:var(--lime);color:#080808;border-color:var(--lime);}
-.dbtn .d-nom{font-size:9px;display:block;margin-top:2px;}
-
-/* ── HEADER DEL DÍA ──────────────────────────────────────── */
-.dia-hdr{
-  display:flex;align-items:center;gap:12px;
-  padding:0 16px;margin-bottom:14px;
-}
-.dia-icono{font-size:32px;}
-.dia-titulo{font-family:"Bebas Neue",sans-serif;font-size:26px;line-height:1;}
-.dia-sub{font-size:12px;color:var(--muted);margin-top:2px;}
-
-/* ── LISTA DE EJERCICIOS ─────────────────────────────────── */
-.ejercicios{padding:0 16px;}
-.ex-card{
-  background:var(--bg2);border-radius:14px;
-  padding:13px 14px;margin-bottom:8px;
-  border:1px solid var(--border);
-  display:flex;align-items:center;gap:12px;
-}
-/* MODIFICAR: color del número */
-.ex-num{
-  width:28px;height:28px;border-radius:8px;
-  background:rgba(200,241,53,.1);
-  display:flex;align-items:center;justify-content:center;
-  font-size:12px;font-weight:700;color:var(--lime);
-  flex-shrink:0;
-}
-.ex-info{flex:1;min-width:0;}
-.ex-nombre{font-size:14px;font-weight:600;}
-.ex-detalle{font-size:12px;color:var(--muted);margin-top:3px;}
-.ex-del{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:4px;flex-shrink:0;}
-.ex-del:active{color:var(--red);}
-
-/* ── DESCANSO ────────────────────────────────────────────── */
-.descanso{
-  text-align:center;padding:40px 20px;
-  color:var(--muted);
-}
-.descanso .ico{font-size:48px;margin-bottom:12px;}
-.descanso p{font-size:14px;}
-
-/* ── BOTONES ─────────────────────────────────────────────── */
-.btn{border:none;border-radius:10px;padding:9px 14px;font-family:"DM Sans",sans-serif;font-weight:700;font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:transform .1s;white-space:nowrap;}
-.btn:active{transform:scale(.96);}
-.btn-lime{background:var(--lime);color:#080808;}
-.btn-dark{background:var(--bg3);color:var(--text);border:1px solid var(--border);}
-.btn-sm{padding:6px 11px;font-size:12px;border-radius:8px;}
-
-/* ── MODAL ───────────────────────────────────────────────── */
-.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:100;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px);}
-.modal-ov.open{display:flex;}
-.modal{background:var(--bg2);border-radius:22px 22px 0 0;padding:24px 16px 36px;width:100%;max-width:430px;border:1px solid var(--border);border-bottom:none;animation:slideUp .25s ease;}
-@keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
-.mhandle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px;}
-.modal h2{font-family:"Bebas Neue",sans-serif;font-size:24px;margin-bottom:16px;}
-.mbtns{display:flex;gap:8px;margin-top:16px;}
-.fr{margin-bottom:12px;}
-.fr label{font-size:11px;color:var(--muted);display:block;margin-bottom:5px;font-weight:500;text-transform:uppercase;letter-spacing:.8px;}
-input,select{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:14px;font-family:"DM Sans",sans-serif;width:100%;outline:none;appearance:none;-webkit-appearance:none;transition:border-color .15s;}
-input:focus,select:focus{border-color:var(--lime);}
-::placeholder{color:#444;}
-
+/* Modales */
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:var(--modal-z);display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px)}.modal-ov.open{display:flex}.modal{background:var(--bg2);border-radius:22px 22px 0 0;padding:24px 16px max(36px,env(safe-area-inset-bottom));width:100%;max-width:var(--app-max);border:1px solid var(--border);border-bottom:none;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto}.modal.centered{border-radius:22px;border-bottom:1px solid var(--border);padding:28px 20px 32px;text-align:center;animation:fadeIn .2s ease}.modal-ov.centered{align-items:center;padding:24px}.mhandle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}.modal h2{font-family:var(--font-display);font-size:24px;margin-bottom:16px}.mbtns{display:flex;gap:8px;margin-top:16px}.fr{margin-bottom:12px}.fr label{font-size:11px;color:var(--muted);display:block;margin-bottom:5px;font-weight:500;text-transform:uppercase;letter-spacing:.8px}.popup-icon{font-size:48px;margin-bottom:12px}.popup-title{font-family:var(--font-display);font-size:26px;margin-bottom:8px}.popup-text{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+.profile-menu{position:fixed;top:70px;right:max(12px,calc((100vw - var(--app-max))/2 + 12px));background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:8px 0;display:none;z-index:250;min-width:170px;box-shadow:0 4px 16px rgba(0,0,0,.4)}.profile-menu.open{display:block}.profile-menu-btn{width:100%;padding:12px 16px;background:none;border:none;color:var(--text);text-align:left;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px}.profile-menu-btn.danger{color:var(--red);border-top:1px solid var(--border)}
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--bg3);color:var(--lime);border:1px solid rgba(200,241,53,.4);border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;z-index:9999;transition:opacity .3s;pointer-events:none;opacity:0}
 </style>
 </head>
 <body>
-
-<!-- ═══ OVERLAY DE CARGA ═══════════════════════════════════════ -->
-<div id="ov-loading" style="position:fixed;inset:0;background:#080808;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;gap:12px">
-  <div style="font-family:'Bebas Neue',sans-serif;font-size:40px;color:#C8F135;letter-spacing:3px">CONTENDER</div>
-  <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#555">Conectando con Supabase…</div>
-  <div id="ov-err" style="font-size:11px;color:#FF3B30;display:none;max-width:280px;text-align:center"></div>
+<div id="ov-loading" class="loading-overlay" role="status" aria-live="polite">
+  <div id="brand-loading" class="loading-brand">CONTENDER<br>CLUB</div>
+  <div class="loading-sub">Conectando con Supabase…</div>
+  <div id="ov-err" class="loading-error"></div>
 </div>
 
-<!-- ═══ SCREEN: INICIO ═══════════════════════════════════════ -->
-<!-- ═══ SCREEN: LOGIN ════════════════════════════════════════ -->
 <div class="screen active" id="screen-login">
   <div class="perfil-screen">
-    <div class="perfil-titulo" style="font-size:52px;letter-spacing:-2px">CONTENDER<br>CLUB</div>
-    <div class="perfil-sub" style="margin-bottom:28px">Ingresa tus datos para continuar</div>
-
-    <div style="width:100%;margin-bottom:12px">
-      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px;font-weight:500">Número de celular</label>
-      <input type="tel" id="login-tel" placeholder="7221234567" inputmode="numeric"
-        style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px 14px;color:var(--text);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s">
+    <div id="brand-login" class="perfil-titulo hero">CONTENDER<br>CLUB</div>
+    <div class="perfil-sub login">Ingresa tus datos para continuar</div>
+    <div class="form-group">
+      <label class="form-label" for="login-tel">Número de celular</label>
+      <input class="login-input" type="tel" id="login-tel" placeholder="7221234567" inputmode="numeric" autocomplete="tel">
     </div>
-    <div style="width:100%;margin-bottom:20px">
-      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px;font-weight:500">Código de acceso</label>
-      <input type="text" id="login-code" placeholder="001" inputmode="numeric" maxlength="10"
-        style="width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:13px 14px;color:var(--text);font-size:16px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s">
+    <div class="form-group last">
+      <label class="form-label" for="login-code">Código de acceso</label>
+      <input class="login-input" type="text" id="login-code" placeholder="001" inputmode="numeric" maxlength="10" autocomplete="one-time-code">
     </div>
-    <div id="login-error" style="font-size:12px;color:var(--red);min-height:16px;margin-bottom:10px;text-align:center"></div>
-    <button id="btn-login" style="width:100%;padding:16px;background:var(--lime);border:none;border-radius:14px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:16px;color:#080808;cursor:pointer">Entrar</button>
+    <div id="login-error" class="form-error" aria-live="polite"></div>
+    <button type="button" id="btn-login" class="btn btn-lime btn-full">Entrar</button>
   </div>
 </div>
 
-<!-- ═══ SCREEN: SELECCIÓN DE PERFIL ═════════════════════════ -->
 <div class="screen" id="screen-perfiles">
   <div class="perfil-screen">
-    <!-- Botón agregar cuenta arriba a la derecha -->
-    <button id="btn-add-cuenta" style="position:absolute;top:20px;right:20px;background:var(--bg2);border:1px solid var(--border);border-radius:50%;width:38px;height:38px;font-size:20px;color:var(--lime);cursor:pointer;display:flex;align-items:center;justify-content:center">+</button>
-    <div class="perfil-titulo">CONTENDER<br>CLUB</div>
+    <button type="button" id="btn-add-cuenta" class="btn btn-dark icon-btn add-account-btn" aria-label="Agregar cuenta">+</button>
+    <div id="brand-profiles" class="perfil-titulo">CONTENDER<br>CLUB</div>
     <div class="perfil-sub">¿Quién entrena hoy?</div>
     <div class="perfil-lista" id="lista-perfiles"></div>
   </div>
 </div>
 
-<!-- ═══ SCREEN: INICIO ══════════════════════════════════════ -->
 <div class="screen" id="screen-inicio">
-<!-- HEADER -->
-<div class="hdr">
-  <div style="flex:1;min-width:0">
-    <div class="hdr-nombre">GymPro</div>
-    <!-- Dropdown de perfil -->
-    <select id="sel-perfil" style="background:transparent;border:none;color:var(--lime);font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;outline:none;padding:0;margin-top:2px;width:100%;cursor:pointer;-webkit-appearance:none"></select>
+  <div class="hdr">
+    <div class="grow">
+      <div id="app-short-name" class="hdr-nombre">CONTENDER</div>
+      <select id="sel-perfil" class="profile-select" aria-label="Perfil activo"></select>
+    </div>
+    <div class="row-gap">
+      <button type="button" class="btn btn-dark btn-sm" id="btn-sync-inicio" aria-label="Actualizar">↻</button>
+      <button type="button" class="btn btn-dark btn-sm" id="btn-perfil-menu" aria-label="Opciones de perfil">👤</button>
+    </div>
   </div>
-  <div style="display:flex;gap:7px;align-items:center;flex-shrink:0">
-    <button class="btn btn-dark btn-sm" id="btn-sync-inicio">↻</button>
-    <button class="btn btn-dark btn-sm" id="btn-perfil-menu">👤</button>
-  </div>
-</div>
-<div style="padding:2px 16px 10px;font-size:12px;color:var(--muted)" id="s-fecha"></div>
+  <div class="current-date" id="s-fecha"></div>
+  <div class="sec">
+    <span class="lbl">Mi código de acceso</span>
+    <div class="qr-card">
+      <div class="qr-wrap" id="qr-wrap"></div>
+      <div class="qr-code" id="qr-code">—</div>
+      <div class="qr-hint">Válido hoy · Se renueva a medianoche</div>
+    </div>
 
-<div class="sec">
-
-  <!-- ══════════════════════════════════════════════════════
-       QR DE ACCESO
-       El código cambia cada día automáticamente
-       MODIFICAR: tamaño del QR, colores
-       ══════════════════════════════════════════════════════ -->
-  <span class="lbl">Mi código de acceso</span>
-  <div class="qr-card">
-    <div class="qr-wrap" id="qr-wrap"></div>
-    <div class="qr-code" id="qr-code">GM-001-...</div>
-    <div class="qr-hint">Válido hoy · Se renueva a medianoche</div>
-  </div>
-
-  <!-- ══════════════════════════════════════════════════════
-       MEMBRESÍA ACTIVA
-       ══════════════════════════════════════════════════════ -->
-  <span class="lbl">Mi membresía</span>
-  <div class="memb-card" id="memb-card">
-    <div>
-      <div class="memb-nombre" id="memb-nombre">—</div>
-      <div class="memb-vence" id="memb-vence">—</div>
-      <!-- Barra de progreso del mes -->
-      <div class="prog-wrap" style="width:140px">
-        <div class="prog-fill" id="memb-prog"></div>
+    <span class="lbl">Mi membresía</span>
+    <div class="memb-card" id="memb-card">
+      <div>
+        <div class="memb-nombre" id="memb-nombre">—</div>
+        <div class="memb-vence" id="memb-vence">—</div>
+        <div class="prog-wrap"><div class="prog-fill" id="memb-prog"></div></div>
       </div>
+      <div id="memb-pill"></div>
     </div>
-    <div id="memb-pill"></div>
+
+    <span class="lbl">Este mes</span>
+    <div class="stats-3">
+      <div class="sbox"><div class="snum visits" id="st-visitas">0</div><div class="slbl">Visitas</div></div>
+      <div class="sbox"><div class="snum weight" id="st-peso">—</div><div class="slbl">kg peso</div></div>
+      <div class="sbox"><div class="snum muscle" id="st-musculo">—</div><div class="slbl">kg musc.</div></div>
+    </div>
+
+    <span class="lbl">Próxima clase</span>
+    <div id="proxima-clase"></div>
+    <span class="lbl" id="lbl-abonos">Plan de pagos</span>
+    <div id="abonos-lista"></div>
+    <span class="lbl" id="lbl-deudas" hidden>Deudas pendientes</span>
+    <div id="deudas-lista"></div>
   </div>
-
-  <!-- ══════════════════════════════════════════════════════
-       STATS DEL MES
-       MODIFICAR: métricas, colores
-       ══════════════════════════════════════════════════════ -->
-  <span class="lbl">Este mes</span>
-  <div class="stats-3">
-    <div class="sbox">
-      <div class="snum" id="st-visitas" style="color:var(--lime)">0</div>
-      <div class="slbl">Visitas</div>
-    </div>
-    <div class="sbox">
-      <div class="snum" id="st-peso" style="color:#4ECDC4">—</div>
-      <div class="slbl">kg peso</div>
-    </div>
-    <div class="sbox">
-      <div class="snum" id="st-musculo" style="color:var(--green)">—</div>
-      <div class="slbl">kg musc.</div>
-    </div>
-  </div>
-
-  <!-- ══════════════════════════════════════════════════════
-       PRÓXIMA CLASE
-       ══════════════════════════════════════════════════════ -->
-  <span class="lbl">Próxima clase</span>
-  <div id="proxima-clase"></div>
-
-  <!-- ABONOS DE MEMBRESÍA -->
-  <span class="lbl" id="lbl-abonos">Plan de pagos</span>
-  <div id="abonos-lista"></div>
-
-  <!-- DEUDAS DE PRODUCTOS -->
-  <span class="lbl" id="lbl-deudas" style="display:none">Deudas pendientes</span>
-  <div id="deudas-lista"></div>
-
+  <div class="nav-ph"></div>
 </div>
 
-<div class="nav-ph"></div>
-
-<!-- DATA -->
-</div>
-
-<!-- POPUP: PAGO PENDIENTE (centrado en pantalla, no bottom-sheet) -->
-<div class="modal-ov" id="popup-pago" style="align-items:center;padding:24px">
-  <div class="modal" style="text-align:center;padding:28px 20px 32px;border-radius:22px;border-bottom:1px solid var(--border);animation:fadeIn .2s ease">
-    <div style="font-size:48px;margin-bottom:12px">⚠️</div>
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:26px;margin-bottom:8px">Pago pendiente</div>
-    <div style="font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.6" id="popup-texto"></div>
-    <button class="btn btn-lime" style="width:100%;padding:14px;font-size:15px" id="popup-ok">Entendido</button>
+<div class="modal-ov centered" id="popup-pago" role="dialog" aria-modal="true" aria-labelledby="popup-title">
+  <div class="modal centered">
+    <div class="popup-icon">⚠️</div>
+    <div class="popup-title" id="popup-title">Pago pendiente</div>
+    <div class="popup-text" id="popup-texto"></div>
+    <button type="button" class="btn btn-lime btn-full" id="popup-ok">Entendido</button>
   </div>
 </div>
 
-<!-- MODAL: AGREGAR CUENTA -->
-<div class="modal-ov" id="modal-add-cuenta">
-  <div class="modal">
-    <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px"></div>
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;margin-bottom:16px">Cargar perfil</div>
-    <div style="margin-bottom:12px">
-      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.8px;font-weight:500">Número de celular</label>
-      <input type="tel" id="add-tel" placeholder="7221234567" inputmode="numeric"
-        style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none">
-    </div>
-    <div style="margin-bottom:12px">
-      <label style="font-size:11px;color:var(--muted);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.8px;font-weight:500">Código de acceso</label>
-      <input type="text" id="add-code" placeholder="001" maxlength="10"
-        style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-size:14px;font-family:'DM Sans',sans-serif;outline:none">
-    </div>
-    <div id="add-error" style="font-size:12px;color:var(--red);min-height:16px;margin-bottom:8px"></div>
-    <div style="display:flex;gap:8px;margin-top:4px">
-      <button id="add-cancelar" style="flex:1;padding:14px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;color:var(--text);cursor:pointer">Cancelar</button>
-      <button id="add-ok" style="flex:1;padding:14px;background:var(--lime);border:none;border-radius:10px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:14px;color:#080808;cursor:pointer">Cargar</button>
-    </div>
-  </div>
-</div>
-
-<!-- ═══ SCREEN: CLASES ════════════════════════════════════════ -->
-<div class="screen" id="screen-clases">
-<!-- HEADER -->
-<div class="hdr">
-  <div>
-    <h1>Clases</h1>
-    <small id="fecha-hoy">Próximos 7 días</small>
-  </div>
-  <button class="btn btn-dark btn-sm" id="btn-sync-clases">↻</button>
-</div>
-
-<!-- MIS CLASES INSCRITAS (resumen rápido) -->
-<div class="mis-clases" id="mis-clases"></div>
-
-<!-- CLASES DE HOY Y MAÑANA -->
-<div class="sec" id="lista-clases"></div>
-
-<div class="nav-ph"></div>
-
-<!-- DATA -->
-</div>
-
-<!-- ═══ SCREEN: RUTINA ════════════════════════════════════════ -->
-<div class="screen" id="screen-rutina">
-<!-- HEADER -->
-<div class="hdr">
-  <div><h1>Rutina</h1><small style="font-size:12px;color:var(--muted);margin-top:3px;display:block">Plan semanal del gym</small></div>
-  <div class="hdr-r">
-    <button class="btn btn-lime btn-sm" id="btn-add">+ Ejercicio</button>
-  </div>
-</div>
-
-<!-- BARRA DE DÍAS -->
-<div class="day-bar" id="day-bar"></div>
-
-<!-- HEADER DEL DÍA SELECCIONADO -->
-<div class="dia-hdr">
-  <div class="dia-icono" id="dia-icono">💪</div>
-  <div style="flex:1;min-width:0">
-    <div class="dia-titulo" id="dia-titulo">—</div>
-    <div class="dia-sub" id="dia-sub">0 ejercicios</div>
-  </div>
-</div>
-
-<!-- SELECTOR DE PLANTILLA -->
-<!-- MODIFICAR: opciones de plantilla -->
-<div style="padding:0 16px;margin-bottom:14px">
-  <select id="sel-plantilla" style="font-size:12px;padding:9px 12px;border-radius:10px;width:100%">
-    <option value="">— Cambiar plantilla del día —</option>
-    <option value="tren-inf-1">Tren Inferior 1</option>
-    <option value="tren-inf-2">Tren Inferior 2</option>
-    <option value="tren-sup-1">Tren Superior 1</option>
-    <option value="tren-sup-2">Tren Superior 2</option>
-  </select>
-</div>
-
-<!-- LISTA DE EJERCICIOS -->
-<div class="ejercicios" id="lista-ejercicios"></div>
-
-<div class="nav-ph"></div>
-
-<!-- MODAL: AGREGAR EJERCICIO -->
-<div class="modal-ov" id="modal-ex">
+<div class="modal-ov" id="modal-add-cuenta" role="dialog" aria-modal="true" aria-labelledby="add-account-title">
   <div class="modal">
     <div class="mhandle"></div>
-    <h2>Agregar Ejercicio</h2>
-    <!-- MODIFICAR: campos del ejercicio -->
-    <div class="fr">
-      <label>Nombre del ejercicio</label>
-      <input type="text" id="ex-nombre" placeholder="Ej: Press banca">
-    </div>
-    <div class="fr">
-      <label>Series × Repeticiones</label>
-      <input type="text" id="ex-series" placeholder="Ej: 4×10">
-    </div>
-    <div class="fr">
-      <label>Notas (opcional)</label>
-      <input type="text" id="ex-notas" placeholder="Ej: Agarre cerrado, 70kg">
-    </div>
+    <h2 id="add-account-title">Cargar perfil</h2>
+    <div class="fr"><label for="add-tel">Número de celular</label><input type="tel" id="add-tel" placeholder="7221234567" inputmode="numeric" autocomplete="tel"></div>
+    <div class="fr"><label for="add-code">Código de acceso</label><input type="text" id="add-code" placeholder="001" maxlength="10" inputmode="numeric"></div>
+    <div id="add-error" class="form-error add-form-error" aria-live="polite"></div>
     <div class="mbtns">
-      <button class="btn btn-dark" style="flex:1;padding:14px" id="ex-cancelar">Cancelar</button>
-      <button class="btn btn-lime" style="flex:1;padding:14px" id="ex-guardar">Agregar</button>
+      <button type="button" id="add-cancelar" class="btn btn-dark btn-full">Cancelar</button>
+      <button type="button" id="add-ok" class="btn btn-lime btn-full">Cargar</button>
     </div>
   </div>
 </div>
 
-<!-- DATA -->
+<div class="screen" id="screen-clases">
+  <div class="hdr">
+    <div><h1>Clases</h1><small id="fecha-hoy">Próximos días</small></div>
+    <button type="button" class="btn btn-dark btn-sm" id="btn-sync-clases" aria-label="Actualizar clases">↻</button>
+  </div>
+  <div class="mis-clases" id="mis-clases"></div>
+  <div class="sec" id="lista-clases"></div>
+  <div class="nav-ph"></div>
 </div>
 
-<!-- ═══ NAV BAR ══════════════════════════════════════════════ -->
-<nav class="nav-bar" id="nav-socio" style="display:none">
-  <button class="nav-item active" data-screen="inicio"><span class="nav-icon">🏠</span>Inicio</button>
-  <button class="nav-item" data-screen="clases"><span class="nav-icon">📅</span>Clases</button>
-  <button class="nav-item" data-screen="rutina"><span class="nav-icon">💪</span>Rutina</button>
+<div class="screen" id="screen-rutina">
+  <div class="hdr">
+    <div><h1>Rutina</h1><small>Plan semanal del gym</small></div>
+    <div class="hdr-r"><button type="button" class="btn btn-lime btn-sm" id="btn-add">+ Ejercicio</button></div>
+  </div>
+  <div class="day-bar" id="day-bar"></div>
+  <div class="dia-hdr">
+    <div class="dia-icono" id="dia-icono">💪</div>
+    <div class="grow"><div class="dia-titulo" id="dia-titulo">—</div><div class="dia-sub" id="dia-sub">0 ejercicios</div></div>
+  </div>
+  <div class="template-wrap"><select id="sel-plantilla" class="template-select" aria-label="Cambiar plantilla del día"></select></div>
+  <div class="ejercicios" id="lista-ejercicios"></div>
+  <div class="nav-ph"></div>
+
+  <div class="modal-ov" id="modal-ex" role="dialog" aria-modal="true" aria-labelledby="exercise-title">
+    <div class="modal">
+      <div class="mhandle"></div>
+      <h2 id="exercise-title">Agregar Ejercicio</h2>
+      <div class="fr"><label for="ex-nombre">Nombre del ejercicio</label><input type="text" id="ex-nombre" placeholder="Ej: Press banca"></div>
+      <div class="fr"><label for="ex-series">Series × Repeticiones</label><input type="text" id="ex-series" placeholder="Ej: 4×10"></div>
+      <div class="fr"><label for="ex-notas">Notas (opcional)</label><input type="text" id="ex-notas" placeholder="Ej: Agarre cerrado, 70kg"></div>
+      <div class="mbtns">
+        <button type="button" class="btn btn-dark btn-full" id="ex-cancelar">Cancelar</button>
+        <button type="button" class="btn btn-lime btn-full" id="ex-guardar">Agregar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<nav class="nav-bar" id="nav-socio" aria-label="Navegación principal">
+  <button type="button" class="nav-item active" data-screen="inicio"><span class="nav-icon">🏠</span>Inicio</button>
+  <button type="button" class="nav-item" data-screen="clases"><span class="nav-icon">📅</span>Clases</button>
+  <button type="button" class="nav-item" data-screen="rutina"><span class="nav-icon">💪</span>Rutina</button>
 </nav>
 
-<!-- DROPDOWN PERFIL (se abre desde el botón 👤 del header de Inicio) -->
-<div id="dropdown-perfil" style="position:fixed;top:70px;right:12px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:8px 0;display:none;z-index:250;min-width:160px;box-shadow:0 4px 16px rgba(0,0,0,.4);">
-  <button style="width:100%;padding:12px 16px;background:none;border:none;color:var(--text);text-align:left;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s;" id="btn-agregar-perfil">
-    <span>➕ Agregar perfil</span>
-  </button>
-  <button style="width:100%;padding:12px 16px;background:none;border:none;color:var(--red);text-align:left;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;gap:8px;transition:background .15s;border-top:1px solid var(--border);" id="btn-quitar-perfil">
-    <span>➖ Quitar perfil</span>
-  </button>
+<div id="dropdown-perfil" class="profile-menu">
+  <button type="button" class="profile-menu-btn" id="btn-agregar-perfil">➕ Agregar perfil</button>
+  <button type="button" class="profile-menu-btn danger" id="btn-quitar-perfil">➖ Quitar perfil</button>
 </div>
+<div id="toast-sync" class="toast" role="status" aria-live="polite"></div>
 
-<!-- ═══ DATA + LÓGICA ════════════════════════════════════════ -->
 <script>
-// ═══ CONFIGURACIÓN CENTRAL ════════════════════════════════════
-var CONFIG = {
-  TOAST_MS: 2000,
-  ADD_CUENTA_OK_MS: 900,     // espera tras cargar perfil antes de cerrar el modal
-  // ⚠️ Ver nota completa de seguridad junto a genCode() más abajo.
-  QR_SECRET: "GPsecret2026"
+(function(){
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════════
+   CONFIGURACIÓN CENTRAL
+   - Personaliza aquí marca, locale, ventana de clases y QR.
+   - ROUTINE_TEMPLATES se deja vacío a propósito: el selector se
+     deshabilita hasta que agregues plantillas reales.
+   ═══════════════════════════════════════════════════════════════ */
+var CONFIG={
+  APP:{brand:"CONTENDER CLUB",shortName:"CONTENDER",title:"Contender Club · Socio",locale:"es-MX"},
+  UI:{toastMs:2000,addAccountOkMs:900,classWindowDays:7,qrSize:160,defaultProfileColor:"#C8F135"},
+  QR:{prefix:"GM",length:6,charset:"ABCDEFGHJKLMNPQRSTUVWXYZ23456789",legacyClientSecret:"GPsecret2026"},
+  DAYS:{getDay:["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"],mondayFirst:["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"]}
 };
 
-// Días de la semana en el orden que devuelve Date.getDay() (0=Domingo).
-// Antes existían DOS copias de este mismo array con nombres distintos
-// (DIAS en el bloque Inicio, DIAS_SEMANA en el bloque Clases) — ahora
-// es uno solo, compartido.
-var DIAS_SEMANA = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+/* SEGURIDAD QR: legacyClientSecret sigue en cliente para no romper el
+   contrato actual. Antes de producción, la firma/token debe generarse en
+   backend (p.ej. Supabase Edge Function) y el navegador recibir sólo el token. */
 
-// Catálogo de Membresías (para saber el precio del plan del socio)
-var MEMBRESIAS = [];
-function precioPlan(nombrePlan){
-  var m=MEMBRESIAS.find(function(x){return x.nombre===nombrePlan;});
-  if(!m){
-    console.warn('[Socio] No se encontró el plan "'+nombrePlan+'" en el catálogo de Membresías. Catálogo cargado: '+JSON.stringify(MEMBRESIAS.map(function(x){return x.nombre;}))+' — el saldo se va a calcular mal (precio $0) hasta que coincida el nombre exacto.');
-    return 0;
-  }
-  return m.precio||0;
+var ROUTINE_TEMPLATES={};
+var STATE={profiles:[],member:null,classes:[],memberships:[],routine:createEmptyRoutine(),dayIndex:(new Date().getDay()+6)%7,nextExerciseId:100,dropdownOpen:false};
+
+/* ── UTILIDADES ─────────────────────────────────────────────── */
+function ge(id){return document.getElementById(id);}
+function sid(v){return String(v==null?"":v);}
+function esc(v){return sid(v).replace(/[&<>"']/g,function(ch){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch];});}
+function number(v,fallback){var n=Number(v);return Number.isFinite(n)?n:(fallback==null?0:fallback);}
+function money(v){return "$"+number(v,0).toLocaleString(CONFIG.APP.locale);}
+function phone(v){return sid(v).replace(/\D/g,"").trim();}
+function dateLocal(value){if(value instanceof Date)return new Date(value.getFullYear(),value.getMonth(),value.getDate());if(!value)return null;var m=sid(value).slice(0,10).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?new Date(+m[1],+m[2]-1,+m[3]):new Date(value);}
+function dateISO(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
+function formatDate(value,opts){var d=dateLocal(value);return d&&!isNaN(d)?d.toLocaleDateString(CONFIG.APP.locale,opts||{day:"numeric",month:"short",year:"2-digit"}):"—";}
+function safeColor(value){var c=sid(value).trim();return /^#[0-9a-f]{3,8}$/i.test(c)?c:CONFIG.UI.defaultProfileColor;}
+function sameId(a,b){return sid(a)===sid(b);}
+function setModal(id,open){var el=ge(id);if(el)el.classList.toggle("open",!!open);}
+function setBusy(btn,busy){if(!btn)return;btn.disabled=!!busy;btn.dataset.label=btn.dataset.label||btn.textContent;if(busy)btn.textContent="…";else btn.textContent=btn.dataset.label;}
+function toast(msg){var t=ge("toast-sync");t.textContent=msg;t.style.opacity="1";clearTimeout(t._tid);t._tid=setTimeout(function(){t.style.opacity="0";},CONFIG.UI.toastMs);}
+function failVisible(msg){var err=ge("ov-err");err.style.display="block";err.textContent=msg;}
+function profileInitials(p){var a=sid(p.nombre).trim().charAt(0),b=sid(p.apellido_paterno).trim().charAt(0);return (a+b||"?").toUpperCase();}
+function timeMinutes(value){var m=sid(value).match(/(\d{1,2}):(\d{2})/);return m?(+m[1]*60)+(+m[2]):0;}
+function renderAfterAction(action,btn){setBusy(btn,true);try{Promise.resolve(action()).then(function(){renderClasses();renderMyClasses();renderUpcomingClass();}).catch(function(err){console.error(err);toast("⚠ No se pudo completar");}).finally(function(){setBusy(btn,false);});}catch(err){console.error(err);setBusy(btn,false);toast("⚠ No se pudo completar");}}
+
+/* ── CONFIG / DATOS ─────────────────────────────────────────── */
+function createEmptyRoutine(){return CONFIG.DAYS.mondayFirst.map(function(day){return {dia:day,grupo:day==="Dom"?"Descanso":"",icono:day==="Dom"?"😴":"",ejercicios:[]};});}
+function applyBrand(){document.title=CONFIG.APP.title;var brand=CONFIG.APP.brand.replace(/\s+/g,"<br>");["brand-loading","brand-login","brand-profiles"].forEach(function(id){ge(id).innerHTML=brand;});ge("app-short-name").textContent=CONFIG.APP.shortName;}
+function loadCatalogs(){STATE.classes=GymDB.getClases()||[];STATE.memberships=GymDB.getMembresias()||[];console.log("[Socio] Catálogos:",{clases:STATE.classes.length,membresias:STATE.memberships.length});}
+function membershipPrice(plan){var m=STATE.memberships.find(function(x){return sid(x.nombre)===sid(plan);});if(!m){console.warn('[Socio] Plan no encontrado en catálogo: "'+plan+'"');return 0;}return number(m.precio,0);}
+function profileFromMember(s){return {id:s.id,nombre:s.nombre,apellido_paterno:s.apellido_paterno,apellido_materno:s.apellido_materno,numero:s.numero,membresia:s.plan,fecha_inicio:s.fecha_inicio,fecha_vencimiento:s.fecha_vencimiento,visitas:s.visitas,peso:s.peso,musculo:s.musculo,activo:s.activo,color:s.color||CONFIG.UI.defaultProfileColor,abonos:(s.abonos||[]).slice()};}
+function refreshActiveProfile(){if(!STATE.member)return;var fresh=GymDB.getSocio(STATE.member.id);if(!fresh)return;var data=profileFromMember(fresh),idx=STATE.profiles.findIndex(function(p){return sameId(p.id,data.id);});if(idx>-1)STATE.profiles[idx]=data;else STATE.profiles.push(data);STATE.member=data;}
+function productDebts(memberId){var all=(GymDB.getAllDeudas()||{})[memberId]||[];return all.filter(function(d){return d.tipo!=="membresia";});}
+
+/* ── NAVEGACIÓN ────────────────────────────────────────────── */
+function showScreen(id){
+  document.querySelectorAll(".screen").forEach(function(s){s.classList.remove("active");});
+  var screen=ge("screen-"+id);if(!screen)return;screen.classList.add("active");
+  document.querySelectorAll(".nav-item").forEach(function(b){b.classList.toggle("active",b.dataset.screen===id);});
+  var publicScreen=id==="login"||id==="perfiles";ge("nav-socio").style.display=publicScreen?"none":"flex";
+  closeProfileMenu();
+  if(id==="perfiles"){renderProfiles();return;}
+  if(id==="inicio"){renderStart();return;}
+  if(id==="clases"){renderClassesDateRange();renderMyClasses();renderClasses();return;}
+  if(id==="rutina"){renderDayBar();renderRoutineDay();}
+}
+function closeProfileMenu(){STATE.dropdownOpen=false;ge("dropdown-perfil").classList.remove("open");}
+
+/* ── LOGIN / PERFILES ───────────────────────────────────────── */
+function loadProfileByCredentials(tel,code){
+  var account=GymDB.getCuenta(tel,code);if(!account)return {ok:false,msg:"Número o código incorrecto"};
+  var memberId=account.socios&&account.socios[0];if(memberId==null)return {ok:false,msg:"La cuenta no tiene un perfil asociado"};
+  var member=GymDB.getSocio(memberId);if(!member)return {ok:false,msg:"Perfil no encontrado"};
+  if(STATE.profiles.some(function(p){return sameId(p.id,member.id);}))return {ok:true,already:true,id:member.id};
+  STATE.profiles.push(profileFromMember(member));return {ok:true,already:false,id:member.id};
+}
+function tryLogin(){var r=loadProfileByCredentials(phone(ge("login-tel").value),ge("login-code").value.trim());ge("login-error").textContent=r.ok?"":r.msg;if(r.ok)showScreen("perfiles");}
+function addAccount(){
+  var err=ge("add-error"),r=loadProfileByCredentials(phone(ge("add-tel").value),ge("add-code").value.trim());
+  err.style.color="var(--red)";if(!r.ok){err.textContent=r.msg;return;}if(r.already){err.textContent="Este perfil ya está cargado";return;}
+  err.style.color="var(--green)";err.textContent="✓ Perfil cargado correctamente";
+  setTimeout(function(){setModal("modal-add-cuenta",false);ge("add-tel").value="";ge("add-code").value="";err.textContent="";err.style.color="var(--red)";renderProfiles();},CONFIG.UI.addAccountOkMs);
+}
+function renderProfiles(){
+  var c=ge("lista-perfiles");
+  if(!STATE.profiles.length){c.innerHTML="<div class='empty-inline center'>Agrega una cuenta con el botón +</div>";return;}
+  c.innerHTML=STATE.profiles.map(function(p){return "<button type='button' class='perfil-btn' data-profile-id='"+esc(p.id)+"'><div class='perfil-av' style='background:"+safeColor(p.color)+"'>"+esc(profileInitials(p))+"</div><div class='perfil-info'><div class='perfil-nombre'>"+esc(p.nombre)+" "+esc(p.apellido_paterno)+"</div><div class='perfil-detalle'>"+esc(p.membresia||"Sin membresía")+" · "+number(p.visitas,0)+" visitas</div></div><span class='perfil-arrow'>›</span></button>";}).join("");
+  c.querySelectorAll("[data-profile-id]").forEach(function(btn){btn.addEventListener("click",function(){selectProfile(this.dataset.profileId);});});
+}
+function selectProfile(id){STATE.member=STATE.profiles.find(function(p){return sameId(p.id,id);})||STATE.profiles[0]||null;if(STATE.member)showScreen("inicio");}
+function renderProfileSelect(){var sel=ge("sel-perfil");sel.innerHTML="";STATE.profiles.forEach(function(p){var opt=document.createElement("option");opt.value=sid(p.id);opt.textContent=[p.nombre,p.apellido_paterno].filter(Boolean).join(" ");opt.selected=STATE.member&&sameId(p.id,STATE.member.id);sel.appendChild(opt);});}
+
+/* ── INICIO ────────────────────────────────────────────────── */
+function renderStart(){if(!STATE.member)return;renderHeader();renderQR();renderMembership();renderStats();renderUpcomingClass();renderPayments();renderDebts();checkPaymentPopup();}
+function renderHeader(){renderProfileSelect();var str=new Date().toLocaleDateString(CONFIG.APP.locale,{weekday:"long",day:"numeric",month:"long"});ge("s-fecha").textContent=str.charAt(0).toUpperCase()+str.slice(1);}
+function totalPaid(){return (STATE.member.abonos||[]).filter(function(a){return a.pagado!==false;}).reduce(function(sum,a){return sum+number(a.monto,0);},0);}
+function membershipBalance(){return Math.max(membershipPrice(STATE.member.membresia)-totalPaid(),0);}
+function membershipStatus(){
+  if(!STATE.member.membresia||!STATE.member.fecha_vencimiento)return "sinmemb";
+  if(membershipBalance()>0)return "pendiente";
+  var today=dateLocal(new Date()),end=dateLocal(STATE.member.fecha_vencimiento),days=Math.ceil((end-today)/86400000);
+  if(days<0)return "vencido";if(days===0)return "vencehoy";return "aldia";
+}
+function renderMembership(){
+  var st=membershipStatus(),card=ge("memb-card");card.className="memb-card "+st;
+  if(st==="sinmemb"){ge("memb-nombre").textContent="Sin membresía";ge("memb-vence").textContent="Pregunta en recepción para activarla";ge("memb-pill").innerHTML="<span class='pill pill-muted'>Sin membresía</span>";ge("memb-prog").style.width="0%";return;}
+  ge("memb-nombre").textContent=STATE.member.membresia;
+  var end=dateLocal(STATE.member.fecha_vencimiento),today=dateLocal(new Date()),days=Math.ceil((end-today)/86400000),endText=end.toLocaleDateString(CONFIG.APP.locale,{day:"numeric",month:"long",year:"numeric"});
+  if(st==="pendiente")ge("memb-vence").textContent="Saldo pendiente: "+money(membershipBalance());else if(days<0)ge("memb-vence").textContent="Venció el "+endText;else if(days===0)ge("memb-vence").textContent="Vence HOY";else ge("memb-vence").textContent="Vence el "+endText+" ("+days+" días)";
+  var pills={aldia:"<span class='pill pill-green'>Al día ✓</span>",vencehoy:"<span class='pill pill-orange'>Vence hoy</span>",vencido:"<span class='pill pill-red'>Vencido</span>",pendiente:"<span class='pill pill-orange'>Pendiente</span>"};ge("memb-pill").innerHTML=pills[st]||"";
+  var start=dateLocal(STATE.member.fecha_inicio),total=start?Math.max(Math.ceil((end-start)/86400000),1):1,elapsed=start?Math.max(Math.ceil((today-start)/86400000),0):0;ge("memb-prog").style.width=Math.min(Math.round((elapsed/total)*100),100)+"%";
+}
+function renderStats(){ge("st-visitas").textContent=number(STATE.member.visitas,0);ge("st-peso").textContent=STATE.member.peso?STATE.member.peso+"kg":"—";ge("st-musculo").textContent=STATE.member.musculo?STATE.member.musculo+"kg":"—";}
+function renderPayments(){
+  var c=ge("abonos-lista");if(!STATE.member.membresia){c.innerHTML="";ge("lbl-abonos").hidden=true;return;}ge("lbl-abonos").hidden=false;
+  var payments=(STATE.member.abonos||[]).slice().sort(function(a,b){return sid(b.fecha_pago).localeCompare(sid(a.fecha_pago));}),price=membershipPrice(STATE.member.membresia),paid=totalPaid(),balance=Math.max(price-paid,0),pct=price>0?Math.min(Math.round((paid/price)*100),100):0,color=balance>0?"var(--orange)":"var(--lime)";
+  var rows=payments.length?payments.map(function(a){var meta=formatDate(a.fecha_pago,{day:"numeric",month:"short"})+(a.trainer?" · "+esc(a.trainer):"");return "<div class='abono-fila'><div class='abono-num'>✓</div><div class='abono-info'><div class='abono-label'>Pago registrado</div><div class='abono-fecha'>"+meta+"</div></div><div class='abono-monto'>"+money(a.monto)+"</div></div>";}).join(""):"<div class='payment-empty'>Sin pagos registrados todavía</div>";
+  c.innerHTML="<div class='payment-card'><div class='payment-summary'><span class='payment-summary-label'>"+(balance>0?"Pendiente":"Al día ✓")+"</span><span class='payment-summary-amount' style='color:"+color+"'>"+money(paid)+" / "+money(price)+"</span></div><div class='payment-progress'><div class='payment-progress-fill' style='background:"+color+";width:"+pct+"%'></div></div>"+rows+"</div>";
+}
+function renderDebts(){
+  var debts=productDebts(STATE.member.id),lbl=ge("lbl-deudas"),c=ge("deudas-lista");lbl.hidden=!debts.length;if(!debts.length){c.innerHTML="";return;}
+  var total=debts.reduce(function(sum,d){return sum+number(d.total,0);},0);c.innerHTML=debts.map(function(d){return "<div class='deuda-card'><div><div class='deuda-prod'>"+esc(d.producto)+"</div><div class='deuda-fecha'>"+formatDate(d.fecha)+"</div></div><div class='deuda-monto'>"+money(d.total)+"</div></div>";}).join("")+"<div class='deuda-total'>Total: <strong>"+money(total)+"</strong></div>";
+}
+function checkPaymentPopup(){var debts=productDebts(STATE.member.id),texts=[];if(membershipStatus()==="pendiente")texts.push("Tienes un saldo pendiente en tu membresía de "+money(membershipBalance())+".");if(debts.length){var total=debts.reduce(function(sum,d){return sum+number(d.total,0);},0);texts.push("Tienes "+debts.length+" producto"+(debts.length>1?"s":"")+" por pagar: "+money(total)+".");}if(!texts.length){setModal("popup-pago",false);return;}ge("popup-texto").textContent=texts.join(" ");setModal("popup-pago",true);}
+
+/* ── QR ────────────────────────────────────────────────────── */
+function generateLegacyCode(id){var day=dateISO(new Date()).replace(/-/g,""),seed=sid(id)+day+CONFIG.QR.legacyClientSecret,h=0,i;for(i=0;i<seed.length;i++){h=((h<<5)-h)+seed.charCodeAt(i);h|=0;}var code="",abs=Math.abs(h);for(i=0;i<CONFIG.QR.length;i++)code+=CONFIG.QR.charset[(abs>>>(i*5))%CONFIG.QR.charset.length];return CONFIG.QR.prefix+"-"+id+"-"+code;}
+function renderQR(){var code=generateLegacyCode(STATE.member.id),wrap=ge("qr-wrap");ge("qr-code").textContent=code;wrap.innerHTML="";try{new QRCode(wrap,{text:code,width:CONFIG.UI.qrSize,height:CONFIG.UI.qrSize,colorDark:"#C8F135",colorLight:"#080808",correctLevel:QRCode.CorrectLevel.M});}catch(err){console.error(err);var fallback=document.createElement("div");fallback.className="empty-inline";fallback.style.width=CONFIG.UI.qrSize+"px";fallback.style.height=CONFIG.UI.qrSize+"px";fallback.style.border="2px dashed var(--lime)";fallback.style.borderRadius="10px";fallback.style.display="flex";fallback.style.alignItems="center";fallback.style.justifyContent="center";fallback.textContent=code;wrap.appendChild(fallback);}}
+
+/* ── CLASES ────────────────────────────────────────────────── */
+function upcomingDays(){var out=[];for(var i=0;i<CONFIG.UI.classWindowDays;i++){var d=dateLocal(new Date());d.setDate(d.getDate()+i);var label;if(i===0)label="Hoy";else if(i===1)label="Mañana";else{label=d.toLocaleDateString(CONFIG.APP.locale,{weekday:"long",day:"numeric",month:"short"});label=label.charAt(0).toUpperCase()+label.slice(1);}out.push({d:d,f:dateISO(d),nom:CONFIG.DAYS.getDay[d.getDay()],label:label});}return out;}
+function memberRegistrations(){
+  if(!STATE.member)return [];var rows=[];upcomingDays().forEach(function(day){STATE.classes.forEach(function(cl){if((cl.dias||[]).indexOf(day.nom)>-1&&GymDB.getInscritosPorClase(cl.id,day.f).some(function(id){return sameId(id,STATE.member.id);})){rows.push({cl:cl,fecha:day.f,label:day.label});}});});
+  rows.sort(function(a,b){var byDate=a.fecha.localeCompare(b.fecha);return byDate||timeMinutes(a.cl.hora)-timeMinutes(b.cl.hora);});return rows;
+}
+function pendingRegistrations(){var out={};if(!STATE.member)return out;upcomingDays().forEach(function(day){STATE.classes.forEach(function(cl){var key=sid(cl.id);if(out[key])return;if((cl.dias||[]).indexOf(day.nom)>-1&&GymDB.getInscritosPorClase(cl.id,day.f).some(function(id){return sameId(id,STATE.member.id);}))out[key]=day.f;});});return out;}
+function renderUpcomingClass(){var c=ge("proxima-clase"),rows=memberRegistrations();if(!rows.length){c.innerHTML="<div class='empty-inline'>Sin clases agendadas</div>";return;}var f=rows[0];c.innerHTML="<div class='upcoming-row'><div class='upcoming-color' style='background:"+safeColor(f.cl.color)+"'></div><div class='upcoming-info'><div class='upcoming-name'>"+esc(f.cl.nombre)+"</div><div class='upcoming-meta'>"+esc(f.label)+" · "+esc(f.cl.hora)+" · "+esc(f.cl.coach)+"</div></div><span class='pill pill-green'>Inscrito</span></div>";}
+function renderClassesDateRange(){var days=upcomingDays(),first=days[0].d,last=days[days.length-1].d,opts={day:"numeric",month:"short"};ge("fecha-hoy").textContent="Próximos "+CONFIG.UI.classWindowDays+" días · "+first.toLocaleDateString(CONFIG.APP.locale,opts)+" – "+last.toLocaleDateString(CONFIG.APP.locale,opts);}
+function renderClassCard(cl,fecha,pending){
+  var attendees=GymDB.getInscritosPorClase(cl.id,fecha)||[],registered=attendees.some(function(id){return sameId(id,STATE.member.id);}),pendingDate=pending[sid(cl.id)],blocked=!registered&&pendingDate&&pendingDate!==fecha,count=attendees.length,capacity=number(cl.cupo,0),free=capacity-count,full=!registered&&free<=0,cupoColor=free>3?"var(--green)":free>0?"var(--orange)":"var(--red)",cupoText=full?"Lleno":free+" lugar"+(free===1?"":"es"),key=esc(cl.id)+"|"+esc(fecha),action;
+  if(registered)action="<span class='pill pill-green'>Inscrito</span>";else if(blocked)action="<span class='pill pill-muted' title='Ya tienes esta disciplina agendada'>Bloqueada</span>";else if(full)action="<span class='pill pill-muted'>Lleno</span>";else action="<button type='button' class='btn btn-lime btn-sm' data-enroll='"+key+"'>Agendar</button>";
+  return "<div class='clase-card"+(blocked?" blocked":"")+"'><div class='clase-barra' style='background:"+safeColor(cl.color)+"'></div><div class='clase-body'><div class='clase-card-name'>"+esc(cl.nombre)+"</div><div class='clase-card-meta'>"+esc(cl.hora)+" · "+esc(cl.coach)+"</div><div class='clase-cupo' style='color:"+cupoColor+"'>"+count+"/"+capacity+" · "+cupoText+"</div></div><div class='clase-act'>"+action+"</div></div>";
+}
+function renderClasses(){
+  if(!STATE.member)return;var c=ge("lista-clases"),html="",pending=pendingRegistrations();
+  upcomingDays().forEach(function(day){var list=STATE.classes.filter(function(cl){return (cl.dias||[]).indexOf(day.nom)>-1;});if(!list.length)return;list.sort(function(a,b){return timeMinutes(a.hora)-timeMinutes(b.hora);});var dateText=day.d.toLocaleDateString(CONFIG.APP.locale,{weekday:"long",day:"numeric",month:"long"});dateText=dateText.charAt(0).toUpperCase()+dateText.slice(1);html+="<div class='sec-lbl day-section'>"+((day.label==="Hoy"||day.label==="Mañana")?day.label+" · ":"")+esc(dateText)+"</div>";list.forEach(function(cl){html+=renderClassCard(cl,day.f,pending);});});
+  c.innerHTML=html||"<div class='empty'><div class='ico'>📅</div><p>Sin clases programadas en la ventana visible</p></div>";
+  c.querySelectorAll("[data-enroll]").forEach(function(btn){btn.addEventListener("click",function(){var parts=this.dataset.enroll.split("|"),classId=parts[0],date=parts[1],cl=STATE.classes.find(function(x){return sameId(x.id,classId);});renderAfterAction(function(){return GymDB.inscribirSocio(cl?cl.id:classId,STATE.member.id,date);},this);});});
+}
+function renderMyClasses(){
+  if(!STATE.member)return;var rows=memberRegistrations(),c=ge("mis-clases");if(!rows.length){c.innerHTML="<div class='mc-titulo'>Mis clases inscritas</div><div class='mc-empty'>Sin clases agendadas</div>";return;}
+  c.innerHTML="<div class='mc-titulo'>Mis clases inscritas ("+rows.length+")</div>"+rows.map(function(f){return "<div class='mc-fila'><div class='mc-dot' style='background:"+safeColor(f.cl.color)+"'></div><div class='mc-info'><div class='mc-nombre'>"+esc(f.cl.nombre)+"</div><div class='mc-sub'>"+esc(f.cl.hora)+" · "+esc(f.cl.coach)+"</div><div class='mc-sub'>"+esc(f.label)+"</div></div><button type='button' class='btn btn-danger-outline btn-sm' data-cancel='"+esc(f.cl.id)+"|"+esc(f.fecha)+"' aria-label='Cancelar inscripción'>✕</button></div>";}).join("");
+  c.querySelectorAll("[data-cancel]").forEach(function(btn){btn.addEventListener("click",function(){var parts=this.dataset.cancel.split("|"),classId=parts[0],date=parts[1],cl=STATE.classes.find(function(x){return sameId(x.id,classId);});renderAfterAction(function(){return GymDB.desinscribirSocio(cl?cl.id:classId,STATE.member.id,date);},this);});});
 }
 
-function ge(id){ return document.getElementById(id); }
-function fm(n){ return "$"+Number(n).toLocaleString("es-MX"); }
-function fF(f){ return f?new Date(f+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short",year:"2-digit"}):"—"; }
-// BUG CORREGIDO: toISOString() da la fecha en UTC, no en hora local.
-// Para México (UTC-6) eso hacía que desde las 6:00 PM hora local el
-// sistema ya pensara que era el día siguiente — afectaba tanto "hoy"
-// como las fechas de Clases (hoy/mañana se recorrían de fecha).
-function fechaISO(d){
-  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+/* ── RUTINA ────────────────────────────────────────────────── */
+function renderTemplateSelect(){var sel=ge("sel-plantilla"),keys=Object.keys(ROUTINE_TEMPLATES);sel.innerHTML="";var first=document.createElement("option");first.value="";first.textContent=keys.length?"— Cambiar plantilla del día —":"— Sin plantillas configuradas —";sel.appendChild(first);keys.forEach(function(key){var p=ROUTINE_TEMPLATES[key],opt=document.createElement("option");opt.value=key;opt.textContent=p.grupo||key;sel.appendChild(opt);});sel.disabled=!keys.length;}
+function renderDayBar(){var c=ge("day-bar");c.innerHTML=STATE.routine.map(function(r,i){return "<button type='button' class='dbtn"+(i===STATE.dayIndex?" active":"")+"' data-day-index='"+i+"'>"+esc(r.dia)+"<span class='d-nom'>"+esc(r.grupo)+"</span></button>";}).join("");c.querySelectorAll("[data-day-index]").forEach(function(btn){btn.addEventListener("click",function(){STATE.dayIndex=+this.dataset.dayIndex;renderDayBar();renderRoutineDay();});});var active=c.querySelector(".active");if(active)active.scrollIntoView({behavior:"smooth",inline:"center",block:"nearest"});}
+function applyTemplate(key){var p=ROUTINE_TEMPLATES[key];if(!p)return;var day=STATE.routine[STATE.dayIndex],manual=day.ejercicios.filter(function(e){return e.manual;}),newExercises=(p.ejercicios||[]).map(function(e){return {id:STATE.nextExerciseId++,nombre:e.nombre,series:e.series,notas:e.notas,manual:false};});day.ejercicios=newExercises.concat(manual);day.grupo=p.grupo||"";day.icono=p.icono||"";ge("sel-plantilla").value="";renderDayBar();renderRoutineDay();}
+function renderRoutineDay(){
+  var day=STATE.routine[STATE.dayIndex],title=day.grupo||(day.ejercicios.length?"Rutina":"Sin rutina");ge("dia-icono").textContent=day.icono||(day.grupo==="Descanso"?"😴":"💪");ge("dia-titulo").textContent=title;ge("dia-sub").textContent=day.ejercicios.length+" ejercicio"+(day.ejercicios.length!==1?"s":"");
+  var c=ge("lista-ejercicios");if(day.grupo==="Descanso"||!day.ejercicios.length){c.innerHTML="<div class='descanso'><div class='ico'>"+esc(day.icono||(day.grupo==="Descanso"?"😴":"💪"))+"</div><p>"+(day.grupo==="Descanso"?"Día de recuperación activa y estiramientos":"Sin ejercicios aún. Agrega uno.")+"</p></div>";return;}
+  c.innerHTML=day.ejercicios.map(function(ex,i){return "<div class='ex-card'><div class='ex-num'>"+(i+1)+"</div><div class='ex-info'><div class='ex-nombre'>"+esc(ex.nombre)+(ex.manual?" <span class='manual-tag'>tuyo</span>":"")+"</div><div class='ex-detalle'>"+esc(ex.series)+(ex.notas?" · "+esc(ex.notas):"")+"</div></div><button type='button' class='ex-del' data-delete-ex='"+esc(ex.id)+"' aria-label='Eliminar ejercicio'>✕</button></div>";}).join("");
+  c.querySelectorAll("[data-delete-ex]").forEach(function(btn){btn.addEventListener("click",function(){var id=this.dataset.deleteEx;STATE.routine[STATE.dayIndex].ejercicios=STATE.routine[STATE.dayIndex].ejercicios.filter(function(e){return !sameId(e.id,id);});renderRoutineDay();});});
+}
+function openExerciseModal(){ge("ex-nombre").value="";ge("ex-series").value="";ge("ex-notas").value="";setModal("modal-ex",true);ge("ex-nombre").focus();}
+function saveExercise(){var name=ge("ex-nombre").value.trim(),series=ge("ex-series").value.trim();if(!name){toast("Escribe el nombre del ejercicio");ge("ex-nombre").focus();return;}STATE.routine[STATE.dayIndex].ejercicios.push({id:STATE.nextExerciseId++,nombre:name,series:series||"—",notas:ge("ex-notas").value.trim(),manual:true});setModal("modal-ex",false);renderRoutineDay();}
+
+/* ── SINCRONIZACIÓN ────────────────────────────────────────── */
+function sync(btn,renderFn){setBusy(btn,true);Promise.resolve(GymDB.init()).then(function(){loadCatalogs();refreshActiveProfile();renderFn();toast("↻ Actualizado");}).catch(function(err){console.error(err);toast("⚠ No se pudo actualizar");}).finally(function(){setBusy(btn,false);});}
+
+/* ── EVENTOS ───────────────────────────────────────────────── */
+function bindEvents(){
+  document.querySelectorAll(".nav-item").forEach(function(btn){btn.addEventListener("click",function(){showScreen(this.dataset.screen);});});
+  ge("btn-login").addEventListener("click",tryLogin);["login-tel","login-code"].forEach(function(id){ge(id).addEventListener("keydown",function(e){if(e.key==="Enter")tryLogin();});});
+  ge("popup-ok").addEventListener("click",function(){setModal("popup-pago",false);});
+  ["modal-add-cuenta","popup-pago","modal-ex"].forEach(function(id){ge(id).addEventListener("click",function(e){if(e.target===this)setModal(id,false);});});
+  ge("btn-add-cuenta").addEventListener("click",function(){ge("add-tel").value="";ge("add-code").value="";ge("add-error").textContent="";setModal("modal-add-cuenta",true);});
+  ge("add-ok").addEventListener("click",addAccount);ge("add-cancelar").addEventListener("click",function(){setModal("modal-add-cuenta",false);});ge("add-code").addEventListener("keydown",function(e){if(e.key==="Enter")addAccount();});
+  ge("btn-perfil-menu").addEventListener("click",function(e){e.stopPropagation();STATE.dropdownOpen=!STATE.dropdownOpen;ge("dropdown-perfil").classList.toggle("open",STATE.dropdownOpen);});
+  ge("btn-agregar-perfil").addEventListener("click",function(){showScreen("perfiles");});
+  ge("btn-quitar-perfil").addEventListener("click",function(){if(!STATE.member)return;var activeId=STATE.member.id;STATE.profiles=STATE.profiles.filter(function(p){return !sameId(p.id,activeId);});STATE.member=null;showScreen("perfiles");});
+  document.addEventListener("click",function(e){if(!ge("btn-perfil-menu").contains(e.target)&&!ge("dropdown-perfil").contains(e.target))closeProfileMenu();});
+  ge("sel-perfil").addEventListener("change",function(){selectProfile(this.value);});
+  ge("btn-sync-inicio").addEventListener("click",function(){sync(this,function(){renderStart();});});ge("btn-sync-clases").addEventListener("click",function(){sync(this,function(){renderClassesDateRange();renderClasses();renderMyClasses();renderUpcomingClass();});});
+  ge("btn-add").addEventListener("click",openExerciseModal);ge("ex-guardar").addEventListener("click",saveExercise);ge("ex-cancelar").addEventListener("click",function(){setModal("modal-ex",false);});ge("ex-nombre").addEventListener("keydown",function(e){if(e.key==="Enter")saveExercise();});
+  ge("sel-plantilla").addEventListener("change",function(){if(!this.value)return;var p=ROUTINE_TEMPLATES[this.value];if(!p){this.value="";return;}if(confirm("¿Cambiar la rutina del día a "+p.grupo+"? Se conservarán tus ejercicios agregados."))applyTemplate(this.value);else this.value="";});
 }
 
-function mostrarToast(msg){
-  var t=ge("toast-sync");
-  if(!t){
-    t=document.createElement("div");
-    t.id="toast-sync";
-    t.style.cssText="position:fixed;top:16px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#C8F135;border:1px solid rgba(200,241,53,.4);border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;font-family:'DM Sans',sans-serif;z-index:9999;transition:opacity .3s;pointer-events:none";
-    document.body.appendChild(t);
-  }
-  t.textContent=msg; t.style.opacity="1";
-  clearTimeout(t._tid);
-  t._tid=setTimeout(function(){ t.style.opacity="0"; },CONFIG.TOAST_MS);
+/* ── BOOT ──────────────────────────────────────────────────── */
+function boot(){
+  applyBrand();renderTemplateSelect();renderDayBar();renderRoutineDay();bindEvents();ge("nav-socio").style.display="none";
+  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.init!=="function"){failVisible("No se encontró GymDB. Verifica que supabasedb.js cargue correctamente.");return;}
+  Promise.resolve(GymDB.init()).then(function(){loadCatalogs();ge("ov-loading").style.display="none";showScreen("login");}).catch(function(err){console.error("[GymDB] Error al cargar:",err);failVisible("Error: "+(err&&err.message?err.message:err));});
 }
-
-// ── NAVEGACIÓN ────────────────────────────────────────────────
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(function(s){ s.classList.remove('active'); });
-  document.getElementById('screen-' + id).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(function(b){
-    b.classList.toggle('active', b.dataset.screen === id);
-  });
-  if(id==='login' || id==='perfiles'){
-    ge('nav-socio').style.display='none';
-    if(id==='perfiles') renderPerfiles();
-    return;
-  }
-  ge('nav-socio').style.display = 'flex';
-  if(id === 'inicio')  { renderHeader(); renderQR(); renderMembresia(); renderStats(); renderProximaClase(); renderAbonos(); renderDeudas(); checkPopupPago(); }
-  if(id === 'clases')  { renderMisClases(); renderClasesDia(); }
-  if(id === 'rutina')  { renderDayBar(); renderDia(); }
-}
-
-document.querySelectorAll('.nav-item').forEach(function(btn){
-  btn.addEventListener('click', function(){ showScreen(this.dataset.screen); });
-});
-
-document.addEventListener('DOMContentLoaded', function(){
- _gymdbReady.then(function(){
-  var ov=ge('ov-loading');
-  if(ov) ov.style.display='none';
-  // Catálogo de clases del gym (ver bloque LÓGICA: CLASES para var CLASES)
-  CLASES = GymDB.getClases();
-  // Catálogo de Membresías — necesario para saber el precio del plan
-  // del socio y así calcular su saldo pendiente (precio - abonado).
-  MEMBRESIAS = GymDB.getMembresias();
-  // Diagnóstico: qué llegó realmente desde Supabase (visible en la
-  // consola F12; útil si la pantalla de Clases sale vacía)
-  console.log('[Socio] Clases cargadas:', CLASES.length, JSON.stringify(CLASES.map(function(c){return {nombre:c.nombre, dias:c.dias};})));
-
-  ge('nav-socio').style.display = 'none';
-
-  // Login principal
-  ge('btn-login').addEventListener('click', intentarLogin);
-  ['login-tel','login-code'].forEach(function(id){
-    ge(id).addEventListener('keydown', function(e){ if(e.key==='Enter') intentarLogin(); });
-    ge(id).addEventListener('focus',   function(){ this.style.borderColor='var(--lime)'; });
-    ge(id).addEventListener('blur',    function(){ this.style.borderColor='var(--border)'; });
-  });
-
-  // Cerrar popup pago
-  ge('popup-ok').addEventListener('click', function(){ ge('popup-pago').classList.remove('open'); });
-
-  // Cerrar modales al tocar fondo
-  ['modal-add-cuenta','popup-pago'].forEach(function(id){
-    ge(id).addEventListener('click', function(e){ if(e.target===this) this.classList.remove('open'); });
-  });
-
-  // Botón + agregar cuenta
-  ge('btn-add-cuenta').addEventListener('click', function(){
-    ge('add-tel').value=''; ge('add-code').value=''; ge('add-error').textContent='';
-    ge('modal-add-cuenta').classList.add('open');
-  });
-  ge('add-ok').addEventListener('click', cargarCuenta);
-  ge('add-cancelar').addEventListener('click', function(){ ge('modal-add-cuenta').classList.remove('open'); });
-  ge('add-code').addEventListener('keydown', function(e){ if(e.key==='Enter') cargarCuenta(); });
-
-  // Dropdown perfil del nav
-  var dropdownOpen = false;
-  ge('btn-perfil-menu').addEventListener('click', function(){
-    dropdownOpen = !dropdownOpen;
-    ge('dropdown-perfil').style.display = dropdownOpen ? 'block' : 'none';
-  });
-  
-  ge('btn-agregar-perfil').addEventListener('click', function(){
-    dropdownOpen = false;
-    ge('dropdown-perfil').style.display = 'none';
-    showScreen('perfiles');
-  });
-  
-  ge('btn-quitar-perfil').addEventListener('click', function(){
-    if(!SOCIO) return;
-    PERFILES = PERFILES.filter(function(p){ return p.id !== SOCIO.id; });
-    dropdownOpen = false;
-    ge('dropdown-perfil').style.display = 'none';
-    showScreen('perfiles');
-  });
-  
-  // Cerrar dropdown al hacer click fuera
-  document.addEventListener('click', function(e){
-    if(!ge('btn-perfil-menu').contains(e.target) && !ge('dropdown-perfil').contains(e.target)){
-      dropdownOpen = false;
-      ge('dropdown-perfil').style.display = 'none';
-    }
-  });
-
- }).catch(function(err){
-  var errEl=ge('ov-err');
-  if(errEl){ errEl.style.display='block'; errEl.textContent='Error: '+(err&&err.message?err.message:err); }
-  console.error('[GymDB] Error al cargar:', err);
- });
-});
+document.addEventListener("DOMContentLoaded",boot);
+})();
 </script>
-
-<!-- LÓGICA: INICIO -->
-<script>
-
-// ── PERFILES VINCULADOS A ESTA CUENTA ────────────────────────
-// Conexión a Supabase (misma base que admin.html)
-var _gymdbReady = GymDB.init(); // Promise
-
-// PERFILES cargados por el usuario (comienza vacío)
-var PERFILES = [];
-
-// Socio activo (se actualiza cuando el usuario selecciona un perfil)
-var SOCIO = null;
-
-// Deudas de PRODUCTO del socio activo (excluye las de tipo "membresia",
-// que ya se muestran a través de la lista de abonos de la membresía —
-// mostrarlas también aquí sería duplicado y confuso para el socio).
-function getDeudasProducto(socioId){
-  var todas = GymDB.getAllDeudas()[socioId] || [];
-  return todas.filter(function(d){ return d.tipo!=="membresia"; });
-}
-
-// ── LOGIN ─────────────────────────────────────────────────────
-// Lógica compartida: busca la cuenta en Supabase, encuentra el socio,
-// y lo agrega a PERFILES si todavía no estaba cargado en este dispositivo.
-// yaExistente:true significa "no es error, el perfil ya estaba" (útil
-// para el login principal, que no debe bloquear si ya lo cargaste antes)
-function cargarPerfilPorCredenciales(tel, code){
-  var cuenta = GymDB.getCuenta(tel, code);
-  if(!cuenta) return {ok:false, msg:"Número o código incorrecto"};
-  var socioId = cuenta.socios && cuenta.socios[0];
-  var socio = GymDB.getSocio(socioId);
-  if(!socio) return {ok:false, msg:"Perfil no encontrado"};
-  if(PERFILES.find(function(p){ return p.id===socio.id; })){
-    return {ok:true, yaExistente:true};
-  }
-  PERFILES.push({
-    id:socio.id, nombre:socio.nombre, apellido_paterno:socio.apellido_paterno, apellido_materno:socio.apellido_materno,
-    numero:socio.numero, membresia:socio.plan, fecha_inicio:socio.fecha_inicio, fecha_vencimiento:socio.fecha_vencimiento,
-    visitas:socio.visitas, peso:socio.peso, musculo:socio.musculo, activo:socio.activo, color:socio.color||"#C8F135",
-    abonos:(socio.abonos||[]).slice()
-  });
-  return {ok:true, yaExistente:false};
-}
-
-function intentarLogin(){
-  var tel  = ge("login-tel").value.replace(/\D/g,"").trim();
-  var code = ge("login-code").value.trim();
-  var r = cargarPerfilPorCredenciales(tel, code);
-  if(r.ok){
-    ge("login-error").textContent = "";
-    showScreen("perfiles");
-  } else {
-    ge("login-error").textContent = r.msg;
-  }
-}
-function cargarCuenta(){
-  var tel  = ge("add-tel").value.replace(/\D/g,"").trim();
-  var code = ge("add-code").value.trim();
-  var r = cargarPerfilPorCredenciales(tel, code);
-  if(!r.ok){ ge("add-error").textContent=r.msg; return; }
-  if(r.yaExistente){ ge("add-error").style.color="var(--red)"; ge("add-error").textContent="Este perfil ya está cargado"; return; }
-  ge("add-error").style.color="var(--green)";
-  ge("add-error").textContent="✓ Perfil cargado correctamente";
-  setTimeout(function(){
-    ge("modal-add-cuenta").classList.remove("open");
-    ge("add-tel").value=""; ge("add-code").value="";
-    ge("add-error").textContent=""; ge("add-error").style.color="var(--red)";
-    renderPerfiles();
-  }, CONFIG.ADD_CUENTA_OK_MS);
-}
-
-function renderPerfiles(){
-  var c = ge("lista-perfiles");
-  var html = "";
-  PERFILES.forEach(function(p){
-    var ini = (p.nombre[0]+p.apellido_paterno[0]).toUpperCase();
-    html += "<button class='perfil-btn' data-pid='"+p.id+"'>";
-    html += "<div class='perfil-av' style='background:"+p.color+"'>"+ini+"</div>";
-    html += "<div class='perfil-info'>";
-    html += "  <div class='perfil-nombre'>"+p.nombre+" "+p.apellido_paterno+"</div>";
-    html += "  <div class='perfil-detalle'>"+(p.membresia||"Sin membresía")+" · "+p.visitas+" visitas</div>";
-    html += "</div>";
-    html += "<span style='font-size:22px;color:var(--muted)'>›</span>";
-    html += "</button>";
-  });
-  c.innerHTML = html;
-  c.querySelectorAll(".perfil-btn").forEach(function(btn){
-    btn.addEventListener("click", function(){
-      SOCIO = PERFILES.find(function(p){ return p.id===this.dataset.pid; }, this) || PERFILES[0];
-      ge("nav-socio").style.display = "flex";
-      showScreen("inicio");
-    });
-  });
-}
-
-// ── ABONOS ────────────────────────────────────────────────────
-// ── PAGOS DE MEMBRESÍA ──────────────────────────────────────────
-// Ya no hay parcialidades fijas con fecha límite — cada abono es
-// simplemente un pago que el socio ya hizo. Se muestra cuánto lleva
-// pagado del total del plan, y la lista de esos pagos (más reciente
-// primero).
-function renderAbonos(){
-  var abonos = (SOCIO.abonos||[]).slice().sort(function(a,b){return (b.fecha_pago||"").localeCompare(a.fecha_pago||"");});
-  var c = ge("abonos-lista");
-  if(!SOCIO.membresia){ c.innerHTML=""; return; }
-
-  var precio = precioPlan(SOCIO.membresia);
-  var pagado = totalAbonado();
-  var saldo  = Math.max(precio-pagado,0);
-
-  var html = "<div style='background:var(--bg2);border-radius:14px;padding:13px;border:1px solid var(--border);margin-bottom:8px'>";
-  html += "<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:8px'>";
-  html += "  <span style='font-size:12px;color:var(--muted)'>"+(saldo>0?"Pendiente":"Al día ✓")+"</span>";
-  html += "  <span style='font-family:\"Bebas Neue\",sans-serif;font-size:16px;color:"+(saldo>0?"var(--orange)":"var(--lime)")+"'>"+fm(pagado)+" / "+fm(precio)+"</span>";
-  html += "</div>";
-  var pct = precio>0 ? Math.min(Math.round((pagado/precio)*100),100) : 0;
-  html += "<div style='background:var(--bg3);border-radius:4px;height:5px;overflow:hidden;margin-bottom:12px'>";
-  html += "  <div style='height:100%;border-radius:4px;background:"+(saldo>0?"var(--orange)":"var(--lime)")+";width:"+pct+"%'></div></div>";
-  // Lista de pagos hechos — si no hay ninguno registrado todavía, se
-  // avisa explícitamente en vez de dejar la sección en blanco (antes
-  // esto pasaba justo cuando el pago existía pero nunca se había
-  // guardado de verdad en Supabase — dejaba al socio sin ninguna pista).
-  if(!abonos.length){
-    html += "<div style='font-size:12px;color:var(--muted);text-align:center;padding:8px 0'>Sin pagos registrados todavía</div>";
-  } else {
-    abonos.forEach(function(a){
-      var fmtP = a.fecha_pago ? new Date(a.fecha_pago+"T00:00:00").toLocaleDateString("es-MX",{day:"numeric",month:"short"}) : "—";
-      html += "<div class='abono-fila'>";
-      html += "<div class='abono-num ok'>✓</div>";
-      html += "<div class='abono-info'>";
-      html += "  <div class='abono-label'>Pago registrado</div>";
-      html += "  <div class='abono-fecha'>"+fmtP+(a.trainer?" · "+a.trainer:"")+"</div>";
-      html += "</div>";
-      html += "<div class='abono-monto' style='color:var(--green)'>"+fm(a.monto)+"</div>";
-      html += "</div>";
-    });
-  }
-  html += "</div>";
-  c.innerHTML = html;
-}
-
-// ── POPUP PAGO PENDIENTE ──────────────────────────────────────
-function checkPopupPago(){
-  var deudas  = getDeudasProducto(SOCIO.id);
-  var textos  = [];
-
-  if(calcStatus()==="pendiente"){
-    textos.push("Tienes un saldo pendiente en tu membresía de "+fm(saldoMembresia())+".");
-  }
-  if(deudas.length){
-    var totalP = deudas.reduce(function(s,d){ return s+d.total; },0);
-    textos.push("Tienes "+deudas.length+" producto"+(deudas.length>1?"s":"")+" por pagar: "+fm(totalP)+".");
-  }
-  if(!textos.length) return;
-  ge("popup-texto").textContent = textos.join(" ");
-  ge("popup-pago").classList.add("open");
-}
-function renderDeudas(){
-  var deudas = getDeudasProducto(SOCIO.id);
-  var lbl = ge("lbl-deudas");
-  var c   = ge("deudas-lista");
-  if(!deudas.length){ lbl.style.display="none"; c.innerHTML=""; return; }
-  lbl.style.display="block";
-  var total = deudas.reduce(function(a,d){ return a+d.total; },0);
-  var html = "";
-  deudas.forEach(function(d){
-    html += "<div class='deuda-card'>";
-    html += "<div><div class='deuda-prod'>"+d.producto+"</div>";
-    html += "<div class='deuda-fecha'>"+fF(d.fecha)+"</div></div>";
-    html += "<div class='deuda-monto'>"+fm(d.total)+"</div>";
-    html += "</div>";
-  });
-  // Total
-  html += "<div style='text-align:right;font-size:12px;color:var(--orange);margin-bottom:8px;padding-right:2px'>Total: <strong>"+fm(total)+"</strong></div>";
-  c.innerHTML = html;
-}
-
-// ── CÓDIGO QR DIARIO ──────────────────────────────────────────
-// ⚠️ PENDIENTE DE SEGURIDAD ANTES DE PRODUCCIÓN:
-// Este código se genera aquí en el cliente, con una clave secreta
-// ("GPsecret2026") visible en el código fuente. Cualquiera que abra
-// las herramientas de desarrollador del navegador puede leer esta
-// función y generar QRs válidos de cualquier socio.
-// SOLUCIÓN REAL: mover esta generación a una Supabase Edge Function
-// (o endpoint de servidor) que el cliente solo consuma, sin que la
-// clave secreta viaje nunca al navegador. No se puede resolver bien
-// mientras la app sea 100% estática sin backend.
-function genCode(id){
-  var d    = fechaISO(new Date()).replace(/-/g,"");
-  var seed = id + d + CONFIG.QR_SECRET;
-  var h    = 0;
-  for(var i=0;i<seed.length;i++){ h=((h<<5)-h)+seed.charCodeAt(i); h|=0; }
-  var chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789", code="", abs=Math.abs(h);
-  for(var i=0;i<6;i++) code+=chars[(abs>>>(i*5))%chars.length];
-  return "GM-"+id+"-"+code;
-}
-
-function renderQR(){
-  var code = genCode(SOCIO.id);
-  ge("qr-code").textContent = code;
-  ge("qr-wrap").innerHTML = ""; // limpiar antes de generar
-  try{
-    new QRCode(ge("qr-wrap"),{
-      text: code, width:160, height:160,
-      colorDark:"#C8F135", colorLight:"#080808",
-      correctLevel: QRCode.CorrectLevel.M
-    });
-  } catch(e){
-    ge("qr-wrap").innerHTML =
-      "<div style='width:160px;height:160px;border:2px dashed var(--lime);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--lime);text-align:center;padding:10px'>"+code+"</div>";
-  }
-}
-
-// ── STATUS ────────────────────────────────────────────────────
-// Total abonado en el ciclo vigente (suma de todos los pagos que ha
-// hecho el socio para su membresía actual — sin parcialidades fijas,
-// cada abono es simplemente "lo que pagó" en ese momento).
-function totalAbonado(){
-  return (SOCIO.abonos||[]).filter(function(a){return a.pagado!==false;}).reduce(function(a,x){return a+(x.monto||0);},0);
-}
-function saldoMembresia(){
-  return Math.max(precioPlan(SOCIO.membresia)-totalAbonado(),0);
-}
-function calcStatus(){
-  if(!SOCIO.membresia || !SOCIO.fecha_vencimiento) return "sinmemb";
-  // Mientras deba algo de la membresía vigente, el estatus es
-  // "pendiente" sin importar si la fecha de vencimiento ya pasó o no.
-  if(saldoMembresia()>0) return "pendiente";
-  var hoy=new Date(); hoy.setHours(0,0,0,0);
-  var v=new Date(SOCIO.fecha_vencimiento); v.setHours(0,0,0,0);
-  var d=Math.ceil((v-hoy)/86400000);
-  if(d<0) return "vencido"; if(d===0) return "vencehoy"; return "aldia";
-}
-
-// ── MEMBRESÍA ─────────────────────────────────────────────────
-function renderMembresia(){
-  var st = calcStatus();
-  var card = ge("memb-card");
-  card.className = "memb-card " + st;
-
-  if(st==="sinmemb"){
-    ge("memb-nombre").textContent = "Sin membresía";
-    ge("memb-vence").textContent  = "Pregunta en recepción para activarla";
-    ge("memb-pill").innerHTML = "<span class='pill pm'>Sin membresía</span>";
-    ge("memb-prog").style.width = "0%";
-    return;
-  }
-
-  ge("memb-nombre").textContent = SOCIO.membresia;
-
-  var vDate = new Date(SOCIO.fecha_vencimiento+"T00:00:00");
-  var vStr  = vDate.toLocaleDateString("es-MX",{day:"numeric",month:"long",year:"numeric"});
-  var hoy   = new Date(); hoy.setHours(0,0,0,0);
-  var diff  = Math.ceil((vDate-hoy)/86400000);
-
-  if(st==="pendiente"){
-    // Mientras deba saldo, lo más importante es mostrar eso — no la
-    // fecha de vencimiento, que pasa a segundo plano.
-    ge("memb-vence").textContent = "Saldo pendiente: "+fm(saldoMembresia());
-  } else if(diff<0)       ge("memb-vence").textContent = "Venció el "+vStr;
-  else if(diff===0) ge("memb-vence").textContent = "Vence HOY";
-  else             ge("memb-vence").textContent = "Vence el "+vStr+" ("+diff+" días)";
-
-  // Pill
-  var pills = {
-    aldia:    "<span class='pill pg'>Al día ✓</span>",
-    vencehoy: "<span class='pill po'>Vence hoy</span>",
-    vencido:  "<span class='pill pr'>Vencido</span>",
-    pendiente:"<span class='pill po'>Pendiente</span>"
-  };
-  ge("memb-pill").innerHTML = pills[st] || "";
-
-  // Progreso del mes (días transcurridos / duración)
-  var inicio = new Date(SOCIO.fecha_inicio+"T00:00:00");
-  var total  = Math.max(Math.ceil((vDate-inicio)/86400000),1);
-  var pasado = Math.max(Math.ceil((hoy-inicio)/86400000),0);
-  var pct    = Math.min(Math.round((pasado/total)*100),100);
-  ge("memb-prog").style.width = pct+"%";
-}
-
-// ── STATS ─────────────────────────────────────────────────────
-function renderStats(){
-  ge("st-visitas").textContent = SOCIO.visitas || 0;
-  ge("st-peso").textContent    = SOCIO.peso    ? SOCIO.peso+"kg"    : "—";
-  ge("st-musculo").textContent = SOCIO.musculo ? SOCIO.musculo+"kg" : "—";
-}
-
-// Antes esto leía de una variable INSCRITOS recurrente semanal. Ahora
-// la inscripción es por fecha específica (ver bloque LÓGICA: CLASES),
-// así que "próxima clase" solo puede mirar hoy y mañana — que es la
-// misma ventana que la pantalla de Clases permite agendar.
-
-// ── HEADER con dropdown de perfil ────────────────────────────
-function renderHeader(){
-  // Llenar dropdown
-  var sel = ge("sel-perfil");
-  sel.innerHTML = "";
-  PERFILES.forEach(function(p){
-    var opt = document.createElement("option");
-    opt.value = p.id;
-    opt.textContent = p.nombre+" "+p.apellido_paterno;
-    if(p.id === SOCIO.id) opt.selected = true;
-    sel.appendChild(opt);
-  });
-  var str = new Date().toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
-  ge("s-fecha").textContent = str.charAt(0).toUpperCase()+str.slice(1);
-}
-
-// Devuelve las clases en las que SOCIO está inscrito dentro de la
-// ventana de 7 días (misma ventana que la pantalla de Clases). Un solo
-// lugar para esta consulta — la usan "Próxima clase" (Inicio) y "Mis
-// clases inscritas" (Clases). Usa proximosDias() del bloque de Clases.
-function getInscripcionesSocio(){
-  if(!SOCIO || typeof CLASES==="undefined" || typeof proximosDias!=="function") return [];
-  var filas=[];
-  proximosDias().forEach(function(dia){
-    CLASES.forEach(function(cl){
-      if(cl.dias.indexOf(dia.nom)>-1 && GymDB.getInscritosPorClase(cl.id,dia.f).indexOf(String(SOCIO.id))>-1){
-        filas.push({cl:cl, fecha:dia.f, label:dia.label});
-      }
-    });
-  });
-  return filas;
-}
-
-function renderProximaClase(){
-  var c = ge("proxima-clase");
-  var filas = getInscripcionesSocio();
-  if(!filas.length){ c.innerHTML="<div style='font-size:13px;color:var(--muted);padding:8px 0'>Sin clases agendadas</div>"; return; }
-  var f = filas[0];
-  c.innerHTML =
-    "<div class='clase-row'>" +
-    "<div class='clase-color' style='background:"+(f.cl.color||"#C8F135")+"'></div>" +
-    "<div class='clase-info'>" +
-    "  <div class='clase-nombre'>"+f.cl.nombre+"</div>" +
-    "  <div class='clase-meta'>"+f.label+" · "+f.cl.hora+" · "+f.cl.coach+"</div>" +
-    "</div>" +
-    "<span class='pill pg'>Inscrito</span>" +
-    "</div>";
-}
-
-// Vuelve a traer los datos en vivo del socio activo (membresía, abonos,
-// visitas) desde Supabase y actualiza tanto SOCIO como su entrada en
-// PERFILES. Mismo patrón que refrescarSocioActual() en admin.html.
-function refrescarPerfilActivo(){
-  if(!SOCIO) return;
-  var fresco = GymDB.getSocio(SOCIO.id);
-  if(!fresco) return;
-  var datos = {
-    id:fresco.id, nombre:fresco.nombre, apellido_paterno:fresco.apellido_paterno, apellido_materno:fresco.apellido_materno,
-    numero:fresco.numero, membresia:fresco.plan, fecha_inicio:fresco.fecha_inicio, fecha_vencimiento:fresco.fecha_vencimiento,
-    visitas:fresco.visitas, peso:fresco.peso, musculo:fresco.musculo, activo:fresco.activo, color:fresco.color||"#C8F135",
-    abonos:(fresco.abonos||[]).slice()
-  };
-  var idx = PERFILES.findIndex(function(p){ return p.id===datos.id; });
-  if(idx>-1) PERFILES[idx]=datos; else PERFILES.push(datos);
-  SOCIO = datos;
-}
-
-// Sincronización manual: recarga todo desde Supabase y re-renderiza la
-// pantalla actual. Mismo comportamiento que el botón ↻ de admin.html.
-function sincronizar(btn, renderFn){
-  btn.textContent="…"; btn.disabled=true;
-  GymDB.init().then(function(){
-    CLASES = GymDB.getClases();
-    MEMBRESIAS = GymDB.getMembresias();
-    refrescarPerfilActivo();
-    renderFn();
-    btn.textContent="↻"; btn.disabled=false;
-    mostrarToast("↻ Actualizado");
-  }).catch(function(){
-    btn.textContent="↻"; btn.disabled=false;
-    mostrarToast("⚠ No se pudo actualizar");
-  });
-}
-
-document.addEventListener("DOMContentLoaded",function(){
-  // NOTA: no llamamos renderHeader()/renderQR()/etc. aquí porque en este
-  // punto SOCIO todavía es null (nadie ha seleccionado perfil). Eso
-  // causaba un error en consola cada vez que se cargaba la página.
-  // showScreen('inicio') ya se encarga de llamarlas cuando corresponde.
-
-  // Cambio de perfil en dropdown
-  ge("sel-perfil").addEventListener("change", function(){
-    SOCIO = PERFILES.find(function(p){ return p.id===this.value; }, this) || PERFILES[0];
-    renderHeader(); renderQR(); renderMembresia();
-    renderStats(); renderProximaClase(); renderAbonos(); renderDeudas(); checkPopupPago();
-  });
-  // Sincronizar
-  ge("btn-sync-inicio").addEventListener("click", function(){
-    sincronizar(this, function(){
-      renderHeader(); renderQR(); renderMembresia();
-      renderStats(); renderProximaClase(); renderAbonos(); renderDeudas();
-    });
-  });
-});
-
-</script>
-
-<!-- LÓGICA: CLASES -->
-<script>
-
-// El socio activo para inscripción de clases es el mismo que está
-// seleccionado en el Inicio (variable global SOCIO, definida arriba).
-//
-// REGLAS DE AGENDA:
-// 1. La inscripción es por FECHA ESPECÍFICA (clase_id + socio_id +
-//    fecha), tal como lo guarda Supabase en la tabla `inscritos`.
-// 2. La ventana visible es de 7 DÍAS (hoy + los 6 siguientes).
-// 3. UNA INSCRIPCIÓN PENDIENTE POR DISCIPLINA: puedes agendar varias
-//    clases si son de disciplinas distintas, pero mientras tengas una
-//    inscripción pendiente de una disciplina, las demás fechas de esa
-//    misma disciplina quedan bloqueadas. Cuando la clase agendada ya
-//    pasó (su fecha quedó atrás), puedes volver a agendarla.
-
-// CLASES = catálogo de clases del gym (viene de GymDB.getClases())
-var CLASES = [];
-
-var VENTANA_DIAS = 7;
-
-// Devuelve los próximos 7 días como [{d:Date, f:"YYYY-MM-DD",
-// nom:"Lun", label:"Hoy"|"Mañana"|"Lunes 28 jul"}]
-function proximosDias(){
-  var out=[];
-  for(var i=0;i<VENTANA_DIAS;i++){
-    var d=new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate()+i);
-    var label;
-    if(i===0) label="Hoy";
-    else if(i===1) label="Mañana";
-    else {
-      var s=d.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"short"});
-      label=s.charAt(0).toUpperCase()+s.slice(1);
-    }
-    out.push({d:d, f:fechaISO(d), nom:DIAS_SEMANA[d.getDay()], label:label});
-  }
-  return out;
-}
-
-// Mapa {clase_id: fechaISO} con la inscripción PENDIENTE más próxima
-// del socio por cada disciplina, dentro de la ventana de 7 días.
-// Si una clase aparece aquí, esa disciplina está "ocupada" y sus demás
-// fechas se bloquean hasta que la fecha inscrita pase.
-function inscripcionesPendientes(){
-  var out={};
-  if(!SOCIO) return out;
-  proximosDias().forEach(function(dia){
-    CLASES.forEach(function(cl){
-      if(out[cl.id]) return; // ya encontramos su más próxima
-      if(cl.dias.indexOf(dia.nom)>-1 && GymDB.getInscritosPorClase(cl.id,dia.f).indexOf(String(SOCIO.id))>-1){
-        out[cl.id]=dia.f;
-      }
-    });
-  });
-  return out;
-}
-
-// ── RENDER: CLASES DE LOS PRÓXIMOS 7 DÍAS ────────────────────
-function renderClasesDia(){
-  if(!SOCIO) return;
-  var c    = ge("lista-clases");
-  var html = "";
-  var pendientes = inscripcionesPendientes();
-
-  proximosDias().forEach(function(dia){
-    var lista = CLASES.filter(function(cl){ return cl.dias.indexOf(dia.nom)>-1; });
-    if(!lista.length) return; // días sin clases no se muestran
-    var fechaTxt = dia.d.toLocaleDateString("es-MX",{weekday:"long",day:"numeric",month:"long"});
-    fechaTxt = fechaTxt.charAt(0).toUpperCase()+fechaTxt.slice(1);
-    html += "<div class='sec-lbl' style='margin-top:16px;margin-bottom:8px'>"+(dia.label==="Hoy"||dia.label==="Mañana"?dia.label+" · ":"")+fechaTxt+"</div>";
-    lista.forEach(function(cl){ html += renderCard(cl, dia.f, pendientes); });
-  });
-
-  if(!html) html="<div class='empty'><div class='ico'>📅</div><p>Sin clases programadas esta semana</p></div>";
-  c.innerHTML = html;
-
-  // Eventos — cada botón lleva claseId y fecha juntos (separados por "|")
-  // porque la misma clase aparece en varios días con distinto estado.
-  c.querySelectorAll("[data-inscribir]").forEach(function(btn){
-    btn.addEventListener("click",function(){
-      var partes=this.dataset.inscribir.split("|"), id=+partes[0], fecha=partes[1];
-      GymDB.inscribirSocio(id, SOCIO.id, fecha);
-      renderClasesDia(); renderMisClases();
-    });
-  });
-  c.querySelectorAll("[data-cancel]").forEach(function(btn){
-    btn.addEventListener("click",function(){
-      var partes=this.dataset.cancel.split("|"), id=+partes[0], fecha=partes[1];
-      GymDB.desinscribirSocio(id, SOCIO.id, fecha);
-      renderClasesDia(); renderMisClases();
-    });
-  });
-}
-
-// ── RENDER: TARJETA DE CLASE ──────────────────────────────────
-// fecha = fecha específica (YYYY-MM-DD) del día en que se muestra.
-// pendientes = mapa de inscripciones activas por disciplina.
-function renderCard(cl, fecha, pendientes){
-  var inscritos = GymDB.getInscritosPorClase(cl.id, fecha);
-  var inscrito  = inscritos.indexOf(String(SOCIO.id))>-1;
-  // Bloqueada: el socio ya tiene una inscripción pendiente de ESTA
-  // disciplina en otra fecha — no puede agendar otra hasta que pase.
-  var bloqueada = !inscrito && pendientes[cl.id] && pendientes[cl.id]!==fecha;
-  var numIns    = inscritos.length;
-  var libre     = cl.cupo - numIns;
-  var lleno     = !inscrito && libre <= 0;
-  var cupoColor = libre>3?"var(--green)":libre>0?"var(--orange)":"var(--red)";
-  var cupoTxt   = lleno?"Lleno":libre+" lugar"+(libre===1?"":"es");
-  var key       = cl.id+"|"+fecha;
-
-  var html = "<div class='clase-card'"+(bloqueada?" style='opacity:.55'":"")+">";
-  html += "<div class='clase-barra' style='background:"+(cl.color||"#C8F135")+"'></div>";
-  html += "<div class='clase-body'>";
-  html += "  <div class='clase-nombre'>"+cl.nombre+"</div>";
-  html += "  <div class='clase-meta'>"+cl.hora+" · "+cl.coach+"</div>";
-  html += "  <div class='clase-cupo' style='color:"+cupoColor+"'>"+numIns+"/"+cl.cupo+" · "+cupoTxt+"</div>";
-  html += "</div><div class='clase-act'>";
-
-  if(inscrito){
-    html += "<span class='pill pg'>Inscrito</span>";
-  } else if(bloqueada){
-    html += "<span class='pill pm' title='Ya tienes esta disciplina agendada'>Bloqueada</span>";
-  } else if(lleno){
-    html += "<span class='pill pm'>Lleno</span>";
-  } else {
-    html += "<button class='btn btn-lime btn-sm' data-inscribir='"+key+"'>Agendar</button>";
-  }
-
-  html += "</div></div>";
-  return html;
-}
-
-// ── RENDER: MIS CLASES INSCRITAS (hoy y mañana) ───────────────
-function renderMisClases(){
-  if(!SOCIO) return;
-  var misFilas = getInscripcionesSocio();
-
-  var c=ge("mis-clases");
-  if(!misFilas.length){
-    c.innerHTML="<div class='mc-titulo'>Mis clases inscritas</div><div style='padding:12px 14px;font-size:12px;color:var(--muted)'>Sin clases agendadas</div>";
-    return;
-  }
-  var html="<div class='mc-titulo'>Mis clases inscritas ("+misFilas.length+")</div>";
-  misFilas.forEach(function(f){
-    var key=f.cl.id+"|"+f.fecha;
-    html+="<div class='mc-fila'>";
-    html+="<div class='mc-dot' style='background:"+(f.cl.color||"#C8F135")+"'></div>";
-    html+="<div class='mc-info'>";
-    html+="  <div class='mc-nombre'>"+f.cl.nombre+"</div>";
-    html+="  <div class='mc-sub'>"+f.cl.hora+" · "+f.cl.coach+"</div>";
-    html+="  <div class='mc-sub'>"+f.label+"</div>";
-    html+="</div>";
-    html+="<button class='btn btn-outline btn-sm' style='color:var(--red);border-color:var(--red)' data-cancel='"+key+"'>✕</button>";
-    html+="</div>";
-  });
-  c.innerHTML=html;
-
-  c.querySelectorAll("[data-cancel]").forEach(function(btn){
-    btn.addEventListener("click",function(){
-      var partes=this.dataset.cancel.split("|"), id=+partes[0], fecha=partes[1];
-      GymDB.desinscribirSocio(id, SOCIO.id, fecha);
-      renderClasesDia(); renderMisClases();
-    });
-  });
-}
-
-function renderFecha(){
-  // Muestra el rango de la ventana visible (hoy → dentro de 6 días)
-  var fin=new Date(); fin.setDate(fin.getDate()+VENTANA_DIAS-1);
-  var opts={day:"numeric",month:"short"};
-  ge("fecha-hoy").textContent="Próximos 7 días · "+new Date().toLocaleDateString("es-MX",opts)+" – "+fin.toLocaleDateString("es-MX",opts);
-}
-
-document.addEventListener("DOMContentLoaded",function(){
-  renderFecha();
-  // NOTA: no llamamos renderMisClases()/renderClasesDia() aquí porque
-  // en este punto todavía no hay ningún perfil seleccionado (SOCIO es
-  // null hasta que el usuario elige uno en la pantalla de perfiles).
-  // showScreen('clases') ya se encarga de llamarlas cuando corresponde.
-  ge("btn-sync-clases").addEventListener("click", function(){
-    sincronizar(this, function(){ renderClasesDia(); renderMisClases(); });
-  });
-});
-
-</script>
-
-<!-- LÓGICA: RUTINA -->
-<script>
-
-// MODIFICAR: plan semanal del gym
-var RUTINA = [
-  {dia:"Lun", grupo:"", icono:"", ejercicios:[]},
-  {dia:"Mar", grupo:"", icono:"", ejercicios:[]},
-  {dia:"Mié", grupo:"", icono:"", ejercicios:[]},
-  {dia:"Jue", grupo:"", icono:"", ejercicios:[]},
-  {dia:"Vie", grupo:"", icono:"", ejercicios:[]},
-  {dia:"Sáb", grupo:"", icono:"", ejercicios:[]},
-  {dia:"Dom", grupo:"Descanso", icono:"😴", ejercicios:[]}
-];
-
-// ── PLANTILLAS PREDEFINIDAS ───────────────────────────────────
-// MODIFICAR: ejercicios de cada plantilla
-var PLANTILLAS = {};
-
-var nextExId = 100;
-
-
-var DIAS = ["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
-// Abrir en el día de hoy
-var hoyIdx = (new Date().getDay() + 6) % 7; // 0=Lun … 6=Dom
-var diaIdx = hoyIdx;
-
-// ── BARRA DE DÍAS ─────────────────────────────────────────────
-function renderDayBar(){
-  var html="";
-  RUTINA.forEach(function(r,i){
-    var cls="dbtn"+(i===diaIdx?" active":"");
-    html+="<button class='"+cls+"' data-idx='"+i+"'>";
-    html+=r.dia;
-    html+="<span class='d-nom'>"+r.grupo+"</span>";
-    html+="</button>";
-  });
-  ge("day-bar").innerHTML=html;
-  ge("day-bar").querySelectorAll(".dbtn").forEach(function(btn){
-    btn.addEventListener("click",function(){
-      diaIdx=+this.dataset.idx;
-      renderDayBar();
-      renderDia();
-    });
-  });
-  var active=ge("day-bar").querySelector(".active");
-  if(active) active.scrollIntoView({behavior:"smooth",inline:"center",block:"nearest"});
-}
-
-// ── APLICAR PLANTILLA ─────────────────────────────────────────
-// Conserva los ejercicios manuales (manual:true), reemplaza el resto
-function aplicarPlantilla(key){
-  var p = PLANTILLAS[key];
-  if(!p) return;
-  var d = RUTINA[diaIdx];
-
-  // Guardar solo los manuales
-  var manuales = d.ejercicios.filter(function(e){ return e.manual; });
-
-  // Nuevos ejercicios de la plantilla
-  var nuevos = p.ejercicios.map(function(e){
-    return {id:nextExId++, nombre:e.nombre, series:e.series, notas:e.notas, manual:false};
-  });
-
-  // Combinar: predefinidos + manuales al final
-  d.ejercicios = nuevos.concat(manuales);
-  d.grupo      = p.grupo;
-  d.icono      = p.icono;
-
-  // Resetear select
-  ge("sel-plantilla").value = "";
-  renderDayBar();
-  renderDia();
-}
-
-// ── DÍA ACTUAL ────────────────────────────────────────────────
-function renderDia(){
-  var d=RUTINA[diaIdx];
-  ge("dia-icono").textContent=d.icono;
-  ge("dia-titulo").textContent=d.grupo;
-  ge("dia-sub").textContent=d.ejercicios.length+" ejercicio"+(d.ejercicios.length!==1?"s":"");
-
-  var c=ge("lista-ejercicios");
-  if(d.grupo==="Descanso"||!d.ejercicios.length){
-    c.innerHTML="<div class='descanso'><div class='ico'>"+d.icono+"</div><p>"+(d.grupo==="Descanso"?"Día de recuperación activa y estiramientos":"Sin ejercicios aún. Agrega uno.")+"</p></div>";
-    return;
-  }
-  var html="";
-  d.ejercicios.forEach(function(ex,i){
-    html+="<div class='ex-card"+(ex.manual?" manual":"")+"'>";
-    html+="<div class='ex-num'>"+(i+1)+"</div>";
-    html+="<div class='ex-info'>";
-    html+="  <div class='ex-nombre'>"+ex.nombre+(ex.manual?" <span style='font-size:9px;color:var(--lime);background:rgba(200,241,53,.1);padding:1px 5px;border-radius:4px'>tuyo</span>":"")+"</div>";
-    html+="  <div class='ex-detalle'>"+ex.series+(ex.notas?" · "+ex.notas:"")+"</div>";
-    html+="</div>";
-    html+="<button class='ex-del' data-del='"+ex.id+"'>✕</button>";
-    html+="</div>";
-  });
-  c.innerHTML=html;
-
-  c.querySelectorAll("[data-del]").forEach(function(btn){
-    btn.addEventListener("click",function(){
-      var id=+this.dataset.del;
-      RUTINA[diaIdx].ejercicios=RUTINA[diaIdx].ejercicios.filter(function(e){return e.id!==id;});
-      renderDia();
-    });
-  });
-}
-
-// ── MODAL: AGREGAR ────────────────────────────────────────────
-function abrirModal(){
-  ge("ex-nombre").value="";
-  ge("ex-series").value="";
-  ge("ex-notas").value="";
-  ge("modal-ex").classList.add("open");
-  ge("ex-nombre").focus();
-}
-function cerrarModal(){
-  ge("modal-ex").classList.remove("open");
-}
-function guardarEjercicio(){
-  var nombre=ge("ex-nombre").value.trim();
-  var series=ge("ex-series").value.trim();
-  if(!nombre){alert("Escribe el nombre del ejercicio");return;}
-  RUTINA[diaIdx].ejercicios.push({
-    id:nextExId++,
-    nombre:nombre,
-    series:series||"—",
-    notas:ge("ex-notas").value.trim(),
-    manual:true   // ← se conserva al cambiar plantilla
-  });
-  cerrarModal();
-  renderDia();
-}
-
-// ── EVENTOS ───────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded",function(){
-  renderDayBar();
-  renderDia();
-
-  ge("btn-add").addEventListener("click",abrirModal);
-  ge("ex-guardar").addEventListener("click",guardarEjercicio);
-  ge("ex-cancelar").addEventListener("click",cerrarModal);
-  ge("ex-nombre").addEventListener("keydown",function(e){
-    if(e.key==="Enter") guardarEjercicio();
-  });
-  ge("modal-ex").addEventListener("click",function(e){
-    if(e.target===this) cerrarModal();
-  });
-  ge("sel-plantilla").addEventListener("change",function(){
-    if(!this.value) return;
-    if(confirm("¿Cambiar la rutina del día a "+PLANTILLAS[this.value].grupo+"? Se conservarán tus ejercicios agregados."))
-      aplicarPlantilla(this.value);
-    else
-      this.value="";
-  });
-});
-
-</script>
-
 </body>
 </html>
