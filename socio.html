@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!-- Contender Club Socio | Supabase compatible: VERSION 2026.08.12.2140 -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -10,7 +11,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="supabasedb.js"></script>
+<script>window.CONTENDER_SOCIO_DB_VERSION="2026.08.12.2140";</script>
+<script src="supabasedb_v2026.08.12.2140.js"></script>
 <style>
 :root{
   --app-max:430px;--bg:#080808;--bg2:#111;--bg3:#1a1a1a;--border:#2a2a2a;--muted:#666;--muted-2:#444;--text:#f0ede8;
@@ -295,7 +297,7 @@ function profileInitials(p){var a=sid(p.nombre).trim().charAt(0),b=sid(p.apellid
 function timeMinutes(value){var m=sid(value).match(/(\d{1,2}):(\d{2})/);return m?(+m[1]*60)+(+m[2]):0;}
 function classWindowDays(){return Math.max(1,Math.floor(number(CONFIG.UI.classWindowDays,7)));}
 function attendeesFor(classId,date){var list=GymDB.getInscritosPorClase(classId,date);return Array.isArray(list)?list:[];}
-function renderAfterAction(action,btn){setBusy(btn,true);try{Promise.resolve(action()).then(function(){renderClasses();renderMyClasses();renderUpcomingClass();}).catch(function(err){console.error(err);toast("⚠ No se pudo completar");}).finally(function(){setBusy(btn,false);});}catch(err){console.error(err);setBusy(btn,false);toast("⚠ No se pudo completar");}}
+function renderAfterAction(action,btn){setBusy(btn,true);try{Promise.resolve(action()).then(function(result){if(result&&result.ok===false)throw new Error(result.error||"No se pudo completar");renderClasses();renderMyClasses();renderUpcomingClass();}).catch(function(err){console.error(err);toast("⚠ "+(err&&err.message?err.message:"No se pudo completar"));}).finally(function(){setBusy(btn,false);});}catch(err){console.error(err);setBusy(btn,false);toast("⚠ "+(err&&err.message?err.message:"No se pudo completar"));}}
 
 /* ── CONFIG / DATOS ─────────────────────────────────────────── */
 function createEmptyRoutine(){return CONFIG.DAYS.mondayFirst.map(function(day){return {dia:day,grupo:day==="Dom"?"Descanso":"",icono:day==="Dom"?"😴":"",ejercicios:[]};});}
@@ -347,7 +349,9 @@ function renderProfileSelect(){var sel=ge("sel-perfil");sel.innerHTML="";STATE.p
 /* ── INICIO ────────────────────────────────────────────────── */
 function renderStart(){if(!STATE.member)return;renderHeader();renderQR();renderMembership();renderStats();renderUpcomingClass();renderPayments();renderDebts();checkPaymentPopup();}
 function renderHeader(){renderProfileSelect();var str=new Date().toLocaleDateString(CONFIG.APP.locale,{weekday:"long",day:"numeric",month:"long"});ge("s-fecha").textContent=str.charAt(0).toUpperCase()+str.slice(1);}
-function totalPaid(){return (STATE.member.abonos||[]).filter(function(a){return a.pagado!==false;}).reduce(function(sum,a){return sum+number(a.monto,0);},0);}
+function isCurrentMembershipPayment(a){var m=STATE.member;if(!a||!m||a.pagado===false)return false;if(a.socio_id!=null&&!sameId(a.socio_id,m.id))return false;if(a.membresia_inicio||a.membresia_vencimiento){if(m.fecha_inicio&&a.membresia_inicio&&sid(a.membresia_inicio)!==sid(m.fecha_inicio))return false;if(m.fecha_vencimiento&&a.membresia_vencimiento&&sid(a.membresia_vencimiento)!==sid(m.fecha_vencimiento))return false;if(a.plan&&m.membresia&&sid(a.plan)!==sid(m.membresia))return false;return true;}if(a.plan&&m.membresia&&sid(a.plan)!==sid(m.membresia))return false;if(m.fecha_inicio&&a.fecha_pago&&sid(a.fecha_pago)<sid(m.fecha_inicio))return false;if(m.fecha_vencimiento&&a.fecha_pago&&sid(a.fecha_pago)>sid(m.fecha_vencimiento))return false;return true;}
+function currentMembershipPayments(){return (STATE.member&&STATE.member.abonos||[]).filter(isCurrentMembershipPayment);}
+function totalPaid(){return currentMembershipPayments().reduce(function(sum,a){return sum+number(a.monto,0);},0);}
 function membershipBalance(){var price=membershipPrice(STATE.member.membresia);return price==null?null:Math.max(price-totalPaid(),0);}
 function membershipStatus(){
   if(!STATE.member.membresia||!STATE.member.fecha_vencimiento)return "sinmemb";
@@ -368,7 +372,7 @@ function renderMembership(){
 function renderStats(){ge("st-visitas").textContent=number(STATE.member.visitas,0);ge("st-peso").textContent=STATE.member.peso?STATE.member.peso+"kg":"—";ge("st-musculo").textContent=STATE.member.musculo?STATE.member.musculo+"kg":"—";}
 function renderPayments(){
   var c=ge("abonos-lista");if(!STATE.member.membresia){c.innerHTML="";ge("lbl-abonos").hidden=true;return;}ge("lbl-abonos").hidden=false;
-  var payments=(STATE.member.abonos||[]).slice().sort(function(a,b){return sid(b.fecha_pago).localeCompare(sid(a.fecha_pago));}),price=membershipPrice(STATE.member.membresia),paid=totalPaid(),priceKnown=price!=null,balance=priceKnown?Math.max(price-paid,0):null,pct=priceKnown&&price>0?Math.min(Math.round((paid/price)*100),100):0,color=!priceKnown||balance>0?"var(--orange)":"var(--lime)";
+  var payments=currentMembershipPayments().slice().sort(function(a,b){return sid(b.fecha_pago).localeCompare(sid(a.fecha_pago));}),price=membershipPrice(STATE.member.membresia),paid=totalPaid(),priceKnown=price!=null,balance=priceKnown?Math.max(price-paid,0):null,pct=priceKnown&&price>0?Math.min(Math.round((paid/price)*100),100):0,color=!priceKnown||balance>0?"var(--orange)":"var(--lime)";
   var rows=payments.length?payments.map(function(a){var meta=formatDate(a.fecha_pago,{day:"numeric",month:"short"})+(a.trainer?" · "+esc(a.trainer):"");return "<div class='abono-fila'><div class='abono-num'>✓</div><div class='abono-info'><div class='abono-label'>Pago registrado</div><div class='abono-fecha'>"+meta+"</div></div><div class='abono-monto'>"+money(a.monto)+"</div></div>";}).join(""):"<div class='payment-empty'>Sin pagos registrados todavía</div>";
   var statusLabel=!priceKnown?"Precio no disponible":balance>0?"Pendiente":"Al día ✓",amountLabel=priceKnown?money(paid)+" / "+money(price):money(paid)+" pagado";
   c.innerHTML="<div class='payment-card'><div class='payment-summary'><span class='payment-summary-label'>"+statusLabel+"</span><span class='payment-summary-amount' style='color:"+color+"'>"+amountLabel+"</span></div><div class='payment-progress'><div class='payment-progress-fill' style='background:"+color+";width:"+pct+"%'></div></div>"+rows+"</div>";
@@ -446,7 +450,8 @@ function bindEvents(){
 /* ── BOOT ──────────────────────────────────────────────────── */
 function boot(){
   applyBrand();renderTemplateSelect();renderDayBar();renderRoutineDay();bindEvents();ge("nav-socio").style.display="none";
-  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.init!=="function"){failVisible("No se encontró GymDB. Verifica que supabasedb.js cargue correctamente.");return;}
+  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.init!=="function"){failVisible("No se encontró GymDB. Verifica que supabasedb_v2026.08.12.2140.js cargue correctamente.");return;}
+  var expectedVersion=window.CONTENDER_SOCIO_DB_VERSION||"2026.08.12.2140";if(String(GymDB.VERSION||"")!==String(expectedVersion)){failVisible("Versión incompatible: socio "+expectedVersion+" / supabasedb "+(GymDB.VERSION||"sin versión")+".");return;}
   Promise.resolve(GymDB.init()).then(function(){loadCatalogs();ge("ov-loading").style.display="none";showScreen("login");}).catch(function(err){console.error("[GymDB] Error al cargar:",err);failVisible("Error: "+(err&&err.message?err.message:err));});
 }
 document.addEventListener("DOMContentLoaded",boot);
