@@ -26,13 +26,13 @@ button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid 
 input,select{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-sm);padding:11px 13px;color:var(--text);font-size:14px;outline:none;appearance:none;-webkit-appearance:none;transition:border-color .15s}
 input:focus,select:focus{border-color:var(--lime)}
 ::placeholder{color:var(--muted-2)}
-.screen{display:none;flex-direction:column;min-height:100vh;padding-bottom:72px;animation:fadeIn .2s ease}
+.screen{display:none;flex-direction:column;min-height:100vh;min-height:100dvh;padding-bottom:0;animation:fadeIn .2s ease}
 .screen.active{display:flex}
 @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 @keyframes slideUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
 
 /* Utilidades */
-.sec{padding:0 16px}.nav-ph{height:84px}.grow{flex:1;min-width:0}.row{display:flex;align-items:center}.row-gap{display:flex;align-items:center;gap:8px}
+.sec{padding:0 16px}.nav-ph{height:calc(84px + env(safe-area-inset-bottom))}.grow{flex:1;min-width:0}.row{display:flex;align-items:center}.row-gap{display:flex;align-items:center;gap:8px}
 .lbl,.sec-lbl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;display:block}
 .lbl{margin:14px 0 8px}.sec-lbl{padding:0 16px;margin-bottom:8px}
 .text-muted{color:var(--muted)}.text-green{color:var(--green)}.text-orange{color:var(--orange)}
@@ -56,7 +56,7 @@ input:focus,select:focus{border-color:var(--lime)}
 .nav-item.active{color:var(--lime)}.nav-icon{font-size:20px;line-height:1}
 
 /* Login / perfiles */
-.perfil-screen{position:relative;min-height:100vh;background:var(--bg);background-image:radial-gradient(ellipse 80% 50% at 50% 100%,rgba(200,241,53,.1),transparent 65%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 24px}
+.perfil-screen{position:relative;min-height:100vh;min-height:100dvh;background:var(--bg);background-image:radial-gradient(ellipse 80% 50% at 50% 100%,rgba(200,241,53,.1),transparent 65%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:max(32px,calc(env(safe-area-inset-top) + 24px)) 24px max(32px,calc(env(safe-area-inset-bottom) + 24px))}
 .perfil-titulo{font-family:var(--font-display);font-size:32px;letter-spacing:.5px;margin-bottom:4px;text-align:center;line-height:.95}.perfil-titulo.hero{font-size:52px;letter-spacing:-2px}
 .perfil-sub{font-size:13px;color:var(--muted);margin-bottom:36px;text-align:center}.perfil-sub.login{margin-bottom:28px}.perfil-lista{width:100%;display:flex;flex-direction:column;gap:10px}
 .perfil-btn{width:100%;padding:16px 18px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:border-color .15s,background .15s,transform .1s;text-align:left}
@@ -65,16 +65,16 @@ input:focus,select:focus{border-color:var(--lime)}
 .perfil-info{flex:1;min-width:0}.perfil-nombre{font-size:15px;font-weight:700;color:var(--text)}.perfil-detalle{font-size:12px;color:var(--muted);margin-top:3px}.perfil-arrow{font-size:22px;color:var(--muted)}
 .form-group{width:100%;margin-bottom:12px}.form-group.last{margin-bottom:20px}.form-label{font-size:11px;color:var(--muted);display:block;margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px;font-weight:500}
 .login-input{background:var(--bg2);border-radius:12px;padding:13px 14px;font-size:16px}.form-error{font-size:12px;color:var(--red);min-height:16px;margin-bottom:10px;text-align:center}
-.add-account-btn{position:absolute;top:20px;right:20px}.add-form-error{text-align:left;margin-bottom:8px}
+.add-account-btn{position:absolute;top:max(20px,calc(env(safe-area-inset-top) + 12px));right:20px}.add-form-error{text-align:left;margin-bottom:8px}
 
 /* Header */
-.hdr{padding:20px 16px 10px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.hdr h1{font-family:var(--font-display);font-size:30px;letter-spacing:.5px;line-height:1}.hdr small{font-size:12px;color:var(--muted);display:block;margin-top:3px}
+.hdr{padding:max(20px,calc(env(safe-area-inset-top) + 12px)) 16px 10px;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}.hdr h1{font-family:var(--font-display);font-size:30px;letter-spacing:.5px;line-height:1}.hdr small{font-size:12px;color:var(--muted);display:block;margin-top:3px}
 .hdr-nombre{font-family:var(--font-display);font-size:28px;letter-spacing:.5px;line-height:1}.hdr-r{display:flex;gap:8px;align-items:center}.profile-select{background:transparent;border:none;color:var(--lime);font-size:13px;font-weight:700;padding:0;margin-top:2px;cursor:pointer}
 .current-date{padding:2px 16px 10px;font-size:12px;color:var(--muted)}
 
 /* Inicio */
 .qr-card{background:rgba(200,241,53,.04);border:1px solid rgba(200,241,53,.25);border-radius:var(--radius-lg);padding:24px 16px;text-align:center;margin-bottom:8px}.qr-wrap{margin:0 auto 14px;width:fit-content}.qr-code{font-family:var(--font-display);font-size:22px;letter-spacing:4px;color:var(--lime);margin-bottom:4px}.qr-hint{font-size:11px;color:var(--muted)}
-.memb-card{background:var(--bg2);border-radius:var(--radius-md);padding:14px;margin-bottom:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}.memb-card.aldia{border-left:3px solid var(--green)}.memb-card.vencehoy,.memb-card.pendiente{border-left:3px solid var(--orange)}.memb-card.vencido{border-left:3px solid var(--red)}
+.memb-card{background:var(--bg2);border-radius:var(--radius-md);padding:14px;margin-bottom:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px}.memb-card.aldia{border-left:3px solid var(--green)}.memb-card.vencehoy,.memb-card.pendiente,.memb-card.sinprecio{border-left:3px solid var(--orange)}.memb-card.vencido{border-left:3px solid var(--red)}
 .memb-nombre{font-family:var(--font-display);font-size:20px;line-height:1}.memb-vence{font-size:12px;color:var(--muted);margin-top:4px}.prog-wrap{background:var(--bg3);border-radius:4px;height:5px;overflow:hidden;margin-top:8px;width:140px}.prog-fill{height:100%;border-radius:4px;background:var(--lime);transition:width .7s;width:0}
 .stats-3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}.sbox{background:var(--bg2);border-radius:12px;padding:12px 8px;text-align:center;border:1px solid var(--border)}.snum{font-family:var(--font-display);font-size:26px;line-height:1}.snum.visits{color:var(--lime)}.snum.weight{color:var(--cyan)}.snum.muscle{color:var(--green)}.slbl{font-size:10px;color:var(--muted);margin-top:3px}
 .pill{border-radius:20px;padding:3px 9px;font-size:11px;font-weight:600;display:inline-block;white-space:nowrap}.pill-green{background:rgba(48,209,88,.15);color:var(--green)}.pill-orange{background:rgba(255,159,10,.15);color:var(--orange)}.pill-red{background:rgba(255,59,48,.15);color:var(--red)}.pill-muted{background:var(--bg3);color:var(--muted)}
@@ -93,8 +93,8 @@ input:focus,select:focus{border-color:var(--lime)}
 
 /* Modales */
 .modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:var(--modal-z);display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(6px)}.modal-ov.open{display:flex}.modal{background:var(--bg2);border-radius:22px 22px 0 0;padding:24px 16px max(36px,env(safe-area-inset-bottom));width:100%;max-width:var(--app-max);border:1px solid var(--border);border-bottom:none;animation:slideUp .25s ease;max-height:90vh;overflow-y:auto}.modal.centered{border-radius:22px;border-bottom:1px solid var(--border);padding:28px 20px 32px;text-align:center;animation:fadeIn .2s ease}.modal-ov.centered{align-items:center;padding:24px}.mhandle{width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 18px}.modal h2{font-family:var(--font-display);font-size:24px;margin-bottom:16px}.mbtns{display:flex;gap:8px;margin-top:16px}.fr{margin-bottom:12px}.fr label{font-size:11px;color:var(--muted);display:block;margin-bottom:5px;font-weight:500;text-transform:uppercase;letter-spacing:.8px}.popup-icon{font-size:48px;margin-bottom:12px}.popup-title{font-family:var(--font-display);font-size:26px;margin-bottom:8px}.popup-text{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.6}
-.profile-menu{position:fixed;top:70px;right:max(12px,calc((100vw - var(--app-max))/2 + 12px));background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:8px 0;display:none;z-index:250;min-width:170px;box-shadow:0 4px 16px rgba(0,0,0,.4)}.profile-menu.open{display:block}.profile-menu-btn{width:100%;padding:12px 16px;background:none;border:none;color:var(--text);text-align:left;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px}.profile-menu-btn.danger{color:var(--red);border-top:1px solid var(--border)}
-.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--bg3);color:var(--lime);border:1px solid rgba(200,241,53,.4);border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;z-index:9999;transition:opacity .3s;pointer-events:none;opacity:0}
+.profile-menu{position:fixed;top:max(70px,calc(env(safe-area-inset-top) + 62px));right:max(12px,calc((100vw - var(--app-max))/2 + 12px));background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:8px 0;display:none;z-index:250;min-width:170px;box-shadow:0 4px 16px rgba(0,0,0,.4)}.profile-menu.open{display:block}.profile-menu-btn{width:100%;padding:12px 16px;background:none;border:none;color:var(--text);text-align:left;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px}.profile-menu-btn.danger{color:var(--red);border-top:1px solid var(--border)}
+.toast{position:fixed;top:max(16px,calc(env(safe-area-inset-top) + 8px));left:50%;transform:translateX(-50%);background:var(--bg3);color:var(--lime);border:1px solid rgba(200,241,53,.4);border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;z-index:9999;transition:opacity .3s;pointer-events:none;opacity:0}
 </style>
 </head>
 <body>
@@ -285,7 +285,7 @@ function phone(v){return sid(v).replace(/\D/g,"").trim();}
 function dateLocal(value){if(value instanceof Date)return new Date(value.getFullYear(),value.getMonth(),value.getDate());if(!value)return null;var m=sid(value).slice(0,10).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?new Date(+m[1],+m[2]-1,+m[3]):new Date(value);}
 function dateISO(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function formatDate(value,opts){var d=dateLocal(value);return d&&!isNaN(d)?d.toLocaleDateString(CONFIG.APP.locale,opts||{day:"numeric",month:"short",year:"2-digit"}):"—";}
-function safeColor(value){var c=sid(value).trim();return /^#[0-9a-f]{3,8}$/i.test(c)?c:CONFIG.UI.defaultProfileColor;}
+function safeColor(value){var c=sid(value).trim();return /^(?:#[0-9a-f]{3}|#[0-9a-f]{4}|#[0-9a-f]{6}|#[0-9a-f]{8})$/i.test(c)?c:CONFIG.UI.defaultProfileColor;}
 function sameId(a,b){return sid(a)===sid(b);}
 function setModal(id,open){var el=ge(id);if(el)el.classList.toggle("open",!!open);}
 function setBusy(btn,busy){if(!btn)return;btn.disabled=!!busy;btn.dataset.label=btn.dataset.label||btn.textContent;if(busy)btn.textContent="…";else btn.textContent=btn.dataset.label;}
@@ -293,13 +293,15 @@ function toast(msg){var t=ge("toast-sync");t.textContent=msg;t.style.opacity="1"
 function failVisible(msg){var err=ge("ov-err");err.style.display="block";err.textContent=msg;}
 function profileInitials(p){var a=sid(p.nombre).trim().charAt(0),b=sid(p.apellido_paterno).trim().charAt(0);return (a+b||"?").toUpperCase();}
 function timeMinutes(value){var m=sid(value).match(/(\d{1,2}):(\d{2})/);return m?(+m[1]*60)+(+m[2]):0;}
+function classWindowDays(){return Math.max(1,Math.floor(number(CONFIG.UI.classWindowDays,7)));}
+function attendeesFor(classId,date){var list=GymDB.getInscritosPorClase(classId,date);return Array.isArray(list)?list:[];}
 function renderAfterAction(action,btn){setBusy(btn,true);try{Promise.resolve(action()).then(function(){renderClasses();renderMyClasses();renderUpcomingClass();}).catch(function(err){console.error(err);toast("⚠ No se pudo completar");}).finally(function(){setBusy(btn,false);});}catch(err){console.error(err);setBusy(btn,false);toast("⚠ No se pudo completar");}}
 
 /* ── CONFIG / DATOS ─────────────────────────────────────────── */
 function createEmptyRoutine(){return CONFIG.DAYS.mondayFirst.map(function(day){return {dia:day,grupo:day==="Dom"?"Descanso":"",icono:day==="Dom"?"😴":"",ejercicios:[]};});}
 function applyBrand(){document.title=CONFIG.APP.title;var brand=CONFIG.APP.brand.replace(/\s+/g,"<br>");["brand-loading","brand-login","brand-profiles"].forEach(function(id){ge(id).innerHTML=brand;});ge("app-short-name").textContent=CONFIG.APP.shortName;}
 function loadCatalogs(){STATE.classes=GymDB.getClases()||[];STATE.memberships=GymDB.getMembresias()||[];console.log("[Socio] Catálogos:",{clases:STATE.classes.length,membresias:STATE.memberships.length});}
-function membershipPrice(plan){var m=STATE.memberships.find(function(x){return sid(x.nombre)===sid(plan);});if(!m){console.warn('[Socio] Plan no encontrado en catálogo: "'+plan+'"');return 0;}return number(m.precio,0);}
+function membershipPrice(plan){var target=sid(plan).trim().toLocaleLowerCase(CONFIG.APP.locale),m=STATE.memberships.find(function(x){return sid(x.nombre).trim().toLocaleLowerCase(CONFIG.APP.locale)===target;});if(!m){console.warn('[Socio] Plan no encontrado en catálogo: "'+plan+'"');return null;}var price=Number(m.precio);if(!Number.isFinite(price)){console.warn('[Socio] Precio inválido para el plan: "'+plan+'"');return null;}return price;}
 function profileFromMember(s){return {id:s.id,nombre:s.nombre,apellido_paterno:s.apellido_paterno,apellido_materno:s.apellido_materno,numero:s.numero,membresia:s.plan,fecha_inicio:s.fecha_inicio,fecha_vencimiento:s.fecha_vencimiento,visitas:s.visitas,peso:s.peso,musculo:s.musculo,activo:s.activo,color:s.color||CONFIG.UI.defaultProfileColor,abonos:(s.abonos||[]).slice()};}
 function refreshActiveProfile(){if(!STATE.member)return;var fresh=GymDB.getSocio(STATE.member.id);if(!fresh)return;var data=profileFromMember(fresh),idx=STATE.profiles.findIndex(function(p){return sameId(p.id,data.id);});if(idx>-1)STATE.profiles[idx]=data;else STATE.profiles.push(data);STATE.member=data;}
 function productDebts(memberId){var all=(GymDB.getAllDeudas()||{})[memberId]||[];return all.filter(function(d){return d.tipo!=="membresia";});}
@@ -346,10 +348,11 @@ function renderProfileSelect(){var sel=ge("sel-perfil");sel.innerHTML="";STATE.p
 function renderStart(){if(!STATE.member)return;renderHeader();renderQR();renderMembership();renderStats();renderUpcomingClass();renderPayments();renderDebts();checkPaymentPopup();}
 function renderHeader(){renderProfileSelect();var str=new Date().toLocaleDateString(CONFIG.APP.locale,{weekday:"long",day:"numeric",month:"long"});ge("s-fecha").textContent=str.charAt(0).toUpperCase()+str.slice(1);}
 function totalPaid(){return (STATE.member.abonos||[]).filter(function(a){return a.pagado!==false;}).reduce(function(sum,a){return sum+number(a.monto,0);},0);}
-function membershipBalance(){return Math.max(membershipPrice(STATE.member.membresia)-totalPaid(),0);}
+function membershipBalance(){var price=membershipPrice(STATE.member.membresia);return price==null?null:Math.max(price-totalPaid(),0);}
 function membershipStatus(){
   if(!STATE.member.membresia||!STATE.member.fecha_vencimiento)return "sinmemb";
-  if(membershipBalance()>0)return "pendiente";
+  var balance=membershipBalance();if(balance==null)return "sinprecio";
+  if(balance>0)return "pendiente";
   var today=dateLocal(new Date()),end=dateLocal(STATE.member.fecha_vencimiento),days=Math.ceil((end-today)/86400000);
   if(days<0)return "vencido";if(days===0)return "vencehoy";return "aldia";
 }
@@ -358,16 +361,17 @@ function renderMembership(){
   if(st==="sinmemb"){ge("memb-nombre").textContent="Sin membresía";ge("memb-vence").textContent="Pregunta en recepción para activarla";ge("memb-pill").innerHTML="<span class='pill pill-muted'>Sin membresía</span>";ge("memb-prog").style.width="0%";return;}
   ge("memb-nombre").textContent=STATE.member.membresia;
   var end=dateLocal(STATE.member.fecha_vencimiento),today=dateLocal(new Date()),days=Math.ceil((end-today)/86400000),endText=end.toLocaleDateString(CONFIG.APP.locale,{day:"numeric",month:"long",year:"numeric"});
-  if(st==="pendiente")ge("memb-vence").textContent="Saldo pendiente: "+money(membershipBalance());else if(days<0)ge("memb-vence").textContent="Venció el "+endText;else if(days===0)ge("memb-vence").textContent="Vence HOY";else ge("memb-vence").textContent="Vence el "+endText+" ("+days+" días)";
-  var pills={aldia:"<span class='pill pill-green'>Al día ✓</span>",vencehoy:"<span class='pill pill-orange'>Vence hoy</span>",vencido:"<span class='pill pill-red'>Vencido</span>",pendiente:"<span class='pill pill-orange'>Pendiente</span>"};ge("memb-pill").innerHTML=pills[st]||"";
+  if(st==="sinprecio")ge("memb-vence").textContent="Precio del plan no disponible";else if(st==="pendiente")ge("memb-vence").textContent="Saldo pendiente: "+money(membershipBalance());else if(days<0)ge("memb-vence").textContent="Venció el "+endText;else if(days===0)ge("memb-vence").textContent="Vence HOY";else ge("memb-vence").textContent="Vence el "+endText+" ("+days+" días)";
+  var pills={aldia:"<span class='pill pill-green'>Al día ✓</span>",vencehoy:"<span class='pill pill-orange'>Vence hoy</span>",vencido:"<span class='pill pill-red'>Vencido</span>",pendiente:"<span class='pill pill-orange'>Pendiente</span>",sinprecio:"<span class='pill pill-orange'>Revisar plan</span>"};ge("memb-pill").innerHTML=pills[st]||"";
   var start=dateLocal(STATE.member.fecha_inicio),total=start?Math.max(Math.ceil((end-start)/86400000),1):1,elapsed=start?Math.max(Math.ceil((today-start)/86400000),0):0;ge("memb-prog").style.width=Math.min(Math.round((elapsed/total)*100),100)+"%";
 }
 function renderStats(){ge("st-visitas").textContent=number(STATE.member.visitas,0);ge("st-peso").textContent=STATE.member.peso?STATE.member.peso+"kg":"—";ge("st-musculo").textContent=STATE.member.musculo?STATE.member.musculo+"kg":"—";}
 function renderPayments(){
   var c=ge("abonos-lista");if(!STATE.member.membresia){c.innerHTML="";ge("lbl-abonos").hidden=true;return;}ge("lbl-abonos").hidden=false;
-  var payments=(STATE.member.abonos||[]).slice().sort(function(a,b){return sid(b.fecha_pago).localeCompare(sid(a.fecha_pago));}),price=membershipPrice(STATE.member.membresia),paid=totalPaid(),balance=Math.max(price-paid,0),pct=price>0?Math.min(Math.round((paid/price)*100),100):0,color=balance>0?"var(--orange)":"var(--lime)";
+  var payments=(STATE.member.abonos||[]).slice().sort(function(a,b){return sid(b.fecha_pago).localeCompare(sid(a.fecha_pago));}),price=membershipPrice(STATE.member.membresia),paid=totalPaid(),priceKnown=price!=null,balance=priceKnown?Math.max(price-paid,0):null,pct=priceKnown&&price>0?Math.min(Math.round((paid/price)*100),100):0,color=!priceKnown||balance>0?"var(--orange)":"var(--lime)";
   var rows=payments.length?payments.map(function(a){var meta=formatDate(a.fecha_pago,{day:"numeric",month:"short"})+(a.trainer?" · "+esc(a.trainer):"");return "<div class='abono-fila'><div class='abono-num'>✓</div><div class='abono-info'><div class='abono-label'>Pago registrado</div><div class='abono-fecha'>"+meta+"</div></div><div class='abono-monto'>"+money(a.monto)+"</div></div>";}).join(""):"<div class='payment-empty'>Sin pagos registrados todavía</div>";
-  c.innerHTML="<div class='payment-card'><div class='payment-summary'><span class='payment-summary-label'>"+(balance>0?"Pendiente":"Al día ✓")+"</span><span class='payment-summary-amount' style='color:"+color+"'>"+money(paid)+" / "+money(price)+"</span></div><div class='payment-progress'><div class='payment-progress-fill' style='background:"+color+";width:"+pct+"%'></div></div>"+rows+"</div>";
+  var statusLabel=!priceKnown?"Precio no disponible":balance>0?"Pendiente":"Al día ✓",amountLabel=priceKnown?money(paid)+" / "+money(price):money(paid)+" pagado";
+  c.innerHTML="<div class='payment-card'><div class='payment-summary'><span class='payment-summary-label'>"+statusLabel+"</span><span class='payment-summary-amount' style='color:"+color+"'>"+amountLabel+"</span></div><div class='payment-progress'><div class='payment-progress-fill' style='background:"+color+";width:"+pct+"%'></div></div>"+rows+"</div>";
 }
 function renderDebts(){
   var debts=productDebts(STATE.member.id),lbl=ge("lbl-deudas"),c=ge("deudas-lista");lbl.hidden=!debts.length;if(!debts.length){c.innerHTML="";return;}
@@ -380,16 +384,16 @@ function generateLegacyCode(id){var day=dateISO(new Date()).replace(/-/g,""),see
 function renderQR(){var code=generateLegacyCode(STATE.member.id),wrap=ge("qr-wrap");ge("qr-code").textContent=code;wrap.innerHTML="";try{new QRCode(wrap,{text:code,width:CONFIG.UI.qrSize,height:CONFIG.UI.qrSize,colorDark:"#C8F135",colorLight:"#080808",correctLevel:QRCode.CorrectLevel.M});}catch(err){console.error(err);var fallback=document.createElement("div");fallback.className="empty-inline";fallback.style.width=CONFIG.UI.qrSize+"px";fallback.style.height=CONFIG.UI.qrSize+"px";fallback.style.border="2px dashed var(--lime)";fallback.style.borderRadius="10px";fallback.style.display="flex";fallback.style.alignItems="center";fallback.style.justifyContent="center";fallback.textContent=code;wrap.appendChild(fallback);}}
 
 /* ── CLASES ────────────────────────────────────────────────── */
-function upcomingDays(){var out=[];for(var i=0;i<CONFIG.UI.classWindowDays;i++){var d=dateLocal(new Date());d.setDate(d.getDate()+i);var label;if(i===0)label="Hoy";else if(i===1)label="Mañana";else{label=d.toLocaleDateString(CONFIG.APP.locale,{weekday:"long",day:"numeric",month:"short"});label=label.charAt(0).toUpperCase()+label.slice(1);}out.push({d:d,f:dateISO(d),nom:CONFIG.DAYS.getDay[d.getDay()],label:label});}return out;}
+function upcomingDays(){var out=[],base=dateLocal(new Date()),windowDays=classWindowDays();for(var i=0;i<windowDays;i++){var d=new Date(base);d.setDate(d.getDate()+i);var label;if(i===0)label="Hoy";else if(i===1)label="Mañana";else{label=d.toLocaleDateString(CONFIG.APP.locale,{weekday:"long",day:"numeric",month:"short"});label=label.charAt(0).toUpperCase()+label.slice(1);}out.push({d:d,f:dateISO(d),nom:CONFIG.DAYS.getDay[d.getDay()],label:label});}return out;}
 function memberRegistrations(){
-  if(!STATE.member)return [];var rows=[];upcomingDays().forEach(function(day){STATE.classes.forEach(function(cl){if((cl.dias||[]).indexOf(day.nom)>-1&&GymDB.getInscritosPorClase(cl.id,day.f).some(function(id){return sameId(id,STATE.member.id);})){rows.push({cl:cl,fecha:day.f,label:day.label});}});});
+  if(!STATE.member)return [];var rows=[];upcomingDays().forEach(function(day){STATE.classes.forEach(function(cl){if((cl.dias||[]).indexOf(day.nom)>-1&&attendeesFor(cl.id,day.f).some(function(id){return sameId(id,STATE.member.id);})){rows.push({cl:cl,fecha:day.f,label:day.label});}});});
   rows.sort(function(a,b){var byDate=a.fecha.localeCompare(b.fecha);return byDate||timeMinutes(a.cl.hora)-timeMinutes(b.cl.hora);});return rows;
 }
-function pendingRegistrations(){var out={};if(!STATE.member)return out;upcomingDays().forEach(function(day){STATE.classes.forEach(function(cl){var key=sid(cl.id);if(out[key])return;if((cl.dias||[]).indexOf(day.nom)>-1&&GymDB.getInscritosPorClase(cl.id,day.f).some(function(id){return sameId(id,STATE.member.id);}))out[key]=day.f;});});return out;}
+function pendingRegistrations(){var out={};if(!STATE.member)return out;upcomingDays().forEach(function(day){STATE.classes.forEach(function(cl){var key=sid(cl.id);if(out[key])return;if((cl.dias||[]).indexOf(day.nom)>-1&&attendeesFor(cl.id,day.f).some(function(id){return sameId(id,STATE.member.id);}))out[key]=day.f;});});return out;}
 function renderUpcomingClass(){var c=ge("proxima-clase"),rows=memberRegistrations();if(!rows.length){c.innerHTML="<div class='empty-inline'>Sin clases agendadas</div>";return;}var f=rows[0];c.innerHTML="<div class='upcoming-row'><div class='upcoming-color' style='background:"+safeColor(f.cl.color)+"'></div><div class='upcoming-info'><div class='upcoming-name'>"+esc(f.cl.nombre)+"</div><div class='upcoming-meta'>"+esc(f.label)+" · "+esc(f.cl.hora)+" · "+esc(f.cl.coach)+"</div></div><span class='pill pill-green'>Inscrito</span></div>";}
-function renderClassesDateRange(){var days=upcomingDays(),first=days[0].d,last=days[days.length-1].d,opts={day:"numeric",month:"short"};ge("fecha-hoy").textContent="Próximos "+CONFIG.UI.classWindowDays+" días · "+first.toLocaleDateString(CONFIG.APP.locale,opts)+" – "+last.toLocaleDateString(CONFIG.APP.locale,opts);}
+function renderClassesDateRange(){var days=upcomingDays(),first=days[0].d,last=days[days.length-1].d,opts={day:"numeric",month:"short"};ge("fecha-hoy").textContent="Próximos "+days.length+" días · "+first.toLocaleDateString(CONFIG.APP.locale,opts)+" – "+last.toLocaleDateString(CONFIG.APP.locale,opts);}
 function renderClassCard(cl,fecha,pending){
-  var attendees=GymDB.getInscritosPorClase(cl.id,fecha)||[],registered=attendees.some(function(id){return sameId(id,STATE.member.id);}),pendingDate=pending[sid(cl.id)],blocked=!registered&&pendingDate&&pendingDate!==fecha,count=attendees.length,capacity=number(cl.cupo,0),free=capacity-count,full=!registered&&free<=0,cupoColor=free>3?"var(--green)":free>0?"var(--orange)":"var(--red)",cupoText=full?"Lleno":free+" lugar"+(free===1?"":"es"),key=esc(cl.id)+"|"+esc(fecha),action;
+  var attendees=attendeesFor(cl.id,fecha),registered=attendees.some(function(id){return sameId(id,STATE.member.id);}),pendingDate=pending[sid(cl.id)],blocked=!registered&&pendingDate&&pendingDate!==fecha,count=attendees.length,capacity=number(cl.cupo,0),free=capacity-count,full=!registered&&free<=0,cupoColor=free>3?"var(--green)":free>0?"var(--orange)":"var(--red)",cupoText=full?"Lleno":free+" lugar"+(free===1?"":"es"),key=esc(cl.id)+"|"+esc(fecha),action;
   if(registered)action="<span class='pill pill-green'>Inscrito</span>";else if(blocked)action="<span class='pill pill-muted' title='Ya tienes esta disciplina agendada'>Bloqueada</span>";else if(full)action="<span class='pill pill-muted'>Lleno</span>";else action="<button type='button' class='btn btn-lime btn-sm' data-enroll='"+key+"'>Agendar</button>";
   return "<div class='clase-card"+(blocked?" blocked":"")+"'><div class='clase-barra' style='background:"+safeColor(cl.color)+"'></div><div class='clase-body'><div class='clase-card-name'>"+esc(cl.nombre)+"</div><div class='clase-card-meta'>"+esc(cl.hora)+" · "+esc(cl.coach)+"</div><div class='clase-cupo' style='color:"+cupoColor+"'>"+count+"/"+capacity+" · "+cupoText+"</div></div><div class='clase-act'>"+action+"</div></div>";
 }
