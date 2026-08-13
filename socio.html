@@ -81,7 +81,7 @@ input:focus,select:focus{border-color:var(--lime)}
 .stats-3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px}.sbox{background:var(--bg2);border-radius:12px;padding:12px 8px;text-align:center;border:1px solid var(--border)}.snum{font-family:var(--font-display);font-size:26px;line-height:1}.snum.visits{color:var(--lime)}.snum.weight{color:var(--cyan)}.snum.muscle{color:var(--green)}.slbl{font-size:10px;color:var(--muted);margin-top:3px}
 .pill{border-radius:20px;padding:3px 9px;font-size:11px;font-weight:600;display:inline-block;white-space:nowrap}.pill-green{background:rgba(48,209,88,.15);color:var(--green)}.pill-orange{background:rgba(255,159,10,.15);color:var(--orange)}.pill-red{background:rgba(255,59,48,.15);color:var(--red)}.pill-muted{background:var(--bg3);color:var(--muted)}
 .upcoming-row{background:var(--bg2);border-radius:var(--radius-md);padding:12px 14px;margin-bottom:8px;border:1px solid var(--border);display:flex;align-items:center;gap:12px}.upcoming-color{width:4px;height:44px;border-radius:4px;flex-shrink:0}.upcoming-info{flex:1;min-width:0}.upcoming-name{font-weight:700;font-size:14px}.upcoming-meta{font-size:12px;color:var(--muted);margin-top:3px}
-.saldo-card{background:var(--bg2);border-radius:var(--radius-md);padding:13px;border:1px solid var(--border);margin-bottom:8px}.saldo-value{font-family:var(--font-display);font-size:26px;line-height:1;color:var(--lime)}
+.saldo-card{background:var(--bg2);border-radius:var(--radius-md);padding:13px;border:1px solid var(--border);margin-bottom:8px}.saldo-toggle{width:100%;padding:0;border:0;background:none;color:inherit;text-align:left;cursor:pointer}.saldo-toggle:focus-visible{outline:2px solid var(--lime);outline-offset:6px;border-radius:8px}.saldo-value{font-family:var(--font-display);font-size:26px;line-height:1;color:var(--lime)}.saldo-last{display:block;font-size:12px;color:var(--text);margin-top:9px;line-height:1.4}.saldo-tap{display:block;font-size:10px;color:var(--lime);margin-top:5px;font-weight:700}.saldo-mov-list[hidden]{display:none}
 .deuda-card{background:rgba(255,159,10,.06);border:1px solid rgba(255,159,10,.3);border-radius:12px;padding:11px 13px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:10px}.deuda-prod{font-size:13px;font-weight:600}.deuda-fecha{font-size:11px;color:var(--muted);margin-top:2px}.deuda-monto{font-family:var(--font-display);font-size:20px;color:var(--orange);flex-shrink:0}.deuda-total{text-align:right;font-size:12px;color:var(--orange);margin-bottom:8px;padding-right:2px}
 .empty-inline{font-size:13px;color:var(--muted);padding:8px 0}.empty-inline.center{text-align:center}
 
@@ -168,15 +168,19 @@ input:focus,select:focus{border-color:var(--lime)}
 
     <span class="lbl">Saldo</span>
     <div class="saldo-card">
-      <div class="saldo-head"><div class="saldo-value" id="saldo-actual">0</div><div class="saldo-caption">disponible</div></div>
-      <div class="mini-list" id="saldo-movimientos"></div>
+      <button type="button" class="saldo-toggle" id="btn-saldo-toggle" aria-expanded="false">
+        <span class="saldo-head"><span class="saldo-value" id="saldo-actual">0</span><span class="saldo-caption">disponible</span></span>
+        <span class="saldo-last" id="saldo-ultimo">Sin movimientos todavía</span>
+        <span class="saldo-tap" id="saldo-toggle-label">Ver movimientos recientes</span>
+      </button>
+      <div class="mini-list saldo-mov-list" id="saldo-movimientos" hidden></div>
     </div>
 
     <span class="lbl">Visitas</span>
     <div class="visit-card">
       <div class="visit-summary">
-        <div class="visit-stat"><div class="visit-num" id="visitas-mes">0</div><div class="visit-label">Este mes</div></div>
-        <div class="visit-stat"><div class="visit-num" id="visitas-total">0</div><div class="visit-label">Históricas</div></div>
+        <div class="visit-stat"><div class="visit-num" id="visitas-mes">0</div><div class="visit-label">visitas este mes</div></div>
+        <div class="visit-stat"><div class="visit-num" id="visitas-total">0</div><div class="visit-label">visitas históricas</div></div>
       </div>
       <button type="button" class="btn btn-dark btn-full" id="btn-visitas-toggle">Ver visitas recientes</button>
       <div class="recent-visits mini-list" id="visitas-recientes" hidden></div>
@@ -267,7 +271,7 @@ var CONFIG={
    contrato actual. Antes de producción, la firma/token debe generarse en
    backend (p.ej. Supabase Edge Function) y el navegador recibir sólo el token. */
 
-var STATE={profiles:[],member:null,classes:[],memberships:[],dropdownOpen:false,visitMonth:0,recentVisits:[],visitsOpen:false,activitySeq:0};
+var STATE={profiles:[],member:null,classes:[],memberships:[],dropdownOpen:false,visitMonth:0,recentVisits:[],visitsOpen:false,saldoOpen:false,activitySeq:0};
 
 /* ── UTILIDADES ─────────────────────────────────────────────── */
 function ge(id){return document.getElementById(id);}
@@ -288,6 +292,7 @@ function failVisible(msg){var err=ge("ov-err");err.style.display="block";err.tex
 function profileInitials(p){var a=sid(p.nombre).trim().charAt(0),b=sid(p.apellido_paterno).trim().charAt(0);return (a+b||"?").toUpperCase();}
 function timeMinutes(value){var m=sid(value).match(/(\d{1,2}):(\d{2})/);return m?(+m[1]*60)+(+m[2]):0;}
 function formatTime(value){var m=sid(value).match(/^(\d{1,2}):(\d{2})/);if(!m)return sid(value)||"—";var h=Number(m[1]),min=m[2],pm=h>=12,hh=h%12||12;return String(hh).padStart(2,"0")+":"+min+" "+(pm?"p.m.":"a.m.");}
+function relativeDate(value){var d=dateLocal(value),today=dateLocal(new Date());if(!d||isNaN(d)||!today)return formatDate(value,{day:"numeric",month:"short"});var diff=Math.round((today-d)/86400000);if(diff===0)return "hoy";if(diff===1)return "ayer";return formatDate(d,{day:"numeric",month:"short"});}
 function classWindowDays(){return Math.max(1,Math.floor(number(CONFIG.UI.classWindowDays,7)));}
 function attendeesFor(classId,date){var list=GymDB.getInscritosPorClase(classId,date);return Array.isArray(list)?list:[];}
 function renderAfterAction(action,btn){setBusy(btn,true);try{Promise.resolve(action()).then(function(result){if(result&&result.ok===false)throw new Error(result.error||"No se pudo completar");renderClasses();renderMyClasses();renderUpcomingClass();}).catch(function(err){console.error(err);toast("⚠ "+(err&&err.message?err.message:"No se pudo completar"));}).finally(function(){setBusy(btn,false);});}catch(err){console.error(err);setBusy(btn,false);toast("⚠ "+(err&&err.message?err.message:"No se pudo completar"));}}
@@ -369,10 +374,13 @@ function renderMembership(){
 
 function renderStats(){ge("st-peso").textContent=STATE.member.peso?STATE.member.peso+"kg":"—";ge("st-musculo").textContent=STATE.member.musculo?STATE.member.musculo+"kg":"—";}
 function renderSaldo(){
-  var saldo=typeof GymDB.getSaldo==="function"?number(GymDB.getSaldo(STATE.member.id),0):0,movs=typeof GymDB.getSaldoMovimientos==="function"?GymDB.getSaldoMovimientos(STATE.member.id).slice(0,3):[];
+  var saldo=typeof GymDB.getSaldo==="function"?number(GymDB.getSaldo(STATE.member.id),0):0,all=typeof GymDB.getSaldoMovimientos==="function"?GymDB.getSaldoMovimientos(STATE.member.id):[],movs=all.slice(0,5),last=movs[0]||null;
   ge("saldo-actual").textContent=saldo.toLocaleString(CONFIG.APP.locale);
-  var c=ge("saldo-movimientos");if(!movs.length){c.innerHTML="<div class='empty-inline'>Sin movimientos todavía</div>";return;}
-  c.innerHTML=movs.map(function(m){var val=number(m.monto,0),pos=val>=0;return "<div class='mini-row'><div class='mini-info'><div class='mini-title'>"+esc(m.concepto||m.tipo||"Movimiento")+"</div><div class='mini-meta'>"+formatDate(m.fecha,{day:"numeric",month:"short"})+(m.hora?" · "+formatTime(m.hora):"")+"</div></div><div class='mini-value "+(pos?"pos":"neg")+"'>"+(pos?"+":"−")+Math.abs(val).toLocaleString(CONFIG.APP.locale)+"</div></div>";}).join("");
+  var lastEl=ge("saldo-ultimo"),list=ge("saldo-movimientos"),btn=ge("btn-saldo-toggle"),toggleLabel=ge("saldo-toggle-label");
+  if(!last){lastEl.textContent="Sin movimientos todavía";list.innerHTML="<div class='empty-inline'>Sin movimientos todavía</div>";list.hidden=true;btn.setAttribute("aria-expanded","false");toggleLabel.textContent="Sin movimientos recientes";return;}
+  var lastValue=number(last.monto,0),lastSign=lastValue>=0?"+":"−",lastConcept=last.concepto||last.tipo||"Movimiento";lastEl.textContent="Último movimiento: "+lastSign+Math.abs(lastValue).toLocaleString(CONFIG.APP.locale)+" "+lastConcept+" · "+relativeDate(last.fecha);
+  list.hidden=!STATE.saldoOpen;btn.setAttribute("aria-expanded",STATE.saldoOpen?"true":"false");toggleLabel.textContent=STATE.saldoOpen?"Ocultar movimientos recientes":"Ver movimientos recientes";
+  list.innerHTML=movs.map(function(m){var val=number(m.monto,0),pos=val>=0;return "<div class='mini-row'><div class='mini-info'><div class='mini-title'>"+esc(m.concepto||m.tipo||"Movimiento")+"</div><div class='mini-meta'>"+relativeDate(m.fecha)+(m.hora?" · "+formatTime(m.hora):"")+"</div></div><div class='mini-value "+(pos?"pos":"neg")+"'>"+(pos?"+":"−")+Math.abs(val).toLocaleString(CONFIG.APP.locale)+"</div></div>";}).join("");
 }
 function renderVisitSummary(){ge("visitas-mes").textContent=number(STATE.visitMonth,0);ge("visitas-total").textContent=number(STATE.member.visitas,0);var box=ge("visitas-recientes"),btn=ge("btn-visitas-toggle");box.hidden=!STATE.visitsOpen;btn.textContent=STATE.visitsOpen?"Ocultar visitas recientes":"Ver visitas recientes";if(!STATE.recentVisits.length){box.innerHTML="<div class='empty-inline'>Sin visitas recientes</div>";return;}box.innerHTML=STATE.recentVisits.map(function(ci){return "<div class='mini-row'><div class='mini-info'><div class='mini-title'>"+formatDate(ci.fecha,{weekday:"short",day:"numeric",month:"short"})+"</div><div class='mini-meta'>Check-in"+(ci.hora?" · "+formatTime(ci.hora):"")+"</div></div><span class='pill pill-green'>✓</span></div>";}).join("");}
 function loadVisitData(){
@@ -398,7 +406,11 @@ function memberRegistrations(){
   rows.sort(function(a,b){var byDate=a.fecha.localeCompare(b.fecha);return byDate||timeMinutes(a.cl.hora)-timeMinutes(b.cl.hora);});return rows;
 }
 function pendingRegistrations(){var out={};if(!STATE.member)return out;upcomingDays().forEach(function(day){STATE.classes.forEach(function(cl){var key=sid(cl.id);if(out[key])return;if((cl.dias||[]).indexOf(day.nom)>-1&&attendeesFor(cl.id,day.f).some(function(id){return sameId(id,STATE.member.id);}))out[key]=day.f;});});return out;}
-function renderUpcomingClass(){var c=ge("proxima-clase"),rows=memberRegistrations().slice(0,3);if(!rows.length){c.innerHTML="<div class='empty-inline'>Sin clases agendadas</div>";return;}c.innerHTML=rows.map(function(f){return "<div class='upcoming-row'><div class='upcoming-color' style='background:"+safeColor(f.cl.color)+"'></div><div class='upcoming-info'><div class='upcoming-name'>"+esc(f.cl.nombre)+"</div><div class='upcoming-meta'>"+esc(f.label)+" · "+esc(f.cl.hora)+" · "+esc(f.cl.coach)+"</div></div><span class='pill pill-green'>Inscrito</span></div>";}).join("");}
+function renderUpcomingClass(){
+  var c=ge("proxima-clase"),rows=memberRegistrations().slice(0,3);if(!rows.length){c.innerHTML="<div class='empty-inline'>Sin clases agendadas</div>";return;}
+  c.innerHTML=rows.map(function(f){return "<div class='upcoming-row'><div class='upcoming-color' style='background:"+safeColor(f.cl.color)+"'></div><div class='upcoming-info'><div class='upcoming-name'>"+esc(f.cl.nombre)+"</div><div class='upcoming-meta'>"+esc(f.label)+" · "+esc(f.cl.hora)+" · "+esc(f.cl.coach)+"</div></div><button type='button' class='btn btn-danger-outline btn-sm' data-home-cancel='"+esc(f.cl.id)+"|"+esc(f.fecha)+"' aria-label='Cancelar inscripción a "+esc(f.cl.nombre)+"'>Cancelar</button></div>";}).join("");
+  c.querySelectorAll("[data-home-cancel]").forEach(function(btn){btn.addEventListener("click",function(){var parts=this.dataset.homeCancel.split("|"),classId=parts[0],date=parts[1],cl=STATE.classes.find(function(x){return sameId(x.id,classId);});renderAfterAction(function(){return GymDB.desinscribirSocio(cl?cl.id:classId,STATE.member.id,date);},this);});});
+}
 function renderClassesDateRange(){var days=upcomingDays(),first=days[0].d,last=days[days.length-1].d,opts={day:"numeric",month:"short"};ge("fecha-hoy").textContent="Próximos "+days.length+" días · "+first.toLocaleDateString(CONFIG.APP.locale,opts)+" – "+last.toLocaleDateString(CONFIG.APP.locale,opts);}
 function renderClassCard(cl,fecha,pending){
   var attendees=attendeesFor(cl.id,fecha),registered=attendees.some(function(id){return sameId(id,STATE.member.id);}),pendingDate=pending[sid(cl.id)],blocked=!registered&&pendingDate&&pendingDate!==fecha,count=attendees.length,capacity=number(cl.cupo,0),free=capacity-count,full=!registered&&free<=0,cupoColor=free>3?"var(--green)":free>0?"var(--orange)":"var(--red)",cupoText=full?"Lleno":free+" lugar"+(free===1?"":"es"),key=esc(cl.id)+"|"+esc(fecha),action;
@@ -433,7 +445,7 @@ function bindEvents(){
   ge("btn-quitar-perfil").addEventListener("click",function(){if(!STATE.member)return;var activeId=STATE.member.id;STATE.profiles=STATE.profiles.filter(function(p){return !sameId(p.id,activeId);});STATE.member=null;showScreen("perfiles");});
   document.addEventListener("click",function(e){if(!ge("btn-perfil-menu").contains(e.target)&&!ge("dropdown-perfil").contains(e.target))closeProfileMenu();});
   ge("sel-perfil").addEventListener("change",function(){selectProfile(this.value);});
-  ge("btn-sync-inicio").addEventListener("click",function(){sync(this,function(){renderStart();});});ge("btn-visitas-toggle").addEventListener("click",function(){STATE.visitsOpen=!STATE.visitsOpen;renderVisitSummary();});ge("btn-sync-clases").addEventListener("click",function(){sync(this,function(){renderClassesDateRange();renderClasses();renderMyClasses();renderUpcomingClass();});});
+  ge("btn-sync-inicio").addEventListener("click",function(){sync(this,function(){renderStart();});});ge("btn-saldo-toggle").addEventListener("click",function(){STATE.saldoOpen=!STATE.saldoOpen;renderSaldo();});ge("btn-visitas-toggle").addEventListener("click",function(){STATE.visitsOpen=!STATE.visitsOpen;renderVisitSummary();});ge("btn-sync-clases").addEventListener("click",function(){sync(this,function(){renderClassesDateRange();renderClasses();renderMyClasses();renderUpcomingClass();});});
 }
 
 /* ── BOOT ──────────────────────────────────────────────────── */
