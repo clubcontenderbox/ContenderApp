@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Contender Club Socio | Supabase compatible: VERSION 2026.08.12.2143 | cobros sincronizados desde ventas.status -->
+<!-- Contender Club Socio | VERSION 2026.08.12.2144 | SEGURIDAD ETAPA 1: login real Supabase Auth por teléfono + PIN -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script>window.CONTENDER_SOCIO_DB_VERSION="2026.08.12.2143";</script>
-<script src="supabasedb_v2026.08.12.2143.js"></script>
+<script>window.CONTENDER_SOCIO_DB_VERSION="2026.08.12.2144";</script>
+<script src="supabasedb_v2026.08.12.2144.js"></script>
 <style>
 :root{
   --app-max:430px;--bg:#080808;--bg2:#111;--bg3:#1a1a1a;--border:#2a2a2a;--muted:#666;--muted-2:#444;--text:#f0ede8;
@@ -113,7 +113,7 @@ input:focus,select:focus{border-color:var(--lime)}
     </div>
     <div class="form-group last">
       <label class="form-label" for="login-code">Código de acceso</label>
-      <input class="login-input" type="text" id="login-code" placeholder="001" inputmode="numeric" maxlength="10" autocomplete="one-time-code">
+      <input class="login-input" type="text" id="login-code" placeholder="0000" inputmode="numeric" maxlength="4" autocomplete="one-time-code">
     </div>
     <div id="login-error" class="form-error" aria-live="polite"></div>
     <button type="button" id="btn-login" class="btn btn-lime btn-full">Entrar</button>
@@ -199,7 +199,7 @@ input:focus,select:focus{border-color:var(--lime)}
     <div class="mhandle"></div>
     <h2 id="add-account-title">Cargar perfil</h2>
     <div class="fr"><label for="add-tel">Número de celular</label><input type="tel" id="add-tel" placeholder="7221234567" inputmode="numeric" autocomplete="tel"></div>
-    <div class="fr"><label for="add-code">Código de acceso</label><input type="text" id="add-code" placeholder="001" maxlength="10" inputmode="numeric"></div>
+    <div class="fr"><label for="add-code">Código de acceso</label><input type="text" id="add-code" placeholder="0000" maxlength="4" inputmode="numeric"></div>
     <div id="add-error" class="form-error add-form-error" aria-live="polite"></div>
     <div class="mbtns">
       <button type="button" id="add-cancelar" class="btn btn-dark btn-full">Cancelar</button>
@@ -279,7 +279,7 @@ function applyBrand(){document.title=CONFIG.APP.title;var brand=CONFIG.APP.brand
 function loadCatalogs(){STATE.classes=GymDB.getClases()||[];STATE.memberships=GymDB.getMembresias()||[];console.log("[Socio] Catálogos:",{clases:STATE.classes.length,membresias:STATE.memberships.length});}
 function membershipPrice(plan){var target=sid(plan).trim().toLocaleLowerCase(CONFIG.APP.locale),m=STATE.memberships.find(function(x){return sid(x.nombre).trim().toLocaleLowerCase(CONFIG.APP.locale)===target;});if(!m){console.warn('[Socio] Plan no encontrado en catálogo: "'+plan+'"');return null;}var price=Number(m.precio);if(!Number.isFinite(price)){console.warn('[Socio] Precio inválido para el plan: "'+plan+'"');return null;}return price;}
 function profileFromMember(s){return {id:s.id,nombre:s.nombre,apellido_paterno:s.apellido_paterno,apellido_materno:s.apellido_materno,numero:s.numero,membresia:s.plan,fecha_inicio:s.fecha_inicio,fecha_vencimiento:s.fecha_vencimiento,visitas:s.visitas,peso:s.peso,musculo:s.musculo,activo:s.activo,color:s.color||CONFIG.UI.defaultProfileColor,abonos:(s.abonos||[]).slice()};}
-function refreshActiveProfile(){if(!STATE.member)return;var fresh=GymDB.getSocio(STATE.member.id);if(!fresh)return;var data=profileFromMember(fresh),idx=STATE.profiles.findIndex(function(p){return sameId(p.id,data.id);});if(idx>-1)STATE.profiles[idx]=data;else STATE.profiles.push(data);STATE.member=data;}
+function refreshActiveProfile(){if(!STATE.member)return;var authSession=STATE.member._authSession||null,fresh=GymDB.getSocio(STATE.member.id);if(!fresh)return;var data=profileFromMember(fresh);if(authSession)data._authSession=authSession;var idx=STATE.profiles.findIndex(function(p){return sameId(p.id,data.id);});if(idx>-1)STATE.profiles[idx]=data;else STATE.profiles.push(data);STATE.member=data;}
 function productDebts(memberId){return (GymDB.getVentas()||[]).filter(function(v){return v&&v.tipo==="prod"&&sameId(v.socio_id,memberId)&&sid(v.status).toLowerCase()!=="pagado";}).map(function(v){return {id:v.id,socio_id:v.socio_id,producto:v.producto,total:number(v.total,0),fecha:v.fecha,trainer:v.trainer||null,tipo:"producto"};});}
 
 /* ── NAVEGACIÓN ────────────────────────────────────────────── */
@@ -297,18 +297,30 @@ function closeProfileMenu(){STATE.dropdownOpen=false;ge("dropdown-perfil").class
 
 /* ── LOGIN / PERFILES ───────────────────────────────────────── */
 function loadProfileByCredentials(tel,code){
-  var account=GymDB.getCuenta(tel,code);if(!account)return {ok:false,msg:"Número o código incorrecto"};
-  var memberId=account.socios&&account.socios[0];if(memberId==null)return {ok:false,msg:"La cuenta no tiene un perfil asociado"};
-  var member=GymDB.getSocio(memberId);if(!member)return {ok:false,msg:"Perfil no encontrado"};
-  if(STATE.profiles.some(function(p){return sameId(p.id,member.id);}))return {ok:true,already:true,id:member.id};
-  STATE.profiles.push(profileFromMember(member));return {ok:true,already:false,id:member.id};
+  tel=phone(tel);code=sid(code).trim();
+  return GymDB.loginSocio(tel,code).then(function(auth){
+    if(!auth||!auth.ok)return {ok:false,msg:(auth&&auth.error)||"Número o código incorrecto"};
+    return Promise.resolve(GymDB.init()).then(function(){
+      loadCatalogs();var member=GymDB.getSocio(auth.socio_id);
+      if(!member){return GymDB.logoutSocio().then(function(){return{ok:false,msg:"La cuenta Auth existe pero no se encontró el socio vinculado"};});}
+      var data=profileFromMember(member);data._authSession=auth.session;
+      var idx=STATE.profiles.findIndex(function(p){return sameId(p.id,data.id);});
+      if(idx>-1)STATE.profiles[idx]=data;else STATE.profiles.push(data);
+      return {ok:true,already:idx>-1,id:data.id};
+    });
+  }).catch(function(err){console.error("[Socio Auth]",err);return{ok:false,msg:err&&err.message?err.message:"No se pudo iniciar sesión"};});
 }
-function tryLogin(){var r=loadProfileByCredentials(phone(ge("login-tel").value),ge("login-code").value.trim());ge("login-error").textContent=r.ok?"":r.msg;if(r.ok)showScreen("perfiles");}
+function tryLogin(){
+  var btn=ge("btn-login"),err=ge("login-error");err.textContent="";setBusy(btn,true);
+  loadProfileByCredentials(ge("login-tel").value,ge("login-code").value).then(function(r){err.textContent=r.ok?"":r.msg;if(r.ok)showScreen("perfiles");}).finally(function(){setBusy(btn,false);});
+}
 function addAccount(){
-  var err=ge("add-error"),r=loadProfileByCredentials(phone(ge("add-tel").value),ge("add-code").value.trim());
-  err.style.color="var(--red)";if(!r.ok){err.textContent=r.msg;return;}if(r.already){err.textContent="Este perfil ya está cargado";return;}
-  err.style.color="var(--green)";err.textContent="✓ Perfil cargado correctamente";
-  setTimeout(function(){setModal("modal-add-cuenta",false);ge("add-tel").value="";ge("add-code").value="";err.textContent="";err.style.color="var(--red)";renderProfiles();},CONFIG.UI.addAccountOkMs);
+  var err=ge("add-error"),btn=ge("add-ok");err.style.color="var(--red)";err.textContent="";setBusy(btn,true);
+  loadProfileByCredentials(ge("add-tel").value,ge("add-code").value).then(function(r){
+    if(!r.ok){err.textContent=r.msg;return;}if(r.already){err.textContent="Este perfil ya está cargado";return;}
+    err.style.color="var(--green)";err.textContent="✓ Perfil cargado correctamente";
+    setTimeout(function(){setModal("modal-add-cuenta",false);ge("add-tel").value="";ge("add-code").value="";err.textContent="";err.style.color="var(--red)";renderProfiles();},CONFIG.UI.addAccountOkMs);
+  }).finally(function(){setBusy(btn,false);});
 }
 function renderProfiles(){
   var c=ge("lista-perfiles");
@@ -316,7 +328,13 @@ function renderProfiles(){
   c.innerHTML=STATE.profiles.map(function(p){return "<button type='button' class='perfil-btn' data-profile-id='"+esc(p.id)+"'><div class='perfil-av' style='background:"+safeColor(p.color)+"'>"+esc(profileInitials(p))+"</div><div class='perfil-info'><div class='perfil-nombre'>"+esc(p.nombre)+" "+esc(p.apellido_paterno)+"</div><div class='perfil-detalle'>"+esc(p.membresia||"Sin membresía")+" · "+number(p.visitas,0)+" visitas</div></div><span class='perfil-arrow'>›</span></button>";}).join("");
   c.querySelectorAll("[data-profile-id]").forEach(function(btn){btn.addEventListener("click",function(){selectProfile(this.dataset.profileId);});});
 }
-function selectProfile(id){STATE.member=STATE.profiles.find(function(p){return sameId(p.id,id);})||STATE.profiles[0]||null;if(STATE.member)showScreen("inicio");}
+function selectProfile(id){
+  var p=STATE.profiles.find(function(x){return sameId(x.id,id);})||null;if(!p)return Promise.resolve(false);
+  function abrir(){STATE.member=p;showScreen("inicio");return true;}
+  var actual=GymDB.getSocioAuthActual&&GymDB.getSocioAuthActual();if(actual&&sameId(actual.socio_id,p.id))return Promise.resolve(abrir());
+  if(!p._authSession){toast("Vuelve a iniciar sesión para este perfil");return Promise.resolve(false);}
+  return GymDB.usarSesionSocio(p._authSession).then(function(r){if(!r||!r.ok)throw new Error((r&&r.error)||"Sesión inválida");return GymDB.init();}).then(function(){loadCatalogs();var fresh=GymDB.getSocio(p.id);if(fresh){var session=p._authSession;p=profileFromMember(fresh);p._authSession=session;var idx=STATE.profiles.findIndex(function(x){return sameId(x.id,p.id);});if(idx>-1)STATE.profiles[idx]=p;}return abrir();}).catch(function(e){console.error(e);toast("⚠ Vuelve a iniciar sesión");return false;});
+}
 function renderProfileSelect(){var sel=ge("sel-perfil");sel.innerHTML="";STATE.profiles.forEach(function(p){var opt=document.createElement("option");opt.value=sid(p.id);opt.textContent=[p.nombre,p.apellido_paterno].filter(Boolean).join(" ");opt.selected=STATE.member&&sameId(p.id,STATE.member.id);sel.appendChild(opt);});}
 
 /* ── INICIO ────────────────────────────────────────────────── */
@@ -409,7 +427,7 @@ function bindEvents(){
   ge("add-ok").addEventListener("click",addAccount);ge("add-cancelar").addEventListener("click",function(){setModal("modal-add-cuenta",false);});ge("add-code").addEventListener("keydown",function(e){if(e.key==="Enter")addAccount();});
   ge("btn-perfil-menu").addEventListener("click",function(e){e.stopPropagation();STATE.dropdownOpen=!STATE.dropdownOpen;ge("dropdown-perfil").classList.toggle("open",STATE.dropdownOpen);});
   ge("btn-agregar-perfil").addEventListener("click",function(){showScreen("perfiles");});
-  ge("btn-quitar-perfil").addEventListener("click",function(){if(!STATE.member)return;var activeId=STATE.member.id;STATE.profiles=STATE.profiles.filter(function(p){return !sameId(p.id,activeId);});STATE.member=null;showScreen("perfiles");});
+  ge("btn-quitar-perfil").addEventListener("click",function(){if(!STATE.member)return;var activeId=STATE.member.id;STATE.profiles=STATE.profiles.filter(function(p){return !sameId(p.id,activeId);});STATE.member=null;Promise.resolve(GymDB.logoutSocio()).finally(function(){if(STATE.profiles.length)showScreen("perfiles");else showScreen("login");});});
   document.addEventListener("click",function(e){if(!ge("btn-perfil-menu").contains(e.target)&&!ge("dropdown-perfil").contains(e.target))closeProfileMenu();});
   ge("sel-perfil").addEventListener("change",function(){selectProfile(this.value);});
   ge("btn-sync-inicio").addEventListener("click",function(){sync(this,function(){renderStart();});});ge("btn-saldo-toggle").addEventListener("click",function(){STATE.saldoOpen=!STATE.saldoOpen;renderSaldo();});ge("btn-sync-clases").addEventListener("click",function(){sync(this,function(){renderClassesDateRange();renderClasses();renderMyClasses();renderUpcomingClass();});});  document.addEventListener("visibilitychange",function(){if(!document.hidden)syncSilent();});
@@ -419,9 +437,12 @@ function bindEvents(){
 /* ── BOOT ──────────────────────────────────────────────────── */
 function boot(){
   applyBrand();bindEvents();ge("nav-socio").style.display="none";
-  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.init!=="function"){failVisible("No se encontró GymDB. Verifica que supabasedb_v2026.08.12.2143.js cargue correctamente.");return;}
-  var expectedVersion=window.CONTENDER_SOCIO_DB_VERSION||"2026.08.12.2143";if(String(GymDB.VERSION||"")!==String(expectedVersion)){failVisible("Versión incompatible: socio "+expectedVersion+" / supabasedb "+(GymDB.VERSION||"sin versión")+".");return;}
-  Promise.resolve(GymDB.init()).then(function(){loadCatalogs();ge("ov-loading").style.display="none";showScreen("login");}).catch(function(err){console.error("[GymDB] Error al cargar:",err);failVisible("Error: "+(err&&err.message?err.message:err));});
+  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.init!=="function"||typeof GymDB.loginSocio!=="function"||typeof GymDB.restaurarSesionSocio!=="function"){failVisible("No se encontró el GymDB seguro 2026.08.12.2144. Verifica que supabasedb_v2026.08.12.2144.js cargue correctamente.");return;}
+  var expectedVersion=window.CONTENDER_SOCIO_DB_VERSION||"2026.08.12.2144";if(String(GymDB.VERSION||"")!==String(expectedVersion)){failVisible("Versión incompatible: socio "+expectedVersion+" / supabasedb "+(GymDB.VERSION||"sin versión")+".");return;}
+  Promise.resolve(GymDB.restaurarSesionSocio()).then(function(auth){
+    if(!auth||!auth.ok){ge("ov-loading").style.display="none";showScreen("login");return null;}
+    return Promise.resolve(GymDB.init()).then(function(){loadCatalogs();var member=GymDB.getSocio(auth.socio_id);if(!member)throw new Error("La sesión Auth no tiene un socio válido");var p=profileFromMember(member);p._authSession=auth.session;STATE.profiles=[p];STATE.member=p;ge("ov-loading").style.display="none";showScreen("inicio");});
+  }).catch(function(err){console.error("[Socio Auth] Error al restaurar:",err);Promise.resolve(GymDB.logoutSocio()).finally(function(){ge("ov-loading").style.display="none";ge("login-error").textContent="Vuelve a iniciar sesión";showScreen("login");});});
 }
 document.addEventListener("DOMContentLoaded",boot);
 })();
