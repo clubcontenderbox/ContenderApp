@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Contender Club Socio | Supabase compatible: VERSION 2026.08.12.2140 -->
+<!-- Contender Club Socio | Supabase compatible: VERSION 2026.08.12.2140 | cobros sincronizados desde ventas.status -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -280,7 +280,7 @@ function loadCatalogs(){STATE.classes=GymDB.getClases()||[];STATE.memberships=Gy
 function membershipPrice(plan){var target=sid(plan).trim().toLocaleLowerCase(CONFIG.APP.locale),m=STATE.memberships.find(function(x){return sid(x.nombre).trim().toLocaleLowerCase(CONFIG.APP.locale)===target;});if(!m){console.warn('[Socio] Plan no encontrado en catálogo: "'+plan+'"');return null;}var price=Number(m.precio);if(!Number.isFinite(price)){console.warn('[Socio] Precio inválido para el plan: "'+plan+'"');return null;}return price;}
 function profileFromMember(s){return {id:s.id,nombre:s.nombre,apellido_paterno:s.apellido_paterno,apellido_materno:s.apellido_materno,numero:s.numero,membresia:s.plan,fecha_inicio:s.fecha_inicio,fecha_vencimiento:s.fecha_vencimiento,visitas:s.visitas,peso:s.peso,musculo:s.musculo,activo:s.activo,color:s.color||CONFIG.UI.defaultProfileColor,abonos:(s.abonos||[]).slice()};}
 function refreshActiveProfile(){if(!STATE.member)return;var fresh=GymDB.getSocio(STATE.member.id);if(!fresh)return;var data=profileFromMember(fresh),idx=STATE.profiles.findIndex(function(p){return sameId(p.id,data.id);});if(idx>-1)STATE.profiles[idx]=data;else STATE.profiles.push(data);STATE.member=data;}
-function productDebts(memberId){var all=(GymDB.getAllDeudas()||{})[memberId]||[];return all.filter(function(d){return d.tipo!=="membresia";});}
+function productDebts(memberId){return (GymDB.getVentas()||[]).filter(function(v){return v&&v.tipo==="prod"&&sameId(v.socio_id,memberId)&&sid(v.status).toLowerCase()!=="pagado";}).map(function(v){return {id:v.id,socio_id:v.socio_id,producto:v.producto,total:number(v.total,0),fecha:v.fecha,trainer:v.trainer||null,tipo:"producto"};});}
 
 /* ── NAVEGACIÓN ────────────────────────────────────────────── */
 function showScreen(id){
@@ -396,6 +396,8 @@ function renderMyClasses(){
 
 /* ── SINCRONIZACIÓN ────────────────────────────────────────── */
 function sync(btn,renderFn){setBusy(btn,true);Promise.resolve(GymDB.init()).then(function(){loadCatalogs();refreshActiveProfile();renderFn();toast("↻ Actualizado");}).catch(function(err){console.error(err);toast("⚠ No se pudo actualizar");}).finally(function(){setBusy(btn,false);});}
+var AUTO_SYNC={busy:false,last:0,minGapMs:5000};
+function syncSilent(){if(AUTO_SYNC.busy||!STATE.member)return;var now=Date.now();if(now-AUTO_SYNC.last<AUTO_SYNC.minGapMs)return;AUTO_SYNC.busy=true;AUTO_SYNC.last=now;Promise.resolve(GymDB.init()).then(function(){loadCatalogs();refreshActiveProfile();var active=document.querySelector(".screen.active");if(!active)return;if(active.id==="screen-inicio")renderStart();else if(active.id==="screen-clases"){renderClassesDateRange();renderClasses();renderMyClasses();renderUpcomingClass();}}).catch(function(err){console.error("[Socio] Sincronización automática:",err);}).finally(function(){AUTO_SYNC.busy=false;});}
 
 /* ── EVENTOS ───────────────────────────────────────────────── */
 function bindEvents(){
@@ -410,7 +412,8 @@ function bindEvents(){
   ge("btn-quitar-perfil").addEventListener("click",function(){if(!STATE.member)return;var activeId=STATE.member.id;STATE.profiles=STATE.profiles.filter(function(p){return !sameId(p.id,activeId);});STATE.member=null;showScreen("perfiles");});
   document.addEventListener("click",function(e){if(!ge("btn-perfil-menu").contains(e.target)&&!ge("dropdown-perfil").contains(e.target))closeProfileMenu();});
   ge("sel-perfil").addEventListener("change",function(){selectProfile(this.value);});
-  ge("btn-sync-inicio").addEventListener("click",function(){sync(this,function(){renderStart();});});ge("btn-saldo-toggle").addEventListener("click",function(){STATE.saldoOpen=!STATE.saldoOpen;renderSaldo();});ge("btn-sync-clases").addEventListener("click",function(){sync(this,function(){renderClassesDateRange();renderClasses();renderMyClasses();renderUpcomingClass();});});
+  ge("btn-sync-inicio").addEventListener("click",function(){sync(this,function(){renderStart();});});ge("btn-saldo-toggle").addEventListener("click",function(){STATE.saldoOpen=!STATE.saldoOpen;renderSaldo();});ge("btn-sync-clases").addEventListener("click",function(){sync(this,function(){renderClassesDateRange();renderClasses();renderMyClasses();renderUpcomingClass();});});  document.addEventListener("visibilitychange",function(){if(!document.hidden)syncSilent();});
+  window.addEventListener("focus",syncSilent);
 }
 
 /* ── BOOT ──────────────────────────────────────────────────── */
