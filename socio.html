@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Contender Club Socio | Supabase compatible: VERSION 2026.08.12.2140 | cobros sincronizados desde ventas.status -->
+<!-- Contender Club Socio | Supabase compatible: VERSION 2026.08.12.2143 | cobros sincronizados desde ventas.status -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script>window.CONTENDER_SOCIO_DB_VERSION="2026.08.12.2140";</script>
-<script src="supabasedb_v2026.08.12.2140.js"></script>
+<script>window.CONTENDER_SOCIO_DB_VERSION="2026.08.12.2143";</script>
+<script src="supabasedb_v2026.08.12.2143.js"></script>
 <style>
 :root{
   --app-max:430px;--bg:#080808;--bg2:#111;--bg3:#1a1a1a;--border:#2a2a2a;--muted:#666;--muted-2:#444;--text:#f0ede8;
@@ -419,8 +419,8 @@ function bindEvents(){
 /* ── BOOT ──────────────────────────────────────────────────── */
 function boot(){
   applyBrand();bindEvents();ge("nav-socio").style.display="none";
-  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.init!=="function"){failVisible("No se encontró GymDB. Verifica que supabasedb_v2026.08.12.2140.js cargue correctamente.");return;}
-  var expectedVersion=window.CONTENDER_SOCIO_DB_VERSION||"2026.08.12.2140";if(String(GymDB.VERSION||"")!==String(expectedVersion)){failVisible("Versión incompatible: socio "+expectedVersion+" / supabasedb "+(GymDB.VERSION||"sin versión")+".");return;}
+  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.init!=="function"){failVisible("No se encontró GymDB. Verifica que supabasedb_v2026.08.12.2143.js cargue correctamente.");return;}
+  var expectedVersion=window.CONTENDER_SOCIO_DB_VERSION||"2026.08.12.2143";if(String(GymDB.VERSION||"")!==String(expectedVersion)){failVisible("Versión incompatible: socio "+expectedVersion+" / supabasedb "+(GymDB.VERSION||"sin versión")+".");return;}
   Promise.resolve(GymDB.init()).then(function(){loadCatalogs();ge("ov-loading").style.display="none";showScreen("login");}).catch(function(err){console.error("[GymDB] Error al cargar:",err);failVisible("Error: "+(err&&err.message?err.message:err));});
 }
 document.addEventListener("DOMContentLoaded",boot);

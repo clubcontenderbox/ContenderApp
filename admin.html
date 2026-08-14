@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Contender Club Admin | ADMIN VERSION 2141 | BACKEND COMPAT 2026.08.12.2140 | Auth admin + operador automático en caja -->
+<!-- Contender Club Admin | ADMIN VERSION 2143 | BACKEND VERSION 2026.08.12.2143 | Auth admin + operador automático en caja -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -7,8 +7,8 @@
 <meta name="theme-color" content="#080808">
 <title>Contender · Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-<script>window.CONTENDER_APP_VERSION="2026.08.12.2140";</script>
-<script src="supabasedb_v2026.08.12.2140.js"></script>
+<script>window.CONTENDER_APP_VERSION="2026.08.12.2143";</script>
+<script src="supabasedb_v2026.08.12.2143.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;background:#080808;color:#F0EDE8;font-family:"DM Sans",sans-serif;max-width:430px;margin:0 auto;-webkit-font-smoothing:antialiased;overflow-x:hidden}
@@ -52,20 +52,24 @@ html,body{height:100%;background:#080808;color:#F0EDE8;font-family:"DM Sans",san
 <div class="modal-ov" id="modal-saldo"><div class="modal"><div class="mhandle"></div><h2 id="saldo-modal-titulo">Abonar saldo</h2><div class="fr"><label>Cantidad</label><input type="number" id="saldo-monto" min="0.01" step="0.01" inputmode="decimal" placeholder="0"></div><div class="fr"><label>Concepto</label><input type="text" id="saldo-concepto" placeholder="Ej. Abono en efectivo"></div><div id="saldo-disponible" style="font-size:12px;color:var(--muted);margin:6px 0 4px"></div><div class="mbtns"><button class="btn bd" style="flex:1;padding:13px" data-close="modal-saldo">Cancelar</button><button class="btn bl" style="flex:1;padding:13px" id="saldo-guardar">Confirmar</button></div></div></div>
 <div class="modal-ov" id="modal-cat"><div class="modal"><div class="mhandle"></div><h2 id="cat-modal-titulo">Nuevo</h2><div id="cat-modal-body"></div><div class="mbtns"><button class="btn bd" style="flex:1;padding:13px" data-close="modal-cat">Cancelar</button><button class="btn bl" style="flex:1;padding:13px" id="cat-guardar">Guardar</button></div></div></div>
 <script>
-var APP_VERSION=window.CONTENDER_APP_VERSION||"2026.08.12.2140";
+var APP_VERSION=window.CONTENDER_APP_VERSION||"2026.08.12.2143";
 var CONFIG={TOAST_MS:2000,SCANNER_RETRY_MS:1500,SCANNER_OK_MS:700,DASHBOARD_MESES:5,SOCIOS_ORDEN_ASC:false,SOCIO_ID_ANCHO_MIN:3,CHART_COLORS:{checkins:"#C8F135",ventas:"#30D158",altas:"#FF5C93",pagos:"#FF9F0A"},PLAN_PRECIO:{},PLAN_DIAS:{}};
 var PLAN_PRECIO=CONFIG.PLAN_PRECIO,PLAN_DIAS=CONFIG.PLAN_DIAS,PLAN_DURACION={};
-var _gymdbResolve,_gymdbReject,_adminArrancado=false;
+var _gymdbResolve,_gymdbReject,_adminArrancado=false,_backendAuthCompatible=false;
 var _gymdbReady=new Promise(function(resolve,reject){_gymdbResolve=resolve;_gymdbReject=reject;});
 (function(){
-  if(typeof GymDB==="undefined"){_gymdbReject(new Error("No se cargo supabasedb_v2026.08.12.2140.js"));return;}
+  if(typeof GymDB==="undefined"){_gymdbReject(new Error("No se cargo supabasedb_v2026.08.12.2143.js"));return;}
   if(String(GymDB.VERSION||"")!==String(APP_VERSION)){_gymdbReject(new Error("Version incompatible: admin "+APP_VERSION+" / supabasedb "+(GymDB.VERSION||"sin version")+". Reemplaza ambos archivos juntos."));return;}
+  var requeridas=["restaurarSesionAdmin","loginAdmin","esAdminAutorizado","logoutAdmin","getAdminUser","provisionarSocioAuth"];
+  var faltantes=requeridas.filter(function(k){return typeof GymDB[k]!=="function"});
+  if(faltantes.length){_gymdbReject(new Error("Supabasedb 2143 incompatible o incompleto. Faltan: "+faltantes.join(", ")+". Reemplaza admin 2143 y Supabase 2143 juntos y recarga."));return;}
+  _backendAuthCompatible=true;
 })();
 function mostrarLoginAdmin(mensaje){var ov=ge("ov-loading"),box=ge("admin-auth"),err=ge("admin-auth-error");if(ov)ov.style.display="none";if(box)box.classList.add("open");if(err)err.textContent=mensaje||"";setTimeout(function(){var e=ge("admin-auth-email");if(e)e.focus()},100)}
 function arrancarAdminAutenticado(){if(_adminArrancado)return;_adminArrancado=true;var box=ge("admin-auth"),ov=ge("ov-loading");if(box)box.classList.remove("open");if(ov){ov.style.display="flex";var sub=ov.querySelector("div:nth-child(2)");if(sub)sub.textContent="Cargando admin seguro…";}GymDB.init().then(function(){_gymdbResolve(true)}).catch(function(e){_adminArrancado=false;_gymdbReject(e)})}
 async function validarSesionAdmin(){var r=await GymDB.restaurarSesionAdmin();if(!r||!r.ok){mostrarLoginAdmin();return}var ok=await GymDB.esAdminAutorizado();if(!ok){await GymDB.logoutAdmin();mostrarLoginAdmin("Este usuario de Auth no está autorizado en admin_users.");return}arrancarAdminAutenticado()}
 async function loginAdminSeguro(){var btn=ge("btn-admin-auth"),err=ge("admin-auth-error"),email=ge("admin-auth-email").value.trim(),password=ge("admin-auth-password").value;if(!email||!password){err.textContent="Escribe correo y contraseña.";return}btn.disabled=true;btn.textContent="Verificando…";err.textContent="";try{var r=await GymDB.loginAdmin(email,password);if(!r.ok){err.textContent=r.error||"No se pudo iniciar sesión";return}var autorizado=await GymDB.esAdminAutorizado();if(!autorizado){await GymDB.logoutAdmin();err.textContent="Usuario válido, pero no está autorizado como administrador.";return}arrancarAdminAutenticado()}catch(e){err.textContent=e&&e.message?e.message:String(e)}finally{btn.disabled=false;btn.textContent="Entrar al admin"}}
-document.addEventListener("DOMContentLoaded",function(){ge("btn-admin-auth").addEventListener("click",loginAdminSeguro);ge("admin-auth-password").addEventListener("keydown",function(e){if(e.key==="Enter")loginAdminSeguro()});ge("admin-auth-email").addEventListener("keydown",function(e){if(e.key==="Enter")ge("admin-auth-password").focus()});validarSesionAdmin()});
+document.addEventListener("DOMContentLoaded",function(){ge("btn-admin-auth").addEventListener("click",loginAdminSeguro);ge("admin-auth-password").addEventListener("keydown",function(e){if(e.key==="Enter")loginAdminSeguro()});ge("admin-auth-email").addEventListener("keydown",function(e){if(e.key==="Enter")ge("admin-auth-password").focus()});if(_backendAuthCompatible){validarSesionAdmin().catch(function(e){var ov=ge("ov-loading"),err=ge("ov-err");if(ov)ov.style.display="flex";if(err){err.style.display="block";err.textContent="Error de autenticación: "+(e&&e.message?e.message:e)}})}});
 var SOCIOS=[],CHECKINS=[],MEMBRESIAS=[],CLASES=[],PRODUCTOS=[],MENSAJES_CAT=[],VENTAS=[],TRAINERS=[];var HISTORICO={ventas:[],checkins:[],socios:[]};var nextCatId={clase:Date.now()+3,prod:Date.now()+4,msg:Date.now()+5,trainer:Date.now()+6};
 function buildMsgsWA(){var obj={};MENSAJES_CAT.forEach(function(m,i){obj[String(i+1)]=m.cuerpo});return obj}var MSGS_WA={};
 function poblarSelectPlanes(){Object.keys(PLAN_PRECIO).forEach(function(k){delete PLAN_PRECIO[k]});Object.keys(PLAN_DIAS).forEach(function(k){delete PLAN_DIAS[k]});Object.keys(PLAN_DURACION).forEach(function(k){delete PLAN_DURACION[k]});(MEMBRESIAS||[]).forEach(function(m){if(!m.nombre)return;var unidad=String(m.unidad_duracion||"dias").toLowerCase(),cantidad=Number(m.cantidad_duracion||1);PLAN_DURACION[m.nombre]={unidad:unidad,cantidad:cantidad};if(unidad==="dias")PLAN_DIAS[m.nombre]=cantidad;PLAN_PRECIO[m.nombre]=Number(m.precio)||0});var sel=ge("pago-plan");if(!sel)return;var actual=sel.value;sel.innerHTML="<option value=''>— Selecciona —</option>";(MEMBRESIAS||[]).forEach(function(m){if(!m.nombre)return;var opt=document.createElement("option");opt.value=m.nombre;opt.textContent=m.nombre+" · "+fm(m.precio||0);sel.appendChild(opt)});if(actual&&PLAN_DURACION[actual])sel.value=actual}
