@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Contender Club Socio | VERSION 2026.08.12.2151 | SEGURIDAD ETAPA 6: clases e inscritos privados + cupo agregado -->
+<!-- Contender Club Socio | VERSION 2026.08.12.2152 | SEGURIDAD ETAPAS 7 + 9: QR identificador sin secreto -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script>window.CONTENDER_SOCIO_DB_VERSION="2026.08.12.2151";</script>
-<script src="supabasedb_v2026.08.12.2151.js?build=2151"></script>
+<script>window.CONTENDER_SOCIO_DB_VERSION="2026.08.12.2152";</script>
+<script src="supabasedb_v2026.08.12.2152.js?build=2152"></script>
 <style>
 :root{
   --app-max:430px;--bg:#080808;--bg2:#111;--bg3:#1a1a1a;--border:#2a2a2a;--muted:#666;--muted-2:#444;--text:#f0ede8;
@@ -142,11 +142,11 @@ input:focus,select:focus{border-color:var(--lime)}
   </div>
   <div class="current-date" id="s-fecha"></div>
   <div class="sec">
-    <span class="lbl">Mi código de acceso</span>
+    <span class="lbl">Mi QR de check-in</span>
     <div class="qr-card">
       <div class="qr-wrap" id="qr-wrap"></div>
       <div class="qr-code" id="qr-code">—</div>
-      <div class="qr-hint">Válido hoy · Se renueva a medianoche</div>
+      <div class="qr-hint">Identifica tu perfil · el personal confirma tu check-in</div>
     </div>
 
     <span class="lbl">Mi membresía</span>
@@ -240,13 +240,12 @@ input:focus,select:focus{border-color:var(--lime)}
 var CONFIG={
   APP:{brand:"CONTENDER CLUB",shortName:"CONTENDER",title:"Contender Club · Socio",locale:"es-MX"},
   UI:{toastMs:2000,addAccountOkMs:900,classWindowDays:7,qrSize:160,defaultProfileColor:"#C8F135"},
-  QR:{prefix:"GM",length:6,charset:"ABCDEFGHJKLMNPQRSTUVWXYZ23456789",legacyClientSecret:"GPsecret2026"},
+  QR:{prefix:"CC-SOCIO"},
   DAYS:{getDay:["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"]}
 };
 
-/* SEGURIDAD QR: legacyClientSecret sigue en cliente para no romper el
-   contrato actual. Antes de producción, la firma/token debe generarse en
-   backend (p.ej. Supabase Edge Function) y el navegador recibir sólo el token. */
+/* ETAPA 7: el QR es solo un identificador de perfil para check-in.
+   No contiene secretos ni autoriza por sí solo ninguna escritura. */
 
 var STATE={profiles:[],member:null,classes:[],memberships:[],dropdownOpen:false,saldoOpen:false};
 
@@ -384,8 +383,8 @@ function renderDebts(){
 function checkPaymentPopup(){var debts=productDebts(STATE.member.id),texts=[];if(membershipStatus()==="pendiente")texts.push("Tienes un saldo pendiente en tu membresía de "+money(membershipBalance())+".");if(debts.length){var total=debts.reduce(function(sum,d){return sum+number(d.total,0);},0);texts.push("Tienes "+debts.length+" producto"+(debts.length>1?"s":"")+" por pagar: "+money(total)+".");}if(!texts.length){setModal("popup-pago",false);return;}ge("popup-texto").textContent=texts.join(" ");setModal("popup-pago",true);}
 
 /* ── QR ────────────────────────────────────────────────────── */
-function generateLegacyCode(id){var day=dateISO(new Date()).replace(/-/g,""),seed=sid(id)+day+CONFIG.QR.legacyClientSecret,h=0,i;for(i=0;i<seed.length;i++){h=((h<<5)-h)+seed.charCodeAt(i);h|=0;}var code="",abs=Math.abs(h);for(i=0;i<CONFIG.QR.length;i++)code+=CONFIG.QR.charset[(abs>>>(i*5))%CONFIG.QR.charset.length];return CONFIG.QR.prefix+"-"+id+"-"+code;}
-function renderQR(){var code=generateLegacyCode(STATE.member.id),wrap=ge("qr-wrap");ge("qr-code").textContent=code;wrap.innerHTML="";try{new QRCode(wrap,{text:code,width:CONFIG.UI.qrSize,height:CONFIG.UI.qrSize,colorDark:"#C8F135",colorLight:"#080808",correctLevel:QRCode.CorrectLevel.M});}catch(err){console.error(err);var fallback=document.createElement("div");fallback.className="empty-inline";fallback.style.width=CONFIG.UI.qrSize+"px";fallback.style.height=CONFIG.UI.qrSize+"px";fallback.style.border="2px dashed var(--lime)";fallback.style.borderRadius="10px";fallback.style.display="flex";fallback.style.alignItems="center";fallback.style.justifyContent="center";fallback.textContent=code;wrap.appendChild(fallback);}}
+function generateMemberQrCode(id){return CONFIG.QR.prefix+"-"+sid(id);}
+function renderQR(){var code=generateMemberQrCode(STATE.member.id),wrap=ge("qr-wrap");ge("qr-code").textContent=code;wrap.innerHTML="";try{new QRCode(wrap,{text:code,width:CONFIG.UI.qrSize,height:CONFIG.UI.qrSize,colorDark:"#C8F135",colorLight:"#080808",correctLevel:QRCode.CorrectLevel.M});}catch(err){console.error(err);var fallback=document.createElement("div");fallback.className="empty-inline";fallback.style.width=CONFIG.UI.qrSize+"px";fallback.style.height=CONFIG.UI.qrSize+"px";fallback.style.border="2px dashed var(--lime)";fallback.style.borderRadius="10px";fallback.style.display="flex";fallback.style.alignItems="center";fallback.style.justifyContent="center";fallback.textContent=code;wrap.appendChild(fallback);}}
 
 /* ── CLASES ────────────────────────────────────────────────── */
 function upcomingDays(){var out=[],base=dateLocal(new Date()),windowDays=classWindowDays();for(var i=0;i<windowDays;i++){var d=new Date(base);d.setDate(d.getDate()+i);var label;if(i===0)label="Hoy";else if(i===1)label="Mañana";else{label=d.toLocaleDateString(CONFIG.APP.locale,{weekday:"long",day:"numeric",month:"short"});label=label.charAt(0).toUpperCase()+label.slice(1);}out.push({d:d,f:dateISO(d),nom:CONFIG.DAYS.getDay[d.getDay()],label:label});}return out;}
@@ -438,8 +437,8 @@ function bindEvents(){
 /* ── BOOT ──────────────────────────────────────────────────── */
 function boot(){
   applyBrand();bindEvents();ge("nav-socio").style.display="none";
-  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.initSocio!=="function"||typeof GymDB.loginSocio!=="function"||typeof GymDB.restaurarSesionSocio!=="function"){failVisible("No se encontró el GymDB seguro 2026.08.12.2151. Verifica que supabasedb_v2026.08.12.2151.js cargue correctamente.");return;}
-  var expectedVersion=window.CONTENDER_SOCIO_DB_VERSION||"2026.08.12.2151";if(String(GymDB.VERSION||"")!==String(expectedVersion)){failVisible("Versión incompatible: socio "+expectedVersion+" / supabasedb "+(GymDB.VERSION||"sin versión")+".");return;}
+  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.initSocio!=="function"||typeof GymDB.loginSocio!=="function"||typeof GymDB.restaurarSesionSocio!=="function"){failVisible("No se encontró el GymDB seguro 2026.08.12.2152. Verifica que supabasedb_v2026.08.12.2152.js cargue correctamente.");return;}
+  var expectedVersion=window.CONTENDER_SOCIO_DB_VERSION||"2026.08.12.2152";if(String(GymDB.VERSION||"")!==String(expectedVersion)){failVisible("Versión incompatible: socio "+expectedVersion+" / supabasedb "+(GymDB.VERSION||"sin versión")+".");return;}
   Promise.resolve(GymDB.restaurarSesionSocio()).then(function(auth){
     if(!auth||!auth.ok){ge("ov-loading").style.display="none";showScreen("login");return null;}
     return Promise.resolve(GymDB.initSocio()).then(function(){loadCatalogs();var member=GymDB.getSocio(auth.socio_id);if(!member)throw new Error("La sesión Auth no tiene un socio válido");var p=profileFromMember(member);p._authSession=auth.session;STATE.profiles=[p];STATE.member=p;ge("ov-loading").style.display="none";showScreen("inicio");});
