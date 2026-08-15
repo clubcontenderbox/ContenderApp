@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Contender Club Admin | ADMIN VERSION 2149 | BACKEND VERSION 2026.08.12.2149 | Auth admin + operador automático en caja -->
+<!-- Contender Club Admin | ADMIN VERSION 2150 | BACKEND VERSION 2026.08.12.2150 | Auth admin + operador automático en caja -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -7,8 +7,8 @@
 <meta name="theme-color" content="#080808">
 <title>Contender · Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
-<script>window.CONTENDER_APP_VERSION="2026.08.12.2149";</script>
-<script src="supabasedb_v2026.08.12.2149.js?build=2149"></script>
+<script>window.CONTENDER_APP_VERSION="2026.08.12.2150";</script>
+<script src="supabasedb_v2026.08.12.2150.js?build=2150"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;background:#080808;color:#F0EDE8;font-family:"DM Sans",sans-serif;max-width:430px;margin:0 auto;-webkit-font-smoothing:antialiased;overflow-x:hidden}
@@ -52,13 +52,13 @@ html,body{height:100%;background:#080808;color:#F0EDE8;font-family:"DM Sans",san
 <div class="modal-ov" id="modal-saldo"><div class="modal"><div class="mhandle"></div><h2 id="saldo-modal-titulo">Abonar saldo</h2><div class="fr"><label>Cantidad</label><input type="number" id="saldo-monto" min="0.01" step="0.01" inputmode="decimal" placeholder="0"></div><div class="fr"><label>Concepto</label><input type="text" id="saldo-concepto" placeholder="Ej. Abono en efectivo"></div><div id="saldo-disponible" style="font-size:12px;color:var(--muted);margin:6px 0 4px"></div><div class="mbtns"><button class="btn bd" style="flex:1;padding:13px" data-close="modal-saldo">Cancelar</button><button class="btn bl" style="flex:1;padding:13px" id="saldo-guardar">Confirmar</button></div></div></div>
 <div class="modal-ov" id="modal-cat"><div class="modal"><div class="mhandle"></div><h2 id="cat-modal-titulo">Nuevo</h2><div id="cat-modal-body"></div><div class="mbtns"><button class="btn bd" style="flex:1;padding:13px" data-close="modal-cat">Cancelar</button><button class="btn bl" style="flex:1;padding:13px" id="cat-guardar">Guardar</button></div></div></div>
 <script>
-var APP_VERSION=window.CONTENDER_APP_VERSION||"2026.08.12.2149";
+var APP_VERSION=window.CONTENDER_APP_VERSION||"2026.08.12.2150";
 var CONFIG={TOAST_MS:2000,SCANNER_RETRY_MS:1500,SCANNER_OK_MS:700,DASHBOARD_MESES:5,SOCIOS_ORDEN_ASC:false,SOCIO_ID_ANCHO_MIN:3,CHART_COLORS:{checkins:"#C8F135",ventas:"#30D158",altas:"#FF5C93",pagos:"#FF9F0A"},PLAN_PRECIO:{},PLAN_DIAS:{}};
 var PLAN_PRECIO=CONFIG.PLAN_PRECIO,PLAN_DIAS=CONFIG.PLAN_DIAS,PLAN_DURACION={};
 var _gymdbResolve,_gymdbReject,_adminArrancado=false,_backendAuthCompatible=false;
 var _gymdbReady=new Promise(function(resolve,reject){_gymdbResolve=resolve;_gymdbReject=reject;});
 (function(){
-  if(typeof GymDB==="undefined"){_gymdbReject(new Error("No se cargo supabasedb_v2026.08.12.2149.js"));return;}
+  if(typeof GymDB==="undefined"){_gymdbReject(new Error("No se cargo supabasedb_v2026.08.12.2150.js"));return;}
   if(String(GymDB.VERSION||"")!==String(APP_VERSION)){_gymdbReject(new Error("Version incompatible: admin "+APP_VERSION+" / supabasedb "+(GymDB.VERSION||"sin version")+". Reemplaza ambos archivos juntos."));return;}
   var requeridas=["restaurarSesionAdmin","loginAdmin","esAdminAutorizado","logoutAdmin","getAdminUser","provisionarSocioAuth"];
   var faltantes=requeridas.filter(function(k){return typeof GymDB[k]!=="function"});
