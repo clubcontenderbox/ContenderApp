@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Contender Club Socio | VERSION 2026.08.12.2152 | SEGURIDAD ETAPAS 7 + 9: QR identificador sin secreto -->
+<!-- Contender Club Socio | VERSION 2026.08.12.2153 | ETAPA 11: accesos + anuncios -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script>window.CONTENDER_SOCIO_DB_VERSION="2026.08.12.2152";</script>
-<script src="supabasedb_v2026.08.12.2152.js?build=2152"></script>
+<script>window.CONTENDER_SOCIO_DB_VERSION="2026.08.12.2153";</script>
+<script src="supabasedb_v2026.08.12.2153.js?build=2153"></script>
 <style>
 :root{
   --app-max:430px;--bg:#080808;--bg2:#111;--bg3:#1a1a1a;--border:#2a2a2a;--muted:#666;--muted-2:#444;--text:#f0ede8;
@@ -55,7 +55,7 @@ input:focus,select:focus{border-color:var(--lime)}
 /* Navegación */
 .nav-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:var(--app-max);background:rgba(8,8,8,.96);border-top:1px solid var(--border);display:none;z-index:var(--nav-z);padding:8px 0 max(20px,env(safe-area-inset-bottom));backdrop-filter:blur(16px)}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;border:none;background:none;color:var(--muted-2);font-size:9px;font-weight:500;transition:color .15s;padding:4px 0}
-.nav-item.active{color:var(--lime)}.nav-icon{font-size:20px;line-height:1}
+.nav-item.active{color:var(--lime)}.nav-icon{font-size:20px;line-height:1}.nav-item.has-new{color:var(--lime)}.nav-new-dot{display:none;width:7px;height:7px;border-radius:50%;background:var(--lime);position:absolute;top:1px;right:calc(50% - 17px);box-shadow:0 0 10px rgba(200,241,53,.75)}.nav-item.has-new .nav-new-dot{display:block}.nav-item{position:relative}.anuncio-banner{display:none;background:rgba(200,241,53,.08);border:1px solid rgba(200,241,53,.35);border-radius:14px;overflow:hidden;margin-bottom:10px;cursor:pointer}.anuncio-banner.open{display:flex}.anuncio-banner img{width:96px;min-height:78px;object-fit:cover;flex-shrink:0}.anuncio-banner-body{padding:11px 12px;flex:1;min-width:0}.anuncio-banner-label{font-size:9px;color:var(--lime);font-weight:700;text-transform:uppercase;letter-spacing:1px}.anuncio-banner-title{font-size:14px;font-weight:700;margin-top:3px}.anuncio-banner-text{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4}.anuncio-card{background:var(--bg2);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:10px}.anuncio-card img{width:100%;max-height:300px;object-fit:cover;display:block}.anuncio-card-body{padding:13px 14px}.anuncio-card-title{font-family:var(--font-display);font-size:22px;line-height:1.05}.anuncio-card-text{font-size:13px;color:var(--muted);line-height:1.55;margin-top:6px}.anuncio-card-meta{font-size:10px;color:var(--muted);margin-top:9px}
 
 /* Login / perfiles */
 .perfil-screen{position:relative;min-height:100vh;min-height:100dvh;background:var(--bg);background-image:radial-gradient(ellipse 80% 50% at 50% 100%,rgba(200,241,53,.1),transparent 65%);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:max(32px,calc(env(safe-area-inset-top) + 24px)) 24px max(32px,calc(env(safe-area-inset-bottom) + 24px))}
@@ -142,6 +142,7 @@ input:focus,select:focus{border-color:var(--lime)}
   </div>
   <div class="current-date" id="s-fecha"></div>
   <div class="sec">
+    <div class="anuncio-banner" id="anuncio-banner" role="button" tabindex="0" aria-label="Abrir anuncio nuevo"><div id="anuncio-banner-img"></div><div class="anuncio-banner-body"><div class="anuncio-banner-label">Nuevo anuncio</div><div class="anuncio-banner-title" id="anuncio-banner-title"></div><div class="anuncio-banner-text" id="anuncio-banner-text"></div></div></div>
     <span class="lbl">Mi QR de check-in</span>
     <div class="qr-card">
       <div class="qr-wrap" id="qr-wrap"></div>
@@ -218,9 +219,19 @@ input:focus,select:focus{border-color:var(--lime)}
   <div class="nav-ph"></div>
 </div>
 
+<div class="screen" id="screen-anuncios">
+  <div class="hdr">
+    <div><h1>Anuncios</h1><small>Novedades del club</small></div>
+    <button type="button" class="btn btn-dark btn-sm" id="btn-sync-anuncios" aria-label="Actualizar anuncios">↻</button>
+  </div>
+  <div class="sec" id="lista-anuncios"></div>
+  <div class="nav-ph"></div>
+</div>
+
 <nav class="nav-bar" id="nav-socio" aria-label="Navegación principal">
   <button type="button" class="nav-item active" data-screen="inicio"><span class="nav-icon">🏠</span>Inicio</button>
   <button type="button" class="nav-item" data-screen="clases"><span class="nav-icon">📅</span>Clases</button>
+  <button type="button" class="nav-item" id="nav-anuncios" data-screen="anuncios"><span class="nav-new-dot" aria-hidden="true"></span><span class="nav-icon">📣</span>Anuncios</button>
 </nav>
 
 <div id="dropdown-perfil" class="profile-menu">
@@ -291,7 +302,8 @@ function showScreen(id){
   closeProfileMenu();
   if(id==="perfiles"){renderProfiles();return;}
   if(id==="inicio"){renderStart();return;}
-  if(id==="clases"){renderClassesDateRange();renderMyClasses();renderClasses();}
+  if(id==="clases"){renderClassesDateRange();renderMyClasses();renderClasses();return;}
+  if(id==="anuncios"){renderAnuncios();Promise.resolve(GymDB.marcarAnunciosVistos()).then(function(){actualizarIndicadorAnuncios();renderAnuncioBanner();}).catch(function(err){console.error("[Anuncios] marcar vistos",err);});return;}
 }
 function closeProfileMenu(){STATE.dropdownOpen=false;ge("dropdown-perfil").classList.remove("open");}
 
@@ -330,7 +342,7 @@ function renderProfiles(){
 }
 function selectProfile(id){
   var p=STATE.profiles.find(function(x){return sameId(x.id,id);})||null;if(!p)return Promise.resolve(false);
-  function abrir(){STATE.member=p;showScreen("inicio");return true;}
+  function abrir(){STATE.member=p;registrarAccesoAppSeguro();showScreen("inicio");return true;}
   var actual=GymDB.getSocioAuthActual&&GymDB.getSocioAuthActual();if(actual&&sameId(actual.socio_id,p.id))return Promise.resolve(abrir());
   if(!p._authSession){toast("Vuelve a iniciar sesión para este perfil");return Promise.resolve(false);}
   return GymDB.usarSesionSocio(p._authSession).then(function(r){if(!r||!r.ok)throw new Error((r&&r.error)||"Sesión inválida");return GymDB.initSocio();}).then(function(){loadCatalogs();var fresh=GymDB.getSocio(p.id);if(fresh){var session=p._authSession;p=profileFromMember(fresh);p._authSession=session;var idx=STATE.profiles.findIndex(function(x){return sameId(x.id,p.id);});if(idx>-1)STATE.profiles[idx]=p;}return abrir();}).catch(function(e){console.error(e);toast("⚠ Vuelve a iniciar sesión");return false;});
@@ -338,7 +350,7 @@ function selectProfile(id){
 function renderProfileSelect(){var sel=ge("sel-perfil");sel.innerHTML="";STATE.profiles.forEach(function(p){var opt=document.createElement("option");opt.value=sid(p.id);opt.textContent=[p.nombre,p.apellido_paterno].filter(Boolean).join(" ");opt.selected=STATE.member&&sameId(p.id,STATE.member.id);sel.appendChild(opt);});}
 
 /* ── INICIO ────────────────────────────────────────────────── */
-function renderStart(){if(!STATE.member)return;renderHeader();renderQR();renderMembership();renderStats();renderUpcomingClass();renderSaldo();renderDebts();checkPaymentPopup();}
+function renderStart(){if(!STATE.member)return;renderHeader();renderAnuncioBanner();actualizarIndicadorAnuncios();renderQR();renderMembership();renderStats();renderUpcomingClass();renderSaldo();renderDebts();checkPaymentPopup();}
 function renderHeader(){renderProfileSelect();var str=new Date().toLocaleDateString(CONFIG.APP.locale,{weekday:"long",day:"numeric",month:"long"});ge("s-fecha").textContent=str.charAt(0).toUpperCase()+str.slice(1);}
 function isCurrentMembershipPayment(a){var m=STATE.member;if(!a||!m||a.pagado===false)return false;if(a.socio_id!=null&&!sameId(a.socio_id,m.id))return false;if(a.membresia_inicio||a.membresia_vencimiento){if(m.fecha_inicio&&a.membresia_inicio&&sid(a.membresia_inicio)!==sid(m.fecha_inicio))return false;if(m.fecha_vencimiento&&a.membresia_vencimiento&&sid(a.membresia_vencimiento)!==sid(m.fecha_vencimiento))return false;if(a.plan&&m.membresia&&sid(a.plan)!==sid(m.membresia))return false;return true;}if(a.plan&&m.membresia&&sid(a.plan)!==sid(m.membresia))return false;if(m.fecha_inicio&&a.fecha_pago&&sid(a.fecha_pago)<sid(m.fecha_inicio))return false;if(m.fecha_vencimiento&&a.fecha_pago&&sid(a.fecha_pago)>sid(m.fecha_vencimiento))return false;return true;}
 function currentMembershipPayments(){return (STATE.member&&STATE.member.abonos||[]).filter(isCurrentMembershipPayment);}
@@ -386,6 +398,12 @@ function checkPaymentPopup(){var debts=productDebts(STATE.member.id),texts=[];if
 function generateMemberQrCode(id){return CONFIG.QR.prefix+"-"+sid(id);}
 function renderQR(){var code=generateMemberQrCode(STATE.member.id),wrap=ge("qr-wrap");ge("qr-code").textContent=code;wrap.innerHTML="";try{new QRCode(wrap,{text:code,width:CONFIG.UI.qrSize,height:CONFIG.UI.qrSize,colorDark:"#C8F135",colorLight:"#080808",correctLevel:QRCode.CorrectLevel.M});}catch(err){console.error(err);var fallback=document.createElement("div");fallback.className="empty-inline";fallback.style.width=CONFIG.UI.qrSize+"px";fallback.style.height=CONFIG.UI.qrSize+"px";fallback.style.border="2px dashed var(--lime)";fallback.style.borderRadius="10px";fallback.style.display="flex";fallback.style.alignItems="center";fallback.style.justifyContent="center";fallback.textContent=code;wrap.appendChild(fallback);}}
 
+/* ── ANUNCIOS ─────────────────────────────────────────────── */
+function actualizarIndicadorAnuncios(){var nav=ge("nav-anuncios");if(!nav)return;var n=typeof GymDB.getAnunciosNoVistos==="function"?GymDB.getAnunciosNoVistos().length:0;nav.classList.toggle("has-new",n>0);nav.setAttribute("aria-label",n>0?"Anuncios, hay novedades":"Anuncios");}
+function renderAnuncioBanner(){var box=ge("anuncio-banner");if(!box)return;var nuevos=typeof GymDB.getAnunciosNoVistos==="function"?GymDB.getAnunciosNoVistos():[];if(!nuevos.length){box.classList.remove("open");box.dataset.id="";return;}var a=nuevos[0],img=ge("anuncio-banner-img");img.innerHTML=a.imagen_path?"<img src='"+GymDB.urlImagenAnuncio(a.imagen_path)+"' alt=''>":"";ge("anuncio-banner-title").textContent=a.titulo||"Nuevo anuncio";ge("anuncio-banner-text").textContent=a.texto||"Toca para verlo";box.dataset.id=String(a.id||"");box.classList.add("open");}
+function renderAnuncios(){var c=ge("lista-anuncios"),arr=typeof GymDB.getAnuncios==="function"?GymDB.getAnuncios():[];actualizarIndicadorAnuncios();if(!arr.length){c.innerHTML="<div class='empty'><div class='ico'>📣</div><p>No hay anuncios vigentes</p></div>";return;}c.innerHTML=arr.map(function(a){var img=a.imagen_path?"<img src='"+GymDB.urlImagenAnuncio(a.imagen_path)+"' alt='"+esc(a.titulo||"Anuncio")+"'>":"",meta=a.fecha_fin?"Vigente hasta "+formatDate(a.fecha_fin,{day:"numeric",month:"long"}):"Publicado "+formatDate(a.fecha_inicio||String(a.created_at||"").slice(0,10),{day:"numeric",month:"long"});return "<article class='anuncio-card'>"+img+"<div class='anuncio-card-body'><div class='anuncio-card-title'>"+esc(a.titulo||"Anuncio")+"</div>"+(a.texto?"<div class='anuncio-card-text'>"+esc(a.texto)+"</div>":"")+"<div class='anuncio-card-meta'>"+esc(meta)+"</div></div></article>";}).join("");}
+function registrarAccesoAppSeguro(){if(typeof GymDB.registrarAccesoApp!=="function")return;Promise.resolve(GymDB.registrarAccesoApp()).catch(function(e){console.error("[App access]",e);});}
+
 /* ── CLASES ────────────────────────────────────────────────── */
 function upcomingDays(){var out=[],base=dateLocal(new Date()),windowDays=classWindowDays();for(var i=0;i<windowDays;i++){var d=new Date(base);d.setDate(d.getDate()+i);var label;if(i===0)label="Hoy";else if(i===1)label="Mañana";else{label=d.toLocaleDateString(CONFIG.APP.locale,{weekday:"long",day:"numeric",month:"short"});label=label.charAt(0).toUpperCase()+label.slice(1);}out.push({d:d,f:dateISO(d),nom:CONFIG.DAYS.getDay[d.getDay()],label:label});}return out;}
 function memberRegistrations(){
@@ -415,7 +433,7 @@ function renderMyClasses(){
 /* ── SINCRONIZACIÓN ────────────────────────────────────────── */
 function sync(btn,renderFn){setBusy(btn,true);Promise.resolve(GymDB.initSocio()).then(function(){loadCatalogs();refreshActiveProfile();renderFn();toast("↻ Actualizado");}).catch(function(err){console.error(err);toast("⚠ No se pudo actualizar");}).finally(function(){setBusy(btn,false);});}
 var AUTO_SYNC={busy:false,last:0,minGapMs:5000};
-function syncSilent(){if(AUTO_SYNC.busy||!STATE.member)return;var now=Date.now();if(now-AUTO_SYNC.last<AUTO_SYNC.minGapMs)return;AUTO_SYNC.busy=true;AUTO_SYNC.last=now;Promise.resolve(GymDB.initSocio()).then(function(){loadCatalogs();refreshActiveProfile();var active=document.querySelector(".screen.active");if(!active)return;if(active.id==="screen-inicio")renderStart();else if(active.id==="screen-clases"){renderClassesDateRange();renderClasses();renderMyClasses();renderUpcomingClass();}}).catch(function(err){console.error("[Socio] Sincronización automática:",err);}).finally(function(){AUTO_SYNC.busy=false;});}
+function syncSilent(){if(AUTO_SYNC.busy||!STATE.member)return;var now=Date.now();if(now-AUTO_SYNC.last<AUTO_SYNC.minGapMs)return;AUTO_SYNC.busy=true;AUTO_SYNC.last=now;Promise.resolve(GymDB.initSocio()).then(function(){loadCatalogs();refreshActiveProfile();var active=document.querySelector(".screen.active");if(!active)return;if(active.id==="screen-inicio")renderStart();else if(active.id==="screen-clases"){renderClassesDateRange();renderClasses();renderMyClasses();renderUpcomingClass();}else if(active.id==="screen-anuncios")renderAnuncios();actualizarIndicadorAnuncios();}).catch(function(err){console.error("[Socio] Sincronización automática:",err);}).finally(function(){AUTO_SYNC.busy=false;});}
 
 /* ── EVENTOS ───────────────────────────────────────────────── */
 function bindEvents(){
@@ -430,18 +448,18 @@ function bindEvents(){
   ge("btn-quitar-perfil").addEventListener("click",function(){if(!STATE.member)return;var activeId=STATE.member.id;STATE.profiles=STATE.profiles.filter(function(p){return !sameId(p.id,activeId);});STATE.member=null;Promise.resolve(GymDB.logoutSocio()).finally(function(){if(STATE.profiles.length)showScreen("perfiles");else showScreen("login");});});
   document.addEventListener("click",function(e){if(!ge("btn-perfil-menu").contains(e.target)&&!ge("dropdown-perfil").contains(e.target))closeProfileMenu();});
   ge("sel-perfil").addEventListener("change",function(){selectProfile(this.value);});
-  ge("btn-sync-inicio").addEventListener("click",function(){sync(this,function(){renderStart();});});ge("btn-saldo-toggle").addEventListener("click",function(){STATE.saldoOpen=!STATE.saldoOpen;renderSaldo();});ge("btn-sync-clases").addEventListener("click",function(){sync(this,function(){renderClassesDateRange();renderClasses();renderMyClasses();renderUpcomingClass();});});  document.addEventListener("visibilitychange",function(){if(!document.hidden)syncSilent();});
+  ge("btn-sync-inicio").addEventListener("click",function(){sync(this,function(){renderStart();});});ge("btn-sync-anuncios").addEventListener("click",function(){sync(this,function(){renderAnuncios();actualizarIndicadorAnuncios();});});ge("anuncio-banner").addEventListener("click",function(){showScreen("anuncios")});ge("anuncio-banner").addEventListener("keydown",function(e){if(e.key==="Enter"||e.key===" "){e.preventDefault();showScreen("anuncios")}});ge("btn-saldo-toggle").addEventListener("click",function(){STATE.saldoOpen=!STATE.saldoOpen;renderSaldo();});ge("btn-sync-clases").addEventListener("click",function(){sync(this,function(){renderClassesDateRange();renderClasses();renderMyClasses();renderUpcomingClass();});});  document.addEventListener("visibilitychange",function(){if(!document.hidden)syncSilent();});
   window.addEventListener("focus",syncSilent);
 }
 
 /* ── BOOT ──────────────────────────────────────────────────── */
 function boot(){
   applyBrand();bindEvents();ge("nav-socio").style.display="none";
-  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.initSocio!=="function"||typeof GymDB.loginSocio!=="function"||typeof GymDB.restaurarSesionSocio!=="function"){failVisible("No se encontró el GymDB seguro 2026.08.12.2152. Verifica que supabasedb_v2026.08.12.2152.js cargue correctamente.");return;}
-  var expectedVersion=window.CONTENDER_SOCIO_DB_VERSION||"2026.08.12.2152";if(String(GymDB.VERSION||"")!==String(expectedVersion)){failVisible("Versión incompatible: socio "+expectedVersion+" / supabasedb "+(GymDB.VERSION||"sin versión")+".");return;}
+  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.initSocio!=="function"||typeof GymDB.loginSocio!=="function"||typeof GymDB.restaurarSesionSocio!=="function"){failVisible("No se encontró el GymDB seguro 2026.08.12.2153. Verifica que supabasedb_v2026.08.12.2153.js cargue correctamente.");return;}
+  var expectedVersion=window.CONTENDER_SOCIO_DB_VERSION||"2026.08.12.2153";if(String(GymDB.VERSION||"")!==String(expectedVersion)){failVisible("Versión incompatible: socio "+expectedVersion+" / supabasedb "+(GymDB.VERSION||"sin versión")+".");return;}
   Promise.resolve(GymDB.restaurarSesionSocio()).then(function(auth){
     if(!auth||!auth.ok){ge("ov-loading").style.display="none";showScreen("login");return null;}
-    return Promise.resolve(GymDB.initSocio()).then(function(){loadCatalogs();var member=GymDB.getSocio(auth.socio_id);if(!member)throw new Error("La sesión Auth no tiene un socio válido");var p=profileFromMember(member);p._authSession=auth.session;STATE.profiles=[p];STATE.member=p;ge("ov-loading").style.display="none";showScreen("inicio");});
+    return Promise.resolve(GymDB.initSocio()).then(function(){loadCatalogs();var member=GymDB.getSocio(auth.socio_id);if(!member)throw new Error("La sesión Auth no tiene un socio válido");var p=profileFromMember(member);p._authSession=auth.session;STATE.profiles=[p];STATE.member=p;registrarAccesoAppSeguro();ge("ov-loading").style.display="none";showScreen("inicio");});
   }).catch(function(err){console.error("[Socio Auth] Error al restaurar:",err);Promise.resolve(GymDB.logoutSocio()).finally(function(){ge("ov-loading").style.display="none";ge("login-error").textContent="Vuelve a iniciar sesión";showScreen("login");});});
 }
 document.addEventListener("DOMContentLoaded",boot);
