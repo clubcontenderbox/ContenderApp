@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Contender Club Socio | VERSION 2026.08.12.2145 | SEGURIDAD ETAPA 1: login real Supabase Auth por teléfono + PIN -->
+<!-- Contender Club Socio | VERSION 2026.08.12.2146 | SEGURIDAD ETAPA 4: carga mínima por socio autenticado -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script>window.CONTENDER_SOCIO_DB_VERSION="2026.08.12.2145";</script>
-<script src="supabasedb_v2026.08.12.2145.js"></script>
+<script>window.CONTENDER_SOCIO_DB_VERSION="2026.08.12.2146";</script>
+<script src="supabasedb_v2026.08.12.2146.js"></script>
 <style>
 :root{
   --app-max:430px;--bg:#080808;--bg2:#111;--bg3:#1a1a1a;--border:#2a2a2a;--muted:#666;--muted-2:#444;--text:#f0ede8;
@@ -300,7 +300,7 @@ function loadProfileByCredentials(tel,code){
   tel=phone(tel);code=sid(code).trim();
   return GymDB.loginSocio(tel,code).then(function(auth){
     if(!auth||!auth.ok)return {ok:false,msg:(auth&&auth.error)||"Número o código incorrecto"};
-    return Promise.resolve(GymDB.init()).then(function(){
+    return Promise.resolve(GymDB.initSocio()).then(function(){
       loadCatalogs();var member=GymDB.getSocio(auth.socio_id);
       if(!member){return GymDB.logoutSocio().then(function(){return{ok:false,msg:"La cuenta Auth existe pero no se encontró el socio vinculado"};});}
       var data=profileFromMember(member);data._authSession=auth.session;
@@ -333,7 +333,7 @@ function selectProfile(id){
   function abrir(){STATE.member=p;showScreen("inicio");return true;}
   var actual=GymDB.getSocioAuthActual&&GymDB.getSocioAuthActual();if(actual&&sameId(actual.socio_id,p.id))return Promise.resolve(abrir());
   if(!p._authSession){toast("Vuelve a iniciar sesión para este perfil");return Promise.resolve(false);}
-  return GymDB.usarSesionSocio(p._authSession).then(function(r){if(!r||!r.ok)throw new Error((r&&r.error)||"Sesión inválida");return GymDB.init();}).then(function(){loadCatalogs();var fresh=GymDB.getSocio(p.id);if(fresh){var session=p._authSession;p=profileFromMember(fresh);p._authSession=session;var idx=STATE.profiles.findIndex(function(x){return sameId(x.id,p.id);});if(idx>-1)STATE.profiles[idx]=p;}return abrir();}).catch(function(e){console.error(e);toast("⚠ Vuelve a iniciar sesión");return false;});
+  return GymDB.usarSesionSocio(p._authSession).then(function(r){if(!r||!r.ok)throw new Error((r&&r.error)||"Sesión inválida");return GymDB.initSocio();}).then(function(){loadCatalogs();var fresh=GymDB.getSocio(p.id);if(fresh){var session=p._authSession;p=profileFromMember(fresh);p._authSession=session;var idx=STATE.profiles.findIndex(function(x){return sameId(x.id,p.id);});if(idx>-1)STATE.profiles[idx]=p;}return abrir();}).catch(function(e){console.error(e);toast("⚠ Vuelve a iniciar sesión");return false;});
 }
 function renderProfileSelect(){var sel=ge("sel-perfil");sel.innerHTML="";STATE.profiles.forEach(function(p){var opt=document.createElement("option");opt.value=sid(p.id);opt.textContent=[p.nombre,p.apellido_paterno].filter(Boolean).join(" ");opt.selected=STATE.member&&sameId(p.id,STATE.member.id);sel.appendChild(opt);});}
 
@@ -413,9 +413,9 @@ function renderMyClasses(){
 }
 
 /* ── SINCRONIZACIÓN ────────────────────────────────────────── */
-function sync(btn,renderFn){setBusy(btn,true);Promise.resolve(GymDB.init()).then(function(){loadCatalogs();refreshActiveProfile();renderFn();toast("↻ Actualizado");}).catch(function(err){console.error(err);toast("⚠ No se pudo actualizar");}).finally(function(){setBusy(btn,false);});}
+function sync(btn,renderFn){setBusy(btn,true);Promise.resolve(GymDB.initSocio()).then(function(){loadCatalogs();refreshActiveProfile();renderFn();toast("↻ Actualizado");}).catch(function(err){console.error(err);toast("⚠ No se pudo actualizar");}).finally(function(){setBusy(btn,false);});}
 var AUTO_SYNC={busy:false,last:0,minGapMs:5000};
-function syncSilent(){if(AUTO_SYNC.busy||!STATE.member)return;var now=Date.now();if(now-AUTO_SYNC.last<AUTO_SYNC.minGapMs)return;AUTO_SYNC.busy=true;AUTO_SYNC.last=now;Promise.resolve(GymDB.init()).then(function(){loadCatalogs();refreshActiveProfile();var active=document.querySelector(".screen.active");if(!active)return;if(active.id==="screen-inicio")renderStart();else if(active.id==="screen-clases"){renderClassesDateRange();renderClasses();renderMyClasses();renderUpcomingClass();}}).catch(function(err){console.error("[Socio] Sincronización automática:",err);}).finally(function(){AUTO_SYNC.busy=false;});}
+function syncSilent(){if(AUTO_SYNC.busy||!STATE.member)return;var now=Date.now();if(now-AUTO_SYNC.last<AUTO_SYNC.minGapMs)return;AUTO_SYNC.busy=true;AUTO_SYNC.last=now;Promise.resolve(GymDB.initSocio()).then(function(){loadCatalogs();refreshActiveProfile();var active=document.querySelector(".screen.active");if(!active)return;if(active.id==="screen-inicio")renderStart();else if(active.id==="screen-clases"){renderClassesDateRange();renderClasses();renderMyClasses();renderUpcomingClass();}}).catch(function(err){console.error("[Socio] Sincronización automática:",err);}).finally(function(){AUTO_SYNC.busy=false;});}
 
 /* ── EVENTOS ───────────────────────────────────────────────── */
 function bindEvents(){
@@ -437,11 +437,11 @@ function bindEvents(){
 /* ── BOOT ──────────────────────────────────────────────────── */
 function boot(){
   applyBrand();bindEvents();ge("nav-socio").style.display="none";
-  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.init!=="function"||typeof GymDB.loginSocio!=="function"||typeof GymDB.restaurarSesionSocio!=="function"){failVisible("No se encontró el GymDB seguro 2026.08.12.2145. Verifica que supabasedb_v2026.08.12.2145.js cargue correctamente.");return;}
-  var expectedVersion=window.CONTENDER_SOCIO_DB_VERSION||"2026.08.12.2145";if(String(GymDB.VERSION||"")!==String(expectedVersion)){failVisible("Versión incompatible: socio "+expectedVersion+" / supabasedb "+(GymDB.VERSION||"sin versión")+".");return;}
+  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.initSocio!=="function"||typeof GymDB.loginSocio!=="function"||typeof GymDB.restaurarSesionSocio!=="function"){failVisible("No se encontró el GymDB seguro 2026.08.12.2146. Verifica que supabasedb_v2026.08.12.2146.js cargue correctamente.");return;}
+  var expectedVersion=window.CONTENDER_SOCIO_DB_VERSION||"2026.08.12.2146";if(String(GymDB.VERSION||"")!==String(expectedVersion)){failVisible("Versión incompatible: socio "+expectedVersion+" / supabasedb "+(GymDB.VERSION||"sin versión")+".");return;}
   Promise.resolve(GymDB.restaurarSesionSocio()).then(function(auth){
     if(!auth||!auth.ok){ge("ov-loading").style.display="none";showScreen("login");return null;}
-    return Promise.resolve(GymDB.init()).then(function(){loadCatalogs();var member=GymDB.getSocio(auth.socio_id);if(!member)throw new Error("La sesión Auth no tiene un socio válido");var p=profileFromMember(member);p._authSession=auth.session;STATE.profiles=[p];STATE.member=p;ge("ov-loading").style.display="none";showScreen("inicio");});
+    return Promise.resolve(GymDB.initSocio()).then(function(){loadCatalogs();var member=GymDB.getSocio(auth.socio_id);if(!member)throw new Error("La sesión Auth no tiene un socio válido");var p=profileFromMember(member);p._authSession=auth.session;STATE.profiles=[p];STATE.member=p;ge("ov-loading").style.display="none";showScreen("inicio");});
   }).catch(function(err){console.error("[Socio Auth] Error al restaurar:",err);Promise.resolve(GymDB.logoutSocio()).finally(function(){ge("ov-loading").style.display="none";ge("login-error").textContent="Vuelve a iniciar sesión";showScreen("login");});});
 }
 document.addEventListener("DOMContentLoaded",boot);
