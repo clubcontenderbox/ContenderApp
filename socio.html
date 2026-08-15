@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Contender Club Socio | VERSION 2026.08.12.2146 | SEGURIDAD ETAPA 4: carga mínima por socio autenticado -->
+<!-- Contender Club Socio | VERSION 2026.08.12.2148 | SEGURIDAD ETAPA 5A-5B: Auth socio + RLS inicial en socios + hora check-in desde fuente oficial -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script>window.CONTENDER_SOCIO_DB_VERSION="2026.08.12.2146";</script>
-<script src="supabasedb_v2026.08.12.2146.js"></script>
+<script>window.CONTENDER_SOCIO_DB_VERSION="2026.08.12.2148";</script>
+<script src="supabasedb_v2026.08.12.2148.js"></script>
 <style>
 :root{
   --app-max:430px;--bg:#080808;--bg2:#111;--bg3:#1a1a1a;--border:#2a2a2a;--muted:#666;--muted-2:#444;--text:#f0ede8;
@@ -269,6 +269,7 @@ function failVisible(msg){var err=ge("ov-err");err.style.display="block";err.tex
 function profileInitials(p){var a=sid(p.nombre).trim().charAt(0),b=sid(p.apellido_paterno).trim().charAt(0);return (a+b||"?").toUpperCase();}
 function timeMinutes(value){var m=sid(value).match(/(\d{1,2}):(\d{2})/);return m?(+m[1]*60)+(+m[2]):0;}
 function formatTime(value){var m=sid(value).match(/^(\d{1,2}):(\d{2})/);if(!m)return sid(value)||"—";var h=Number(m[1]),min=m[2],pm=h>=12,hh=h%12||12;return String(hh).padStart(2,"0")+":"+min+" "+(pm?"p.m.":"a.m.");}
+function horaMovimientoSaldo(m){if(!m)return "";if(sid(m.tipo).toLowerCase()!=="checkin")return sid(m.hora);var all=typeof GymDB.getAllCheckins==="function"?GymDB.getAllCheckins():{},rows=all&&all[sid(m.fecha)]||[],ci=rows.find(function(x){return STATE.member&&sameId(x.socio_id,STATE.member.id);});return ci&&ci.hora?sid(ci.hora):sid(m.hora);}
 function relativeDate(value){var d=dateLocal(value),today=dateLocal(new Date());if(!d||isNaN(d)||!today)return formatDate(value,{day:"numeric",month:"short"});var diff=Math.round((today-d)/86400000);if(diff===0)return "hoy";if(diff===1)return "ayer";return formatDate(d,{day:"numeric",month:"short"});}
 function classWindowDays(){return Math.max(1,Math.floor(number(CONFIG.UI.classWindowDays,7)));}
 function attendeesFor(classId,date){var list=GymDB.getInscritosPorClase(classId,date);return Array.isArray(list)?list:[];}
@@ -374,7 +375,7 @@ function renderSaldo(){
   if(!last){lastEl.textContent="Sin movimientos todavía";list.innerHTML="<div class='empty-inline'>Sin movimientos todavía</div>";list.hidden=true;btn.setAttribute("aria-expanded","false");toggleLabel.textContent="Sin movimientos recientes";return;}
   var lastValue=number(last.monto,0),lastSign=lastValue>=0?"+":"−",lastConcept=last.concepto||last.tipo||"Movimiento";lastEl.textContent="Último movimiento: "+lastSign+Math.abs(lastValue).toLocaleString(CONFIG.APP.locale)+" "+lastConcept+" · "+relativeDate(last.fecha);
   list.hidden=!STATE.saldoOpen;btn.setAttribute("aria-expanded",STATE.saldoOpen?"true":"false");toggleLabel.textContent=STATE.saldoOpen?"Ocultar movimientos recientes":"Ver movimientos recientes";
-  list.innerHTML=movs.map(function(m){var val=number(m.monto,0),pos=val>=0;return "<div class='mini-row'><div class='mini-info'><div class='mini-title'>"+esc(m.concepto||m.tipo||"Movimiento")+"</div><div class='mini-meta'>"+relativeDate(m.fecha)+(m.hora?" · "+formatTime(m.hora):"")+"</div></div><div class='mini-value "+(pos?"pos":"neg")+"'>"+(pos?"+":"−")+Math.abs(val).toLocaleString(CONFIG.APP.locale)+"</div></div>";}).join("");
+  list.innerHTML=movs.map(function(m){var val=number(m.monto,0),pos=val>=0,hora=horaMovimientoSaldo(m);return "<div class='mini-row'><div class='mini-info'><div class='mini-title'>"+esc(m.concepto||m.tipo||"Movimiento")+"</div><div class='mini-meta'>"+relativeDate(m.fecha)+(hora?" · "+formatTime(hora):"")+"</div></div><div class='mini-value "+(pos?"pos":"neg")+"'>"+(pos?"+":"−")+Math.abs(val).toLocaleString(CONFIG.APP.locale)+"</div></div>";}).join("");
 }
 function renderDebts(){
   var debts=productDebts(STATE.member.id),lbl=ge("lbl-deudas"),c=ge("deudas-lista");lbl.hidden=!debts.length;if(!debts.length){c.innerHTML="";return;}
@@ -437,8 +438,8 @@ function bindEvents(){
 /* ── BOOT ──────────────────────────────────────────────────── */
 function boot(){
   applyBrand();bindEvents();ge("nav-socio").style.display="none";
-  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.initSocio!=="function"||typeof GymDB.loginSocio!=="function"||typeof GymDB.restaurarSesionSocio!=="function"){failVisible("No se encontró el GymDB seguro 2026.08.12.2146. Verifica que supabasedb_v2026.08.12.2146.js cargue correctamente.");return;}
-  var expectedVersion=window.CONTENDER_SOCIO_DB_VERSION||"2026.08.12.2146";if(String(GymDB.VERSION||"")!==String(expectedVersion)){failVisible("Versión incompatible: socio "+expectedVersion+" / supabasedb "+(GymDB.VERSION||"sin versión")+".");return;}
+  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.initSocio!=="function"||typeof GymDB.loginSocio!=="function"||typeof GymDB.restaurarSesionSocio!=="function"){failVisible("No se encontró el GymDB seguro 2026.08.12.2148. Verifica que supabasedb_v2026.08.12.2148.js cargue correctamente.");return;}
+  var expectedVersion=window.CONTENDER_SOCIO_DB_VERSION||"2026.08.12.2148";if(String(GymDB.VERSION||"")!==String(expectedVersion)){failVisible("Versión incompatible: socio "+expectedVersion+" / supabasedb "+(GymDB.VERSION||"sin versión")+".");return;}
   Promise.resolve(GymDB.restaurarSesionSocio()).then(function(auth){
     if(!auth||!auth.ok){ge("ov-loading").style.display="none";showScreen("login");return null;}
     return Promise.resolve(GymDB.initSocio()).then(function(){loadCatalogs();var member=GymDB.getSocio(auth.socio_id);if(!member)throw new Error("La sesión Auth no tiene un socio válido");var p=profileFromMember(member);p._authSession=auth.session;STATE.profiles=[p];STATE.member=p;ge("ov-loading").style.display="none";showScreen("inicio");});
