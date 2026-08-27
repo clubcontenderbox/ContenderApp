@@ -1,0 +1,14 @@
+{
+  "id": "./socio.html",
+  "name": "Contender Club",
+  "short_name": "Contender",
+  "start_url": "./socio.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#080808",
+  "theme_color": "#080808",
+  "icons": [
+    {"src":"./contender-icon-192.png","sizes":"192x192","type":"image/png"},
+    {"src":"./contender-icon-512.png","sizes":"512x512","type":"image/png"}
+  ]
+}
