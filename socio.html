@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Contender Club Socio | VERSION 2026.08.12.2167 | TRAINER AUTH COMPAT + ABONO POR VISITAS + ANUNCIOS -->
+<!-- Contender Club Socio | VERSION 2026.08.12.2168 | TRAINER AUTH COMPAT + ABONO POR VISITAS + ANUNCIOS -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -16,8 +16,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script>window.CONTENDER_SOCIO_DB_VERSION="2026.08.12.2167";</script>
-<script src="supabasedb_v2026.08.12.2167.js?build=2167"></script>
+<script>window.CONTENDER_SOCIO_DB_VERSION="2026.08.12.2168";</script>
+<script src="supabasedb_v2026.08.12.2168.js?build=2168"></script>
 <style>
 :root{
   --app-max:430px;--bg:#080808;--bg2:#111;--bg3:#1a1a1a;--border:#2a2a2a;--muted:#666;--muted-2:#444;--text:#f0ede8;
@@ -102,7 +102,7 @@ input:focus,select:focus{border-color:var(--lime)}
 .app-version-badge{position:fixed;top:6px;right:8px;z-index:10001;color:#555;font-size:9px;font-weight:700;letter-spacing:.4px;pointer-events:none}
 </style>
 </head>
-<body><div class="app-version-badge">v2167</div>
+<body><div class="app-version-badge">v2168</div>
 <div id="ov-loading" class="loading-overlay" role="status" aria-live="polite">
   <div id="brand-loading" class="loading-brand">CONTENDER<br>CLUB</div>
   <div class="loading-sub">Conectando con Supabase…</div>
@@ -501,8 +501,8 @@ function bindEvents(){
 /* ── BOOT ──────────────────────────────────────────────────── */
 function boot(){
   applyBrand();bindEvents();ge("nav-socio").style.display="none";
-  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.initSocio!=="function"||typeof GymDB.loginSocio!=="function"||typeof GymDB.restaurarSesionSocio!=="function"){failVisible("No se encontró el archivo Supabase compartido 2026.08.12.2167. Verifica que supabasedb_v2026.08.12.2167.js cargue correctamente.");return;}
-  var expectedVersion=window.CONTENDER_SOCIO_DB_VERSION||"2026.08.12.2167";if(String(GymDB.VERSION||"")!==String(expectedVersion)){failVisible("Versión incompatible: socio "+expectedVersion+" / supabasedb "+(GymDB.VERSION||"sin versión")+".");return;}
+  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.initSocio!=="function"||typeof GymDB.loginSocio!=="function"||typeof GymDB.restaurarSesionSocio!=="function"){failVisible("No se encontró el archivo Supabase compartido 2026.08.12.2168. Verifica que supabasedb_v2026.08.12.2168.js cargue correctamente.");return;}
+  var expectedVersion=window.CONTENDER_SOCIO_DB_VERSION||"2026.08.12.2168";if(String(GymDB.VERSION||"")!==String(expectedVersion)){failVisible("Versión incompatible: socio "+expectedVersion+" / supabasedb "+(GymDB.VERSION||"sin versión")+".");return;}
   Promise.resolve(GymDB.restaurarSesionSocio()).then(function(auth){
     if(!auth||!auth.ok){ge("ov-loading").style.display="none";showScreen("login");return null;}
     return Promise.resolve(GymDB.initSocio()).then(function(){loadCatalogs();var member=GymDB.getSocio(auth.socio_id);if(!member)throw new Error("La sesión Auth no tiene un socio válido");var p=profileFromMember(member);p._authSession=auth.session;STATE.profiles=[p];STATE.member=p;registrarAccesoAppSeguro();ge("ov-loading").style.display="none";showScreen("inicio");});
