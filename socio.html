@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Contender Club Socio | VERSION 2026.08.12.2168 | TRAINER AUTH COMPAT + ABONO POR VISITAS + ANUNCIOS -->
+<!-- Contender Club Socio | VERSION 2026.08.12.2171 | TRAINER AUTH COMPAT + ABONO POR VISITAS + ANUNCIOS -->
 <html lang="es">
 <head>
 <meta charset="UTF-8">
@@ -16,8 +16,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script>window.CONTENDER_SOCIO_DB_VERSION="2026.08.12.2168";</script>
-<script src="supabasedb_v2026.08.12.2168.js?build=2168"></script>
+<script>window.CONTENDER_SOCIO_DB_VERSION="2026.08.12.2171";</script>
+<script src="supabasedb_v2026.08.12.2171.js?build=2171"></script>
 <style>
 :root{
   --app-max:430px;--bg:#080808;--bg2:#111;--bg3:#1a1a1a;--border:#2a2a2a;--muted:#666;--muted-2:#444;--text:#f0ede8;
@@ -102,7 +102,7 @@ input:focus,select:focus{border-color:var(--lime)}
 .app-version-badge{position:fixed;top:6px;right:8px;z-index:10001;color:#555;font-size:9px;font-weight:700;letter-spacing:.4px;pointer-events:none}
 </style>
 </head>
-<body><div class="app-version-badge">v2168</div>
+<body><div class="app-version-badge">v2171</div>
 <div id="ov-loading" class="loading-overlay" role="status" aria-live="polite">
   <div id="brand-loading" class="loading-brand">CONTENDER<br>CLUB</div>
   <div class="loading-sub">Conectando con Supabase…</div>
@@ -312,7 +312,7 @@ function isVisitMembership(plan){var m=membershipCatalog(plan);return !!(m&&sid(
 function visitMembershipState(){if(!STATE.member||!isVisitMembership(STATE.member.membresia))return null;var e=typeof GymDB.getAbonoVisitasActual==="function"?GymDB.getAbonoVisitasActual(STATE.member.id):null;return e||STATE.member.abono_visitas||null;}
 function visitMembershipAvailable(){var e=visitMembershipState();return e?Math.max(number(e.visitas_asignadas,0)-number(e.visitas_consumidas,0),0):0;}
 function membershipPrice(plan){var m=membershipCatalog(plan);if(!m){console.warn('[Socio] Plan no encontrado en catálogo: "'+plan+'"');return null;}var price=Number(m.precio);if(!Number.isFinite(price)){console.warn('[Socio] Precio inválido para el plan: "'+plan+'"');return null;}return price;}
-function profileFromMember(s){var ev=typeof GymDB.getAbonoVisitasActual==="function"?GymDB.getAbonoVisitasActual(s.id):null;return {id:s.id,nombre:s.nombre,apellido_paterno:s.apellido_paterno,apellido_materno:s.apellido_materno,numero:s.numero,membresia:s.plan,fecha_inicio:s.fecha_inicio,fecha_vencimiento:s.fecha_vencimiento,visitas:s.visitas,peso:s.peso,musculo:s.musculo,activo:s.activo,color:s.color||CONFIG.UI.defaultProfileColor,abonos:(s.abonos||[]).slice(),abono_visitas:ev};}
+function profileFromMember(s){var vig=typeof GymDB.getMembresiaVigente==="function"?GymDB.getMembresiaVigente(s.id):null,ev=null;if(vig&&String(vig.unidad||"")==="visitas"&&typeof GymDB.getAbonosVisitas==="function"){var xs=GymDB.getAbonosVisitas(s.id);ev=xs.find(function(x){return vig.abono_visitas_id!=null&&String(x.id)===String(vig.abono_visitas_id)})||xs.find(function(x){return x.activo&&String(x.plan||"")===String(vig.plan||"")})||null}return {id:s.id,nombre:s.nombre,apellido_paterno:s.apellido_paterno,apellido_materno:s.apellido_materno,numero:s.numero,membresia:vig?vig.plan:null,fecha_inicio:vig?vig.inicio:null,fecha_vencimiento:vig?vig.fin:null,visitas:s.visitas,peso:s.peso,musculo:s.musculo,activo:s.activo,color:s.color||CONFIG.UI.defaultProfileColor,abonos:(s.abonos||[]).slice(),abono_visitas:ev};}
 function refreshActiveProfile(){if(!STATE.member)return;var authSession=STATE.member._authSession||null,fresh=GymDB.getSocio(STATE.member.id);if(!fresh)return;var data=profileFromMember(fresh);if(authSession)data._authSession=authSession;var idx=STATE.profiles.findIndex(function(p){return sameId(p.id,data.id);});if(idx>-1)STATE.profiles[idx]=data;else STATE.profiles.push(data);STATE.member=data;}
 function productDebts(memberId){return (GymDB.getVentas()||[]).filter(function(v){return v&&v.tipo==="prod"&&sameId(v.socio_id,memberId)&&sid(v.status).toLowerCase()!=="pagado";}).map(function(v){return {id:v.id,socio_id:v.socio_id,producto:v.producto,total:number(v.total,0),fecha:v.fecha,trainer:v.trainer||null,tipo:"producto"};});}
 
@@ -501,8 +501,8 @@ function bindEvents(){
 /* ── BOOT ──────────────────────────────────────────────────── */
 function boot(){
   applyBrand();bindEvents();ge("nav-socio").style.display="none";
-  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.initSocio!=="function"||typeof GymDB.loginSocio!=="function"||typeof GymDB.restaurarSesionSocio!=="function"){failVisible("No se encontró el archivo Supabase compartido 2026.08.12.2168. Verifica que supabasedb_v2026.08.12.2168.js cargue correctamente.");return;}
-  var expectedVersion=window.CONTENDER_SOCIO_DB_VERSION||"2026.08.12.2168";if(String(GymDB.VERSION||"")!==String(expectedVersion)){failVisible("Versión incompatible: socio "+expectedVersion+" / supabasedb "+(GymDB.VERSION||"sin versión")+".");return;}
+  if(typeof GymDB==="undefined"||!GymDB||typeof GymDB.initSocio!=="function"||typeof GymDB.loginSocio!=="function"||typeof GymDB.restaurarSesionSocio!=="function"){failVisible("No se encontró el archivo Supabase compartido 2026.08.12.2171. Verifica que supabasedb_v2026.08.12.2171.js cargue correctamente.");return;}
+  var expectedVersion=window.CONTENDER_SOCIO_DB_VERSION||"2026.08.12.2171";if(String(GymDB.VERSION||"")!==String(expectedVersion)){failVisible("Versión incompatible: socio "+expectedVersion+" / supabasedb "+(GymDB.VERSION||"sin versión")+".");return;}
   Promise.resolve(GymDB.restaurarSesionSocio()).then(function(auth){
     if(!auth||!auth.ok){ge("ov-loading").style.display="none";showScreen("login");return null;}
     return Promise.resolve(GymDB.initSocio()).then(function(){loadCatalogs();var member=GymDB.getSocio(auth.socio_id);if(!member)throw new Error("La sesión Auth no tiene un socio válido");var p=profileFromMember(member);p._authSession=auth.session;STATE.profiles=[p];STATE.member=p;registrarAccesoAppSeguro();ge("ov-loading").style.display="none";showScreen("inicio");});
